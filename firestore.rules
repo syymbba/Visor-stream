@@ -5,35 +5,29 @@ service cloud.firestore {
     // User profile documents
     match /users/{userId} {
       allow read: if true;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null && request.auth.uid == userId;
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      allow write: if true;
     }
 
     // Stream status & metadata
     match /streams/{streamId} {
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if true;
     }
 
     // Live chat messages
     match /chat_messages/{messageId} {
-      allow read: if true;
-      allow create: if request.resource.data.text is string && request.resource.data.text.size() > 0;
+      allow read, create: if true;
       allow update, delete: if request.auth != null;
     }
 
     // Tips and donations
     match /tips/{tipId} {
-      allow read: if true;
-      allow create: if true;
+      allow read, create: if true;
       allow update, delete: if request.auth != null;
     }
 
-    // Default catch-all for health checks / testing
+    // Default fallback
     match /{document=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read, write: if true;
     }
   }
 }

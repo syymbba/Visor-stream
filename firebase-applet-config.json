@@ -1,11 +1,12 @@
 {
-  "projectId": "nth-setup-476512-u1",
-  "appId": "1:857003973165:web:4496045967e58fb767b6a4",
-  "apiKey": "AIzaSyByuI7LyiKANUMN3UtqRdpZNMfZ0m88eDA",
-  "authDomain": "nth-setup-476512-u1.firebaseapp.com",
-  "storageBucket": "nth-setup-476512-u1.firebasestorage.app",
-  "messagingSenderId": "857003973165",
+  "projectId": "gen-lang-client-0561219345",
+  "appId": "1:457542180674:web:1245087db7b684300132db",
+  "apiKey": "AIzaSyAROu5vmcjdTerbDXfnENVEbOCG27X5xVw",
+  "authDomain": "gen-lang-client-0561219345.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-visorstreamgamin-aff5d810-e868-4b6b-b25d-1b58060748b9",
+  "storageBucket": "gen-lang-client-0561219345.firebasestorage.app",
+  "messagingSenderId": "457542180674",
   "measurementId": "",
-  "oAuthClientId": "857003973165-eas8mrdldhd9fh20nejq35981dj253dt.apps.googleusercontent.com",
+  "oAuthClientId": "457542180674-n7jjian73dv60kr0djv26g1ijijasvbs.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }

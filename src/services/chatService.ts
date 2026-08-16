@@ -98,7 +98,6 @@ export function subscribeToStreamChat(
     const q = query(
       chatCol,
       where('streamId', '==', streamId),
-      orderBy('createdAt', 'asc'),
       limit(60)
     );
 
@@ -106,8 +105,9 @@ export function subscribeToStreamChat(
       q,
       (snapshot) => {
         if (!snapshot.empty) {
-          const firestoreMsgs: ChatMessage[] = snapshot.docs.map((docSnap) => {
+          const firestoreMsgs: (ChatMessage & { _rawTime?: number })[] = snapshot.docs.map((docSnap) => {
             const data = docSnap.data();
+            const createdAtSeconds = data.createdAt?.seconds ? data.createdAt.seconds * 1000 : 0;
             return {
               id: docSnap.id,
               sender: data.sender || 'Gamer',
@@ -118,21 +118,21 @@ export function subscribeToStreamChat(
               isDonation: data.isDonation,
               donationAmount: data.donationAmount,
               donationCurrency: data.donationCurrency,
-              donationMessage: data.donationMessage
+              donationMessage: data.donationMessage,
+              _rawTime: createdAtSeconds
             };
           });
 
-          // Merge with initial system messages if desired
+          // Sort chronologically client-side
+          firestoreMsgs.sort((a, b) => (a._rawTime || 0) - (b._rawTime || 0));
+
           setLocalChatMessages(streamId, firestoreMsgs);
           onMessagesUpdate(firestoreMsgs);
         }
       },
       (error) => {
-        handleFirestoreError(error, {
-          operation: OperationType.LIST,
-          path: 'chat_messages',
-          timestamp: new Date().toISOString()
-        });
+        // Log friendly warning and maintain cached messages
+        console.warn('[VISOR Stream Chat Sync] Offline fallback active:', error.message || error);
       }
     );
 

@@ -111,6 +111,27 @@ export async function syncAuthUserWithFirestore(user: User, additionalData?: Par
     };
 
     await saveUserProfile(newProfile);
+
+    // Synchronize with Cloud SQL backend in background
+    try {
+      const token = await user.getIdToken();
+      if (token) {
+        fetch('/api/auth/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            displayName: newProfile.displayName,
+            photoUrl: newProfile.photoURL,
+          }),
+        }).catch((err) => console.warn('Cloud SQL auth sync background notice:', err));
+      }
+    } catch {
+      // Ignore background sync errors
+    }
+
     return newProfile;
   } catch (error) {
     console.warn('Sync profile fallback:', error);
