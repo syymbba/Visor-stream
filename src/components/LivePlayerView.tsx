@@ -1,0 +1,602 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { LiveStream, ChatMessage, Currency } from '../types';
+import { CURRENCY_RATES } from '../data/mockData';
+import { StreamPlayer } from './StreamPlayer';
+import { TipModal } from './TipModal';
+import { 
+  subscribeToStreamChat, 
+  sendStreamChatMessage, 
+  getLocalChatMessages 
+} from '../services/chatService';
+import confetti from 'canvas-confetti';
+import {
+  Radio,
+  Send,
+  Heart,
+  Sparkles,
+  Smartphone,
+  CheckCircle2,
+  Users,
+  Eye,
+  Activity,
+  MessageSquare,
+  Gift,
+  Coins,
+  Cpu,
+  ShoppingBag,
+  Info,
+  Tv
+} from 'lucide-react';
+
+interface LivePlayerViewProps {
+  currentStream: LiveStream;
+  allStreams?: LiveStream[];
+  streams?: LiveStream[];
+  onSelectStream: (stream: LiveStream) => void;
+  onOpenSubscribe: (streamerName?: string) => void;
+  currentCurrency: Currency;
+  onSelectCategory?: (categoryId: string) => void;
+}
+
+export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
+  currentStream,
+  allStreams,
+  streams: propStreams,
+  onSelectStream,
+  onOpenSubscribe,
+  currentCurrency,
+  onSelectCategory,
+}) => {
+  const displayStreams = allStreams || propStreams || [];
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [likesCount, setLikesCount] = useState(1420);
+  const [hasLiked, setHasLiked] = useState(false);
+
+  // Mobile Tabbed Interface: 'stream' | 'chat' | 'store' | 'info'
+  const [mobileActiveTab, setMobileActiveTab] = useState<'stream' | 'chat' | 'store' | 'info'>('stream');
+
+  // Real-time Chat State (Firestore + Local fallback)
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => getLocalChatMessages(currentStream.id));
+  const [inputMessage, setInputMessage] = useState('');
+  
+  // Tipping Modal State
+  const [tipModalOpen, setTipModalOpen] = useState(false);
+  const [activeTipAlert, setActiveTipAlert] = useState<{ sender: string; amount: string; msg: string } | null>(null);
+
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Subscribe to real-time Cloud Firestore chat updates
+  useEffect(() => {
+    const unsubscribe = subscribeToStreamChat(currentStream.id, (messages) => {
+      setChatMessages(messages);
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [currentStream.id]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputMessage.trim()) return;
+
+    const userText = inputMessage;
+    setInputMessage('');
+
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    await sendStreamChatMessage(currentStream.id, {
+      sender: 'You (Gamer)',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&auto=format&fit=crop&q=80',
+      badge: 'PRO',
+      text: userText,
+      timestamp: timeStr
+    });
+  };
+
+  const handleTipSuccess = (tipDetails: { amount: string; currency: string; message: string; sender: string }) => {
+    setActiveTipAlert({
+      sender: tipDetails.sender || 'You',
+      amount: tipDetails.amount,
+      msg: tipDetails.message
+    });
+
+    setTimeout(() => {
+      setActiveTipAlert(null);
+    }, 7000);
+  };
+
+  const handleLike = () => {
+    if (hasLiked) {
+      setLikesCount(prev => prev - 1);
+      setHasLiked(false);
+    } else {
+      setLikesCount(prev => prev + 1);
+      setHasLiked(true);
+      confetti({
+        particleCount: 35,
+        spread: 50,
+        origin: { y: 0.8 }
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-5 animate-fadeIn pb-12">
+      {/* Live Super Tip Overlay Toast */}
+      {activeTipAlert && (
+        <div className="fixed top-24 right-6 z-50 max-w-sm bg-slate-900/95 backdrop-blur-xl text-white p-4 rounded-3xl shadow-2xl border border-amber-500/50 animate-bounce">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-500/20 rounded-2xl flex items-center justify-center border border-amber-500/30">
+              <Gift className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-mono-code font-bold tracking-wider text-amber-400">
+                🎉 LIVE SUPER TIP DISPATCHED!
+              </p>
+              <p className="font-bold text-xs text-white">
+                {activeTipAlert.sender} tipped <span className="text-amber-300 font-mono-code">{activeTipAlert.amount}</span>!
+              </p>
+              <p className="text-xs italic text-slate-300">"{activeTipAlert.msg}"</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Tabbed Switcher (Visible on mobile/small screens) */}
+      <div className="lg:hidden flex items-center gap-1.5 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl">
+        <button
+          onClick={() => setMobileActiveTab('stream')}
+          className={`flex-1 py-2 rounded-xl text-xs font-mono-code font-bold flex items-center justify-center gap-1.5 transition-all ${
+            mobileActiveTab === 'stream' ? 'bg-sky-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Tv className="w-3.5 h-3.5" />
+          <span>Stream</span>
+        </button>
+        <button
+          onClick={() => setMobileActiveTab('chat')}
+          className={`flex-1 py-2 rounded-xl text-xs font-mono-code font-bold flex items-center justify-center gap-1.5 transition-all ${
+            mobileActiveTab === 'chat' ? 'bg-sky-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <MessageSquare className="w-3.5 h-3.5" />
+          <span>Chat</span>
+        </button>
+        <button
+          onClick={() => setMobileActiveTab('store')}
+          className={`flex-1 py-2 rounded-xl text-xs font-mono-code font-bold flex items-center justify-center gap-1.5 transition-all ${
+            mobileActiveTab === 'store' ? 'bg-sky-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <ShoppingBag className="w-3.5 h-3.5" />
+          <span>Store</span>
+        </button>
+        <button
+          onClick={() => setMobileActiveTab('info')}
+          className={`flex-1 py-2 rounded-xl text-xs font-mono-code font-bold flex items-center justify-center gap-1.5 transition-all ${
+            mobileActiveTab === 'info' ? 'bg-sky-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Info className="w-3.5 h-3.5" />
+          <span>Info</span>
+        </button>
+      </div>
+
+      {/* Main Bento Grid: Video Player + Real-time Event/Chat Stream */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Bento Hero Section: Live Video + Streamer Telemetry (8 cols) */}
+        <section className={`lg:col-span-8 flex flex-col gap-4 ${mobileActiveTab === 'chat' ? 'hidden lg:flex' : 'flex'}`}>
+          {/* HLS Adaptive Stream Player */}
+          <StreamPlayer
+            stream={currentStream}
+            onOpenSubscribe={() => onOpenSubscribe(currentStream.streamer.name)}
+            onOpenTip={() => setTipModalOpen(true)}
+          />
+
+          {/* Bento Stream Details & Streamer Profile Module */}
+          <div className="bg-slate-900 rounded-[28px] border border-slate-800 p-5 sm:p-6 shadow-xl space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono-code font-bold uppercase px-2.5 py-0.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/30">
+                    {currentStream.game}
+                  </span>
+                  <span className="text-xs text-slate-500 font-mono-code">UPTIME: {currentStream.uptime}</span>
+                </div>
+                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  {currentStream.title}
+                </h1>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  onClick={handleLike}
+                  className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold border transition-all ${
+                    hasLiked
+                      ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+                      : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                  }`}
+                >
+                  <Heart className={`w-4 h-4 ${hasLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  <span>{likesCount.toLocaleString()}</span>
+                </button>
+
+                <button
+                  onClick={() => setTipModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-transform active:scale-95"
+                >
+                  <Smartphone className="w-4 h-4 text-slate-950" />
+                  <span>Tip (MoMo / M-Pesa)</span>
+                </button>
+
+                <button
+                  onClick={() => onOpenSubscribe(currentStream.streamer.name)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-950 hover:bg-sky-400 transition-colors font-black text-xs uppercase tracking-widest shadow-lg shadow-sky-500/10"
+                >
+                  <Sparkles className="w-4 h-4 text-sky-600" />
+                  <span>Subscribe ($5)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Streamer Profile Row */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <img
+                    src={currentStream.streamer.avatar}
+                    alt={currentStream.streamer.name}
+                    className="w-12 h-12 rounded-2xl object-cover border-2 border-sky-400/80 shadow-md shadow-sky-400/20"
+                  />
+                  <span className="absolute -bottom-1 -right-1 text-sm">
+                    {currentStream.streamer.countryFlag}
+                  </span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-sm text-white">
+                      {currentStream.streamer.name}
+                    </span>
+                    {currentStream.streamer.verified && (
+                      <CheckCircle2 className="w-4 h-4 text-sky-400" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <span className="font-mono-code">{currentStream.streamer.handle}</span>
+                    <span>•</span>
+                    <span>{currentStream.streamer.subscribers.toLocaleString()} subscribers</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsFollowing(!isFollowing)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  isFollowing
+                    ? 'bg-slate-800 text-slate-300 border border-slate-700'
+                    : 'bg-sky-500/15 text-sky-400 border border-sky-500/40 hover:bg-sky-500/25'
+                }`}
+              >
+                {isFollowing ? 'Following' : '+ Follow'}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Bento Event Stream & Persistent Firestore Chat Panel (4 cols) */}
+        <section className={`lg:col-span-4 bg-slate-900 border border-slate-800 rounded-[28px] sm:rounded-[32px] flex flex-col overflow-hidden shadow-2xl shadow-black/40 h-[620px] ${mobileActiveTab === 'stream' ? 'hidden lg:flex' : 'flex'}`}>
+          {/* Header */}
+          <div className="p-5 sm:p-6 border-b border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-sky-400" />
+              <h2 className="font-black text-xs uppercase tracking-widest text-slate-400">
+                Live Chat & Super Tips
+              </h2>
+            </div>
+            <div className="bg-emerald-500/10 text-emerald-400 text-[10px] px-2.5 py-1 rounded-lg font-mono-code font-bold border border-emerald-500/20 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>FIRESTORE SYNC</span>
+            </div>
+          </div>
+
+          {/* Messages & Event Log Container */}
+          <div className="flex-grow p-4 sm:p-6 space-y-3.5 overflow-y-auto font-sans">
+            {/* Telemetry info banner */}
+            <div className="p-3.5 bg-sky-500/5 rounded-2xl border border-sky-500/10 text-xs text-slate-300 flex items-start gap-2.5">
+              <span className="text-[10px] font-mono text-sky-400 mt-0.5">STREAM</span>
+              <div className="space-y-0.5">
+                <h4 className="text-xs font-bold text-sky-400 uppercase">Live Super Chat Active</h4>
+                <p className="text-xs text-slate-300 leading-normal">
+                  MTN MoMo, M-Pesa, and Airtel Money live superchat tips pinned to top.
+                </p>
+              </div>
+            </div>
+
+            {chatMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`p-3 rounded-2xl transition-all ${
+                  msg.isDonation
+                    ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 shadow-lg'
+                    : 'bg-slate-800/40 hover:bg-slate-800/70 border border-slate-800'
+                }`}
+              >
+                {msg.isDonation && (
+                  <div className="flex items-center justify-between text-amber-300 font-bold text-[10px] font-mono-code mb-1.5">
+                    <span className="flex items-center gap-1.5">
+                      <Gift className="w-3.5 h-3.5 text-amber-400" />
+                      SUPER TIP: {msg.donationAmount}
+                    </span>
+                    <span className="text-[9px] px-1.5 py-0.2 bg-amber-500/20 rounded">★ VIP PIN</span>
+                  </div>
+                )}
+
+                <div className="flex items-start gap-2.5">
+                  <img
+                    src={msg.avatar}
+                    alt={msg.sender}
+                    className="w-7 h-7 rounded-xl object-cover mt-0.5"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-xs text-slate-200 truncate">{msg.sender}</span>
+                        {msg.badge && (
+                          <span
+                            className={`text-[8px] px-1.5 py-0.5 rounded font-mono-code font-bold uppercase ${
+                              msg.badge === 'CREATOR'
+                                ? 'bg-indigo-500/30 text-indigo-300 border border-indigo-500/40'
+                                : msg.badge === 'VIP'
+                                ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40'
+                                : 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                            }`}
+                          >
+                            {msg.badge}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-mono-code text-slate-500">{msg.timestamp}</span>
+                    </div>
+                    <p className={`mt-1 text-xs leading-normal ${msg.isDonation ? 'text-amber-100 font-semibold' : 'text-slate-300'}`}>
+                      {msg.text}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Chat Form & Bento Action Button */}
+          <div className="p-4 sm:p-5 bg-slate-950/50 border-t border-slate-800 space-y-3">
+            <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Send a chat message..."
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                className="flex-1 px-3.5 py-2.5 bg-slate-900 border border-slate-800 focus:border-sky-400 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setTipModalOpen(true)}
+                className="p-2.5 rounded-xl bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40"
+                title="Send Mobile Money Tip"
+              >
+                <Coins className="w-4 h-4" />
+              </button>
+              <button
+                type="submit"
+                className="p-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+
+            <button
+              type="button"
+              onClick={() => onOpenSubscribe(currentStream.streamer.name)}
+              className="w-full py-3 bg-white text-slate-950 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-sky-400 transition-colors shadow-lg shadow-sky-500/10"
+            >
+              Subscribe to Streamer ($5)
+            </button>
+          </div>
+        </section>
+      </div>
+
+      {/* Bento Telemetry Modules Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+        {/* Bento Cell 1: Intelligence Precision */}
+        <section className="md:col-span-4 bg-slate-900 border border-slate-800 rounded-[28px] sm:rounded-[32px] p-6 flex flex-col justify-between overflow-hidden relative shadow-xl">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono-code">
+              Adaptive Bitrate Sync
+            </h3>
+            <span className="text-[9px] font-mono-code text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+              OPTIMAL
+            </span>
+          </div>
+
+          <div className="my-4">
+            <div className="flex items-end gap-3">
+              <span className="text-5xl sm:text-6xl font-bold text-white tracking-tighter font-rajdhani">
+                98.4<span className="text-2xl text-slate-600">%</span>
+              </span>
+              <div className="mb-2 flex items-center gap-1 text-emerald-400 font-mono-code">
+                <Activity className="w-4 h-4" />
+                <span className="text-xs font-black">+0.3</span>
+              </div>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Stream encoder sync with HLS.js adaptive player & Cloudflare Nairobi node.
+            </p>
+          </div>
+
+          <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+            <div className="bg-sky-400 h-full w-[98.4%] shadow-[0_0_12px_rgba(56,189,248,0.6)]"></div>
+          </div>
+        </section>
+
+        {/* Bento Cell 2: Semantic Graphing */}
+        <section className="md:col-span-4 bg-slate-900 border border-slate-800 rounded-[28px] sm:rounded-[32px] p-6 flex flex-col justify-between shadow-xl">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono-code">
+                Regional CDN Routing
+              </h3>
+              <span className="text-xs text-slate-400">East Africa edge latency</span>
+            </div>
+            <div className="flex gap-1.5">
+              <div className="w-1.5 h-4 bg-indigo-500 rounded-full animate-pulse"></div>
+              <div className="w-1.5 h-4 bg-indigo-500/60 rounded-full"></div>
+              <div className="w-1.5 h-4 bg-indigo-500/20 rounded-full"></div>
+            </div>
+          </div>
+
+          <div className="flex items-end justify-between gap-2.5 my-4 h-16">
+            <div className="flex-1 bg-slate-800/50 h-8 rounded-xl relative overflow-hidden">
+              <div className="absolute bottom-0 left-0 w-full h-full bg-indigo-500/20 border-b-2 border-indigo-400 rounded-b-xl"></div>
+            </div>
+            <div className="flex-1 bg-slate-800/50 h-14 rounded-xl relative overflow-hidden">
+              <div className="absolute bottom-0 left-0 w-full h-full bg-sky-500/20 border-b-2 border-sky-400 rounded-b-xl"></div>
+            </div>
+            <div className="flex-1 bg-slate-800/50 h-16 rounded-xl relative overflow-hidden">
+              <div className="absolute bottom-0 left-0 w-full h-full bg-indigo-500/30 border-b-2 border-indigo-400 rounded-b-xl"></div>
+            </div>
+            <div className="flex-1 bg-slate-800/50 h-10 rounded-xl relative overflow-hidden">
+              <div className="absolute bottom-0 left-0 w-full h-full bg-sky-500/20 border-b-2 border-sky-400 rounded-b-xl"></div>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center text-[9px] text-slate-400 font-mono-code font-bold uppercase">
+            <span>Nairobi (14ms)</span>
+            <span>Kampala (18ms)</span>
+            <span>Dar es Salaam (22ms)</span>
+          </div>
+        </section>
+
+        {/* Bento Cell 3: Mobile Money Instant Payouts */}
+        <section className="md:col-span-4 bg-slate-900 border border-slate-800 rounded-[28px] sm:rounded-[32px] p-6 flex flex-col justify-between shadow-xl">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono-code">
+              Direct Monetization
+            </h3>
+            <span className="text-[9px] font-mono-code text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+              70/30 REVENUE
+            </span>
+          </div>
+
+          <div className="my-3 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">Supported Rails:</span>
+              <span className="text-white font-bold">MTN MoMo, M-Pesa, Airtel</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">Streamer Payout Rate:</span>
+              <span className="text-sky-400 font-bold">70% Instant Direct</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">Settlement Currency:</span>
+              <span className="text-emerald-400 font-bold">{currentCurrency} Local</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setTipModalOpen(true)}
+            className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold text-xs rounded-xl border border-slate-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <Smartphone className="w-4 h-4 text-sky-400" />
+            <span>Send Direct Mobile Tip</span>
+          </button>
+        </section>
+      </div>
+
+      {/* Featured Live Streams Grid */}
+      <div className="space-y-4 pt-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Radio className="w-4 h-4 text-red-500 animate-pulse" />
+            <h2 className="text-base sm:text-lg font-black text-white uppercase tracking-wider font-rajdhani">
+              Featured Live Streams
+            </h2>
+          </div>
+          <span className="text-xs text-sky-400 font-mono-code font-semibold">
+            {displayStreams.length} ACTIVE BROADCASTS
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {displayStreams.map((stream) => (
+            <div
+              key={stream.id}
+              onClick={() => onSelectStream(stream)}
+              className={`group bg-slate-900 rounded-2xl overflow-hidden border cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${
+                currentStream.id === stream.id
+                  ? 'border-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.25)]'
+                  : 'border-slate-800 hover:border-slate-700'
+              }`}
+            >
+              <div className="relative aspect-video overflow-hidden">
+                <img
+                  src={stream.thumbnail}
+                  alt={stream.title}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                  <span className="px-2 py-0.5 rounded-md bg-red-600 text-white font-mono-code font-bold text-[9px] tracking-wider uppercase">
+                    LIVE
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-slate-950/80 backdrop-blur-md text-white text-[9px] font-mono-code">
+                    {stream.viewersCount.toLocaleString()} viewers
+                  </span>
+                </div>
+                <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-slate-950/80 text-[9px] font-mono-code text-slate-300">
+                  {stream.resolution}
+                </div>
+              </div>
+
+              <div className="p-3.5 space-y-2.5">
+                <div className="flex items-start gap-2.5">
+                  <img
+                    src={stream.streamer.avatar}
+                    alt={stream.streamer.name}
+                    className="w-8 h-8 rounded-xl object-cover border border-sky-500/40"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-xs font-bold text-white line-clamp-1 group-hover:text-sky-400 transition-colors">
+                      {stream.title}
+                    </h3>
+                    <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                      <span>{stream.streamer.name}</span>
+                      <span>{stream.streamer.countryFlag}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800">
+                  <span className="text-sky-400 font-mono-code font-semibold">{stream.game}</span>
+                  <span className="font-mono-code">{stream.uptime}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tip Modal */}
+      <TipModal
+        isOpen={tipModalOpen}
+        onClose={() => setTipModalOpen(false)}
+        streamId={currentStream.id}
+        streamerName={currentStream.streamer.name}
+        onSuccess={handleTipSuccess}
+      />
+    </div>
+  );
+};
