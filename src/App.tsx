@@ -40,6 +40,7 @@ import {
   Mail
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { Analytics } from '@vercel/analytics/react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<
@@ -305,6 +306,9 @@ export function App() {
         isOpen={isNotificationsOpen}
         onClose={() => setIsNotificationsOpen(false)}
       />
+
+      {/* Vercel Web Analytics */}
+      <Analytics />
     </div>
   );
 }
