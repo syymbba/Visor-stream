@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<
@@ -309,6 +310,7 @@ export function App() {
 
       {/* Vercel Web Analytics */}
       <Analytics />
+      <SpeedInsights />
     </div>
   );
 }
