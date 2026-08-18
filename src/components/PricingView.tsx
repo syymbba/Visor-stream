@@ -55,7 +55,7 @@ export const PricingView: React.FC<PricingViewProps> = ({
               onClick={() => setCurrentCurrency(curr)}
               className={`px-3 py-1.5 rounded-xl text-xs font-mono-code font-bold transition-all ${
                 currentCurrency === curr
-                  ? 'bg-sky-500 text-slate-950 font-black shadow-md'
+                  ? 'bg-[#0284c7]/20 text-sky-300 border border-[#0369a1]/50 font-bold shadow-[0_0_10px_rgba(2,132,199,0.15)]'
                   : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
               }`}
             >

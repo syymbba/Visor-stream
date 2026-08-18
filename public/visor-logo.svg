@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <!-- Background Gradient matching the app logo -->
+    <linearGradient id="visorBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22397e" />
+      <stop offset="35%" stop-color="#2a4a98" />
+      <stop offset="70%" stop-color="#345fa6" />
+      <stop offset="100%" stop-color="#467bbd" />
+    </linearGradient>
+
+    <!-- Outer Rim Accent Highlight Gradient -->
+    <linearGradient id="visorRimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff3388" stop-opacity="0.6" />
+      <stop offset="30%" stop-color="#38bdf8" stop-opacity="0.2" />
+      <stop offset="70%" stop-color="#2563eb" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#ff3388" stop-opacity="0.7" />
+    </linearGradient>
+
+    <!-- Neon Pink Underline for Speed Slats -->
+    <linearGradient id="pinkNeonGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#ff529f" />
+    </linearGradient>
+
+    <!-- Cyan Accent for Slat edges -->
+    <linearGradient id="cyanNeonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+  </defs>
+
+  <!-- Squircle Rounded Container with Ambient Glow -->
+  <rect
+    x="12"
+    y="12"
+    width="488"
+    height="488"
+    rx="116"
+    fill="url(#visorBgGrad)"
+    stroke="url(#visorRimGrad)"
+    stroke-width="3"
+  />
+
+  <!-- Main Electric Cyan 'V' Emblem -->
+  <!-- Left tall arm and right inner notch -->
+  <path
+    d="M 54 71 L 133 44 L 234 345 L 297 230 L 321 260 L 235 410 L 182 410 Z"
+    fill="#13a7e8"
+    stroke="#000000"
+    stroke-width="4"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+  />
+
+  <!-- Speed Slat 1 (Longest) -->
+  <path
+    d="M 330 276 L 349 294 L 280 410 L 254 410 Z"
+    fill="#0a0a0a"
+    stroke="#000000"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+  <!-- Speed Slat 1 Bottom Pink Accent -->
+  <line x1="254" y1="410" x2="280" y2="410" stroke="url(#pinkNeonGrad)" stroke-width="3.5" stroke-linecap="round" />
+  <line x1="330" y1="276" x2="349" y2="294" stroke="#13a7e8" stroke-width="1.5" stroke-opacity="0.6" />
+
+  <!-- Speed Slat 2 -->
+  <path
+    d="M 356 303 L 372 318 L 318 410 L 296 410 Z"
+    fill="#0a0a0a"
+    stroke="#000000"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+  <!-- Speed Slat 2 Bottom Pink Accent -->
+  <line x1="296" y1="410" x2="318" y2="410" stroke="url(#pinkNeonGrad)" stroke-width="3.5" stroke-linecap="round" />
+  <line x1="356" y1="303" x2="372" y2="318" stroke="#13a7e8" stroke-width="1.5" stroke-opacity="0.6" />
+
+  <!-- Speed Slat 3 -->
+  <path
+    d="M 380 329 L 394 342 L 353 410 L 334 410 Z"
+    fill="#0a0a0a"
+    stroke="#000000"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+  <!-- Speed Slat 3 Bottom Pink Accent -->
+  <line x1="334" y1="410" x2="353" y2="410" stroke="url(#pinkNeonGrad)" stroke-width="3.5" stroke-linecap="round" />
+  <line x1="380" y1="329" x2="394" y2="342" stroke="#13a7e8" stroke-width="1.5" stroke-opacity="0.6" />
+
+  <!-- Speed Slat 4 (Shortest) -->
+  <path
+    d="M 402 351 L 414 362 L 385 410 L 368 410 Z"
+    fill="#0a0a0a"
+    stroke="#000000"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+  <!-- Speed Slat 4 Bottom Pink Accent -->
+  <line x1="368" y1="410" x2="385" y2="410" stroke="url(#pinkNeonGrad)" stroke-width="3.5" stroke-linecap="round" />
+  <line x1="402" y1="351" x2="414" y2="362" stroke="#13a7e8" stroke-width="1.5" stroke-opacity="0.6" />
+</svg>

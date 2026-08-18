@@ -2,27 +2,27 @@
 
 @layer base {
   body {
-    background-color: #020617;
+    background-color: #0b0e14;
     color: #e2e8f0;
-    font-family: 'Inter', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Motiva Sans', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   }
   * {
-    border-color: rgba(51, 65, 85, 0.6);
+    border-color: rgba(42, 71, 94, 0.45);
   }
 }
 
-/* Custom Bento Scrollbar */
+/* Custom Steam/Prime Video Dark Slate Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #020617;
+  background: #0b0e14;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #1b2838;
   border-radius: 9999px;
 }
 
@@ -30,51 +30,81 @@
   background: #38bdf8;
 }
 
-/* Futuristic Bento HUD typography */
+/* Scroll containment utility to isolate section scrolls */
+.scroll-contained {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Typography styles */
 .font-rajdhani {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: 'Rajdhani', 'Motiva Sans', system-ui, sans-serif;
 }
 
 .font-mono-code {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
 }
 
-/* Bento Theme Glow effects */
+/* Steam/Prime Slate Glow & Shadow effects */
 .glow-sky {
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
 }
 
-.glow-indigo {
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
-}
-
-.glow-pink {
-  box-shadow: 0 0 20px rgba(244, 114, 182, 0.3);
+.glow-blue {
+  box-shadow: 0 0 20px rgba(102, 192, 244, 0.25);
 }
 
 .glow-emerald {
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
 }
 
-/* Bento card hover effect */
-.bento-card {
-  background-color: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(51, 65, 85, 0.7);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+/* Steam/Prime Video Slate Card & Container System */
+.steam-card {
+  background-color: #171a21;
+  border: 1px solid rgba(42, 71, 94, 0.6);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.bento-card:hover {
-  border-color: rgba(56, 189, 248, 0.4);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.1);
+.steam-card:hover, .steam-card:focus-visible {
+  border-color: rgba(56, 189, 248, 0.45);
+  background-color: #1b2838;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.15);
 }
 
-/* Bento Grid texture */
-.bento-grid-bg {
-  background-size: 28px 28px;
+/* Uniform Mobile/Tablet Touch & Active State with Darker, More Transparent Blue */
+.touch-active-state {
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-active-state:active,
+.touch-active-state:hover {
+  background-color: rgba(2, 132, 199, 0.09);
+  border-color: rgba(3, 105, 161, 0.3);
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.1);
+}
+
+/* Global native toggle & checkbox accent color - Darker, more transparent tone */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #0284c7;
+}
+
+/* Custom interactive toggle switches */
+.toggle-active-blue {
+  background-color: rgba(2, 132, 199, 0.10) !important;
+  border-color: rgba(3, 105, 161, 0.35) !important;
+  color: #7dd3fc !important;
+  box-shadow: 0 0 12px rgba(2, 132, 199, 0.12) !important;
+}
+
+/* Grid subtle texture */
+.steam-grid-bg {
+  background-color: #0b0e14;
   background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    linear-gradient(to right, rgba(42, 71, 94, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(42, 71, 94, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
 @keyframes pulse-slow {

@@ -7,11 +7,20 @@ import {
   CommunityPost,
   CreatorDashboardStats,
   StoreMerchItem,
-  ChatMessage
+  ChatMessage,
+  ReelClip,
+  UserLibraryItem,
+  ConnectedThirdPartyAccount,
+  UserBadge,
+  Achievement,
+  CardPaymentMethod,
+  CreatorClip,
+  CreatorTipJarConfig
 } from '../types';
 
 export const CURRENCY_RATES = {
   USD: { symbol: '$', rate: 1, label: 'USD ($)' },
+  EUR: { symbol: '€', rate: 0.92, label: 'EUR (€)' },
   UGX: { symbol: 'UGX ', rate: 3750, label: 'UGX (Uganda)' },
   KES: { symbol: 'KES ', rate: 130, label: 'KES (Kenya)' },
   TZS: { symbol: 'TZS ', rate: 2600, label: 'TZS (Tanzania)' },
@@ -759,10 +768,296 @@ export const REGIONAL_SERVER_NODES = [
   { id: 'srv_fra', city: 'Frankfurt (EU Relay)', country: 'Germany', flag: '🇩🇪', pingMs: 82, status: 'Backup Relay', load: '22%' },
 ];
 
+export const MOCK_REELS: ReelClip[] = [
+  {
+    id: 'reel_1',
+    title: '⚡ INSANE 1v4 Squad Wipe Clutch in Apex Mobile Ranked Master Tier!',
+    creator: INITIAL_STREAMERS[0],
+    game: 'Apex Legends Mobile',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    posterUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80',
+    views: 48200,
+    likes: 3840,
+    commentsCount: 245,
+    sharesCount: 512,
+    isLiked: true,
+    isSaved: false,
+    timestamp: '2 hours ago',
+    duration: '0:45',
+    tags: ['Clutch', 'ApexMobile', 'UgandaEsports', 'Rank1']
+  },
+  {
+    id: 'reel_2',
+    title: '🎯 400m AWM Headshot through Smoke — Nairobi Knights Scrims',
+    creator: INITIAL_STREAMERS[1],
+    game: 'PUBG Mobile',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    posterUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=80',
+    views: 62100,
+    likes: 5120,
+    commentsCount: 380,
+    sharesCount: 890,
+    isLiked: false,
+    isSaved: true,
+    timestamp: '5 hours ago',
+    duration: '0:32',
+    tags: ['AWM', 'PUBG', 'SniperKing', 'Kenya']
+  },
+  {
+    id: 'reel_3',
+    title: '🔥 Unstoppable 40-Yard Free Kick Curve in EA Sports FC 24 Weekend League',
+    creator: INITIAL_STREAMERS[2],
+    game: 'EA Sports FC 24',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    posterUrl: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=600&auto=format&fit=crop&q=80',
+    views: 31500,
+    likes: 2900,
+    commentsCount: 160,
+    sharesCount: 340,
+    isLiked: false,
+    isSaved: false,
+    timestamp: '1 day ago',
+    duration: '0:28',
+    tags: ['FC24', 'FreeKick', 'FUT', 'Tanzania']
+  },
+  {
+    id: 'reel_4',
+    title: '👑 Perfect Mishima Electric Wind God Fist Combo into Wall Break (Tekken 8)',
+    creator: INITIAL_STREAMERS[4],
+    game: 'Tekken 8',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    posterUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80',
+    views: 54000,
+    likes: 4780,
+    commentsCount: 310,
+    sharesCount: 620,
+    isLiked: true,
+    isSaved: true,
+    timestamp: '2 days ago',
+    duration: '0:50',
+    tags: ['Tekken8', 'EWGF', 'Reina', 'FGC']
+  }
+];
+
+export const MOCK_LIBRARY_ITEMS: UserLibraryItem[] = [
+  {
+    id: 'lib_down_1',
+    title: 'Apex Mobile Masterclass: Complete Gyroscope & Recoil Mastery',
+    type: 'downloaded',
+    game: 'Apex Legends Mobile',
+    author: INITIAL_STREAMERS[0],
+    duration: '24:15',
+    fileSize: '342 MB',
+    downloadedAt: 'Downloaded 2 days ago',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80',
+    progressPercent: 65,
+    isOfflineAvailable: true,
+  },
+  {
+    id: 'lib_down_2',
+    title: 'PUBG Mobile 4-Finger Claw Sensitivity Guide & Rotations',
+    type: 'downloaded',
+    game: 'PUBG Mobile',
+    author: INITIAL_STREAMERS[1],
+    duration: '18:40',
+    fileSize: '215 MB',
+    downloadedAt: 'Downloaded yesterday',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    thumbnail: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=80',
+    progressPercent: 100,
+    isOfflineAvailable: true,
+  },
+  {
+    id: 'lib_saved_1',
+    title: 'EA FC 24 Weekend League 20-0 Uncut VOD (Meta Tactics Explained)',
+    type: 'saved',
+    game: 'EA Sports FC 24',
+    author: INITIAL_STREAMERS[2],
+    duration: '1:45:20',
+    savedAt: 'Saved 3 days ago',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    thumbnail: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=600&auto=format&fit=crop&q=80',
+    progressPercent: 30,
+    isOfflineAvailable: false,
+  },
+  {
+    id: 'lib_saved_2',
+    title: 'VALORANT Radiant Omen Smoke Setups on Ascent & Lotus',
+    type: 'saved',
+    game: 'Valorant',
+    author: INITIAL_STREAMERS[3],
+    duration: '32:10',
+    savedAt: 'Saved last week',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    thumbnail: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=600&auto=format&fit=crop&q=80',
+    progressPercent: 0,
+    isOfflineAvailable: false,
+  },
+  {
+    id: 'lib_vod_1',
+    title: 'My Broadcast: East Africa Invitational Qualifier Day 1',
+    type: 'created_vod',
+    game: 'Apex Legends Mobile',
+    author: {
+      id: 'me',
+      name: 'You (Creator)',
+      handle: '@ProGamerLive',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      verified: true,
+      country: 'Uganda',
+      countryCode: 'UG',
+      countryFlag: '🇺🇬',
+      subscribers: 250,
+      bio: 'Visor streamer',
+      mobileMoneySupported: true
+    },
+    duration: '2:14:08',
+    savedAt: 'Recorded Aug 15, 2026',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80',
+    fileSize: '1.4 GB',
+    isOfflineAvailable: true,
+  },
+  {
+    id: 'lib_vod_2',
+    title: 'Highlight Clip: 1v3 Clutch with Wingman Headshots',
+    type: 'created_vod',
+    game: 'Apex Legends Mobile',
+    author: {
+      id: 'me',
+      name: 'You (Creator)',
+      handle: '@ProGamerLive',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      verified: true,
+      country: 'Uganda',
+      countryCode: 'UG',
+      countryFlag: '🇺🇬',
+      subscribers: 250,
+      bio: 'Visor streamer',
+      mobileMoneySupported: true
+    },
+    duration: '0:42',
+    savedAt: 'Clipped yesterday',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    thumbnail: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=80',
+    fileSize: '45 MB',
+    isOfflineAvailable: true,
+  }
+];
+
+export const MOCK_CONNECTED_ACCOUNTS: ConnectedThirdPartyAccount[] = [
+  { id: 'conn_1', provider: 'discord', name: 'Discord', handle: 'VisorGamer#4482', connected: true, connectedAt: 'Linked Aug 10, 2026', avatar: 'https://images.unsplash.com/photo-1614680376593-902f749f7ffc?w=80&auto=format&fit=crop&q=80' },
+  { id: 'conn_2', provider: 'twitch', name: 'Twitch', handle: 'visor_streamer_ug', connected: true, connectedAt: 'Linked Aug 12, 2026', avatar: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=80&auto=format&fit=crop&q=80' },
+  { id: 'conn_3', provider: 'steam', name: 'Steam', handle: 'SteamID: 765611980289', connected: true, connectedAt: 'Linked Jul 28, 2026', avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=80&auto=format&fit=crop&q=80' },
+  { id: 'conn_4', provider: 'youtube', name: 'YouTube Gaming', handle: '@VisorGamingAfrica', connected: false },
+  { id: 'conn_5', provider: 'epic', name: 'Epic Games', handle: 'RexVisor_Official', connected: true, connectedAt: 'Linked Aug 01, 2026' },
+  { id: 'conn_6', provider: 'xbox', name: 'Xbox Live / Game Pass', handle: 'Not Connected', connected: false },
+  { id: 'conn_7', provider: 'playstation', name: 'PlayStation Network', handle: 'Not Connected', connected: false }
+];
+
+export const MOCK_USER_BADGES: UserBadge[] = [
+  { id: 'b_1', name: 'Visor Pioneer', icon: '👑', description: 'Early access continental streamer & founder member', rarity: 'legendary', unlocked: true, unlockedAt: 'Aug 2026' },
+  { id: 'b_2', name: 'Stream Champion', icon: '🏆', description: 'Broadcasted over 50 hours of live competitive gameplay', rarity: 'epic', unlocked: true, unlockedAt: 'Aug 2026' },
+  { id: 'b_3', name: 'MoMo Patron', icon: '💸', description: 'Sent 10+ Mobile Money live super tips to fellow creators', rarity: 'rare', unlocked: true, unlockedAt: 'Aug 2026' },
+  { id: 'b_4', name: 'Tactics Scholar', icon: '📚', description: 'Completed 15 interactive video tutorials and loadout guides', rarity: 'rare', unlocked: true, unlockedAt: 'Aug 2026' },
+  { id: 'b_5', name: 'Tournament Finalist', icon: '⚔️', description: 'Reached top 8 in an official CECAFA esports invitational', rarity: 'epic', unlocked: false, progress: 3, maxProgress: 5 },
+  { id: 'b_6', name: 'Grand Master 100K', icon: '🌟', description: 'Amass 100,000 total watch minutes on your channel', rarity: 'legendary', unlocked: false, progress: 42000, maxProgress: 100000 },
+];
+
+export const MOCK_ACHIEVEMENTS: Achievement[] = [
+  { id: 'ach_1', title: 'First Blood Stream', category: 'Broadcasting', xp: 500, icon: '🎮', completed: true, completedDate: 'Aug 04, 2026', progress: 1, target: 1 },
+  { id: 'ach_2', title: 'East Africa Edge Routing', category: 'Networking', xp: 350, icon: '🌐', completed: true, completedDate: 'Aug 08, 2026', progress: 1, target: 1 },
+  { id: 'ach_3', title: 'High-Bitrate Pioneer (1080p60)', category: 'Quality', xp: 600, icon: '📺', completed: true, completedDate: 'Aug 12, 2026', progress: 1, target: 1 },
+  { id: 'ach_4', title: 'Community Pillar (100 Chat Messages)', category: 'Social', xp: 400, icon: '💬', completed: true, completedDate: 'Aug 14, 2026', progress: 100, target: 100 },
+  { id: 'ach_5', title: 'Clan Master (Host a Scrim)', category: 'Esports', xp: 800, icon: '🛡️', completed: false, progress: 2, target: 5 },
+  { id: 'ach_6', title: 'Mobile Money Supporter Level 3', category: 'Monetization', xp: 1200, icon: '💎', completed: false, progress: 7, target: 10 },
+];
+
+export const MOCK_CARDS: CardPaymentMethod[] = [
+  { id: 'card_1', cardHolder: 'Brian Kigozi', last4: '4242', expMonth: '08', expYear: '28', brand: 'visa', isDefault: true },
+  { id: 'card_2', cardHolder: 'Brian Kigozi', last4: '8831', expMonth: '11', expYear: '27', brand: 'mastercard', isDefault: false },
+];
+
+export const MOCK_CREATOR_CLIPS: CreatorClip[] = [
+  { id: 'clip_1', title: 'Wingman 1v3 clutch in last ring', game: 'Apex Legends Mobile', duration: '0:34', createdAt: '2 hours ago', views: 1240, thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500&auto=format&fit=crop&q=80', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
+  { id: 'clip_2', title: 'Triple grenade bounce squad wipe', game: 'PUBG Mobile', duration: '0:22', createdAt: 'Yesterday', views: 2890, thumbnail: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=500&auto=format&fit=crop&q=80', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' },
+  { id: 'clip_3', title: 'Corner kick Olimpico goal', game: 'EA Sports FC 24', duration: '0:18', createdAt: '3 days ago', views: 950, thumbnail: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=500&auto=format&fit=crop&q=80', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' },
+];
+
+export const MOCK_CREATOR_TIP_JAR: CreatorTipJarConfig = {
+  enabled: true,
+  minTipUSD: 1.0,
+  presetAmountsUSD: [1.5, 3.0, 5.0, 10.0, 25.0],
+  bannerHeadline: 'Support the Stream & Fuel the High-FPS Dream!',
+  thankYouMessage: 'Massive love to all donors! All tips directly upgrade the streaming rig and regional clan tourneys.',
+  soundAlertEnabled: true,
+  confettiEnabled: true,
+  activeGoal: {
+    id: 'goal_sm7b_rig',
+    title: '🎙️ Shure SM7B Studio Mic & Dedicated Capture Card',
+    targetAmountUSD: 450,
+    currentAmountUSD: 335,
+    currency: 'USD',
+    description: 'Upgrading audio fidelity for crystal clear tournament commentary and 1080p60 zero-latency capture.',
+    active: true
+  },
+  recentTips: [
+    {
+      id: 'tip_rec_1',
+      donorName: 'Kampala_Sniper_99',
+      donorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80',
+      amountUSD: 15,
+      amountFormatted: '50,000 UGX',
+      currency: 'UGX',
+      network: 'MTN MoMo',
+      message: 'That Wingman headshot in round 4 was pure art! Keep grinding bro 👑🔥',
+      timestamp: '12 mins ago',
+      badge: 'VIP'
+    },
+    {
+      id: 'tip_rec_2',
+      donorName: 'Nairobi_GamerGirl',
+      donorAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80',
+      amountUSD: 8,
+      amountFormatted: '1,000 KES',
+      currency: 'KES',
+      network: 'M-Pesa',
+      message: 'Much love from Nairobi! Thanks for the PUBG sensitivity setup tips 🙌',
+      timestamp: '45 mins ago',
+      badge: 'PRO'
+    },
+    {
+      id: 'tip_rec_3',
+      donorName: 'ApexLegend_TZ',
+      donorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80',
+      amountUSD: 5,
+      amountFormatted: '12,500 TZS',
+      currency: 'TZS',
+      network: 'Airtel Money',
+      message: 'Best movement player in East Africa without doubt. Let’s get this mic goal done!',
+      timestamp: '2 hours ago',
+      badge: 'FAN'
+    },
+    {
+      id: 'tip_rec_4',
+      donorName: 'CyberNinja_KLA',
+      donorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=80',
+      amountUSD: 25,
+      amountFormatted: '$25.00 USD',
+      currency: 'USD',
+      network: 'Visa Card',
+      message: 'Dropping a mega tip for the upcoming tournament championship!',
+      timestamp: '5 hours ago',
+      badge: 'VIP'
+    }
+  ]
+};
+
 export const PLATFORM_FAQS = [
   {
     q: 'How do I subscribe to Visor Stream?',
-    a: 'Choose one of our accessible subscription tiers — Fan ($2), Pro ($5), or Legend ($10). Click the subscription button under your chosen plan and pay seamlessly using Mobile Money (M-Pesa, MTN MoMo, Airtel Money) or global cards (Stripe, PayPal). Once confirmed, all perks unlock instantly across your account!'
+    a: 'Choose one of our accessible subscription tiers — Fan ($2), Pro ($5), or Legend ($10). Click the subscription button under your chosen plan and pay seamlessly using Mobile Money (M-Pesa, MTN MoMo, Airtel Money) or global cards (Visa, Mastercard, Stripe, PayPal). Once confirmed, all perks unlock instantly across your account!'
   },
   {
     q: 'How do streamers get paid on Visor?',
@@ -785,3 +1080,4 @@ export const PLATFORM_FAQS = [
     a: 'Click the "Go Live" button in the top navigation or visit the Creator Studio. Set up your channel in under 2 minutes, get your unique RTMP Stream Key, and start broadcasting via OBS Studio, Streamlabs, or direct mobile screen capture.'
   }
 ];
+

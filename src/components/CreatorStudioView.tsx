@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { CreatorDashboardStats, Currency } from '../types';
-import { CURRENCY_RATES, REGIONAL_SERVER_NODES } from '../data/mockData';
+import { CURRENCY_RATES, REGIONAL_SERVER_NODES, MOCK_CREATOR_DASHBOARD } from '../data/mockData';
+import { CreatorTipJarWidget } from './CreatorTipJarWidget';
+import { TipModal } from './TipModal';
 import confetti from 'canvas-confetti';
 import {
   LayoutDashboard,
@@ -22,7 +24,9 @@ import {
   ShieldCheck,
   Zap,
   Sliders,
-  Layers
+  Layers,
+  Radio,
+  Gift
 } from 'lucide-react';
 import {
   AreaChart,
@@ -36,25 +40,37 @@ import {
 } from 'recharts';
 
 interface CreatorStudioViewProps {
-  initialStats: CreatorDashboardStats;
+  stats?: CreatorDashboardStats;
+  initialStats?: CreatorDashboardStats;
   currentCurrency: Currency;
+  onStartBroadcast?: () => void;
 }
 
 export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
+  stats: propsStats,
   initialStats,
   currentCurrency,
+  onStartBroadcast,
 }) => {
-  const [stats, setStats] = useState<CreatorDashboardStats>(initialStats);
+  const effectiveStats = propsStats || initialStats || MOCK_CREATOR_DASHBOARD;
+  const [stats, setStats] = useState<CreatorDashboardStats>(effectiveStats);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedIngest, setCopiedIngest] = useState(false);
   const [selectedIngestServer, setSelectedIngestServer] = useState(REGIONAL_SERVER_NODES[0].id);
 
   // Cashout Modal State
   const [cashoutModalOpen, setCashoutModalOpen] = useState(false);
+  const [isTipModalOpen, setIsTipModalOpen] = useState(false);
   const [cashoutMethod, setCashoutMethod] = useState<'M-Pesa' | 'MTN MoMo' | 'Airtel Money' | 'PayPal'>('MTN MoMo');
   const [cashoutPhone, setCashoutPhone] = useState('0780123456');
-  const [cashoutAmountUSD, setCashoutAmountUSD] = useState(stats.payoutBreakdown.netPayoutUSD);
+  const [cashoutAmountUSD, setCashoutAmountUSD] = useState(effectiveStats?.payoutBreakdown?.netPayoutUSD || 2450);
   const [cashoutSuccessAlert, setCashoutSuccessAlert] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (propsStats || initialStats) {
+      setStats(propsStats || initialStats || MOCK_CREATOR_DASHBOARD);
+    }
+  }, [propsStats, initialStats]);
 
   // Real-time fluctuating stream bitrate & viewers simulation
   const [viewerHistory, setViewerHistory] = useState([
@@ -165,8 +181,18 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           </div>
         </div>
 
-        {/* Live Broadcast Status Chip */}
+        {/* Live Broadcast Status Chip & Actions */}
         <div className="flex flex-wrap items-center gap-3">
+          {onStartBroadcast && (
+            <button
+              onClick={onStartBroadcast}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-red-500/20 transition-transform active:scale-95"
+            >
+              <Radio className="w-4 h-4 text-white animate-pulse" />
+              <span>Launch Live Stream</span>
+            </button>
+          )}
+
           <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono-code font-bold">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
             <span>BROADCASTING LIVE</span>
@@ -251,6 +277,13 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           </p>
         </div>
       </div>
+
+      {/* Creator Tip Jar & Community Goal Widget */}
+      <CreatorTipJarWidget
+        currentCurrency={currentCurrency}
+        isCreatorView={true}
+        onOpenTipModal={() => setIsTipModalOpen(true)}
+      />
 
       {/* Main Bento Studio Grid: Real-Time Telemetry & Financial Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -607,6 +640,14 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Interactive Creator Tip Modal */}
+      <TipModal
+        isOpen={isTipModalOpen}
+        onClose={() => setIsTipModalOpen(false)}
+        streamId="creator_studio_broadcast"
+        streamerName="ProGamerLive"
+      />
     </div>
   );
 };

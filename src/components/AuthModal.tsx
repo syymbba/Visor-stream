@@ -8,6 +8,7 @@ import {
 } from '../firebase';
 import { googleSignIn } from '../services/googleAuth';
 import { syncAuthUserWithFirestore, UserProfile } from '../services/userService';
+import { VisorLogo } from './VisorLogo';
 import { User, LogIn, UserPlus, Mail, Lock, Sparkles, Smartphone, ShieldCheck, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -126,10 +127,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Header */}
         <div className="space-y-1">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/30">
-              {isSignUp ? <UserPlus className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
-            </div>
+          <div className="flex items-center gap-3">
+            <VisorLogo size="sm" showText={false} animated={true} />
             <div>
               <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
                 {isSignUp ? 'Create Visor Stream Account' : 'Sign In to Visor Stream'}

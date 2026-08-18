@@ -9,16 +9,17 @@ import {
   MOCK_CREATOR_DASHBOARD,
   SUBSCRIPTION_PLANS
 } from './data/mockData';
-import { LiveStream, GamingTutorial, Currency, SubscriptionPlan } from './types';
+import { LiveStream, GamingTutorial, Currency, SubscriptionPlan, ReelClip, UserLibraryItem } from './types';
 import { Navbar } from './components/Navbar';
 import { LivePlayerView } from './components/LivePlayerView';
+import { ReelsView } from './components/ReelsView';
+import { LibraryView } from './components/LibraryView';
 import { TutorialsView } from './components/TutorialsView';
 import { GamesView } from './components/GamesView';
 import { EsportsView } from './components/EsportsView';
 import { CommunityView } from './components/CommunityView';
 import { StoreView } from './components/StoreView';
 import { CreatorStudioView } from './components/CreatorStudioView';
-import { GmailView } from './components/GmailView';
 import { PricingView } from './components/PricingView';
 import { PricingModal } from './components/PricingModal';
 import { SettingsView } from './components/SettingsView';
@@ -26,29 +27,20 @@ import { AboutPolicyView } from './components/AboutPolicyView';
 import { GoLiveModal } from './components/GoLiveModal';
 import { NotificationsModal } from './components/NotificationsModal';
 import { AuthModal } from './components/AuthModal';
-import {
-  Radio,
-  BookOpen,
-  Gamepad2,
-  Trophy,
-  Users,
-  ShoppingBag,
-  LayoutDashboard,
-  CreditCard,
-  Settings,
-  Info,
-  Mail
-} from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<
-    'live' | 'tutorials' | 'games' | 'esports' | 'community' | 'gmail' | 'store' | 'creator' | 'pricing' | 'settings' | 'about'
+    'live' | 'reels' | 'library' | 'tutorials' | 'games' | 'esports' | 'community' | 'store' | 'creator' | 'pricing' | 'settings' | 'about' | 'terms' | 'privacy' | 'support'
   >('live');
 
   const [currentCurrency, setCurrentCurrency] = useState<Currency>('UGX');
+  const [showBalanceInHeader, setShowBalanceInHeader] = useState(true);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [userBalanceUSD, setUserBalanceUSD] = useState(245.50);
+
   const [liveStreams, setLiveStreams] = useState<LiveStream[]>(MOCK_LIVE_STREAMS);
   const [tutorials, setTutorials] = useState<GamingTutorial[]>(MOCK_TUTORIALS);
   const [selectedStream, setSelectedStream] = useState<LiveStream>(MOCK_LIVE_STREAMS[0]);
@@ -113,8 +105,8 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col font-sans selection:bg-sky-500 selection:text-white">
-      {/* Top Main Navbar */}
+    <div className="min-h-screen bg-[#0b0e14] text-slate-200 flex flex-col font-sans selection:bg-[#38bdf8] selection:text-[#0b0e14] steam-grid-bg">
+      {/* Sticky Top Header Navigation */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab as any}
@@ -127,10 +119,13 @@ export function App() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        userBalanceUSD={userBalanceUSD}
+        showBalanceInHeader={showBalanceInHeader}
+        onToggleBalanceVisibility={() => setShowBalanceInHeader(!showBalanceInHeader)}
       />
 
       {/* Main Content Viewport */}
-      <main className="flex-1 max-w-[1720px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <main className="flex-1 max-w-[1720px] w-full mx-auto px-2 sm:px-4 lg:px-8 py-3 sm:py-6">
         {activeTab === 'live' && (
           <LivePlayerView
             currentStream={selectedStream}
@@ -138,6 +133,24 @@ export function App() {
             onSelectStream={setSelectedStream}
             currentCurrency={currentCurrency}
             onOpenSubscribe={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
+          />
+        )}
+
+        {activeTab === 'reels' && (
+          <ReelsView
+            currentCurrency={currentCurrency}
+            onSaveToLibrary={() => {}}
+            onOpenCreator={() => setActiveTab('creator')}
+          />
+        )}
+
+        {activeTab === 'library' && (
+          <LibraryView
+            currentCurrency={currentCurrency}
+            isOfflineMode={isOfflineMode}
+            setIsOfflineMode={setIsOfflineMode}
+            onNavigateToTutorials={() => setActiveTab('tutorials')}
+            onNavigateToReels={() => setActiveTab('reels')}
           />
         )}
 
@@ -178,12 +191,6 @@ export function App() {
           />
         )}
 
-        {activeTab === 'gmail' && (
-          <GmailView
-            onNavigateToLive={() => setActiveTab('live')}
-          />
-        )}
-
         {activeTab === 'store' && (
           <StoreView
             items={MOCK_STORE_ITEMS}
@@ -209,78 +216,32 @@ export function App() {
 
         {activeTab === 'settings' && (
           <SettingsView
+            currentCurrency={currentCurrency}
+            setCurrentCurrency={setCurrentCurrency}
+            showBalanceInHeader={showBalanceInHeader}
+            setShowBalanceInHeader={setShowBalanceInHeader}
             onOpenSubscribe={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
             onOpenAuthModal={() => setIsAuthModalOpen(true)}
+            onNavigateToTab={(tab) => setActiveTab(tab as any)}
           />
         )}
 
+        {activeTab === 'terms' && (
+          <AboutPolicyView initialSection="terms" />
+        )}
+
+        {activeTab === 'privacy' && (
+          <AboutPolicyView initialSection="privacy" />
+        )}
+
+        {activeTab === 'support' && (
+          <AboutPolicyView initialSection="about" />
+        )}
+
         {activeTab === 'about' && (
-          <AboutPolicyView />
+          <AboutPolicyView initialSection="about" />
         )}
       </main>
-
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-3 left-3 right-3 z-40 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl px-2 py-2 flex items-center justify-around shadow-2xl">
-        <button
-          onClick={() => setActiveTab('live')}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[10px] font-mono-code font-bold transition-all ${
-            activeTab === 'live' ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30' : 'text-slate-400'
-          }`}
-        >
-          <Radio className="w-4 h-4" />
-          <span>Live</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('tutorials')}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[10px] font-mono-code font-bold transition-all ${
-            activeTab === 'tutorials' ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30' : 'text-slate-400'
-          }`}
-        >
-          <BookOpen className="w-4 h-4" />
-          <span>Guides</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('esports')}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[10px] font-mono-code font-bold transition-all ${
-            activeTab === 'esports' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'text-slate-400'
-          }`}
-        >
-          <Trophy className="w-4 h-4" />
-          <span>Esports</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('creator')}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[10px] font-mono-code font-bold transition-all ${
-            activeTab === 'creator' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-slate-400'
-          }`}
-        >
-          <LayoutDashboard className="w-4 h-4" />
-          <span>Studio</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('gmail')}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[10px] font-mono-code font-bold transition-all ${
-            activeTab === 'gmail' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'text-slate-400'
-          }`}
-        >
-          <Mail className="w-4 h-4" />
-          <span>Gmail</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[10px] font-mono-code font-bold transition-all ${
-            activeTab === 'settings' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'text-slate-400'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          <span>Settings</span>
-        </button>
-      </nav>
 
       {/* Global Modals */}
       <AuthModal

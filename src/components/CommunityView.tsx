@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CommunityPost } from '../types';
+import { TipModal } from './TipModal';
 import confetti from 'canvas-confetti';
 import {
   Users,
@@ -13,7 +14,8 @@ import {
   Flame,
   CheckCircle2,
   ExternalLink,
-  ShieldAlert
+  ShieldAlert,
+  Gift
 } from 'lucide-react';
 
 interface CommunityViewProps {
@@ -28,6 +30,7 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
   const [feedPosts, setFeedPosts] = useState<CommunityPost[]>(posts);
   const [newPostContent, setNewPostContent] = useState('');
   const [likedPostIds, setLikedPostIds] = useState<string[]>(['p_1', 'p_3']);
+  const [activeTipStreamer, setActiveTipStreamer] = useState<{ id: string; name: string } | null>(null);
 
   const leaderboardUsers = [
     { rank: 1, name: 'RexGamingUG', xp: '18,450 XP', clan: 'REX', badge: 'Apex Legend', avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=80&auto=format&fit=crop&q=80' },
@@ -211,25 +214,36 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
                   )}
 
                   {/* Post Actions */}
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs text-slate-400 font-mono-code">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-800 text-xs text-slate-400 font-mono-code">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => toggleLike(post.id)}
+                        className={`flex items-center gap-1.5 hover:text-white transition-colors ${
+                          isLiked ? 'text-rose-400 font-bold' : ''
+                        }`}
+                      >
+                        <Heart className={`w-4 h-4 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                        <span>{post.likesCount} Likes</span>
+                      </button>
+
+                      <button className="flex items-center gap-1.5 hover:text-white transition-colors">
+                        <MessageSquare className="w-4 h-4" />
+                        <span>{post.commentsCount}</span>
+                      </button>
+
+                      <button className="flex items-center gap-1.5 hover:text-white transition-colors">
+                        <Share2 className="w-4 h-4" />
+                        <span>{post.sharesCount}</span>
+                      </button>
+                    </div>
+
                     <button
-                      onClick={() => toggleLike(post.id)}
-                      className={`flex items-center gap-1.5 hover:text-white transition-colors ${
-                        isLiked ? 'text-rose-400 font-bold' : ''
-                      }`}
+                      onClick={() => setActiveTipStreamer({ id: post.id, name: post.author.name })}
+                      className="px-2.5 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5 font-bold transition-all"
+                      title="Tip Creator via Mobile Money Tip Jar"
                     >
-                      <Heart className={`w-4 h-4 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
-                      <span>{post.likesCount} Likes</span>
-                    </button>
-
-                    <button className="flex items-center gap-1.5 hover:text-white transition-colors">
-                      <MessageSquare className="w-4 h-4" />
-                      <span>{post.commentsCount} Comments</span>
-                    </button>
-
-                    <button className="flex items-center gap-1.5 hover:text-white transition-colors">
-                      <Share2 className="w-4 h-4" />
-                      <span>{post.sharesCount} Shares</span>
+                      <Gift className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Tip Creator</span>
                     </button>
                   </div>
                 </div>
@@ -237,6 +251,16 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
             })}
           </div>
         </div>
+
+        {/* Tip Modal */}
+        {activeTipStreamer && (
+          <TipModal
+            isOpen={!!activeTipStreamer}
+            onClose={() => setActiveTipStreamer(null)}
+            streamId={activeTipStreamer.id}
+            streamerName={activeTipStreamer.name}
+          />
+        )}
 
         {/* Right 4 Cols: Gamipress XP Leaderboard & Clan Perks */}
         <div className="lg:col-span-4 space-y-4">

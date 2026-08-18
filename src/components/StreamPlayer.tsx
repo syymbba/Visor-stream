@@ -172,7 +172,7 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
             <span className="hidden sm:inline">Data Saver</span>
           </button>
 
-          <span className="px-2.5 py-1 rounded-xl bg-sky-500/20 backdrop-blur-md text-sky-400 border border-sky-500/40 text-xs font-mono-code font-bold">
+          <span className="px-2.5 py-1 rounded-xl bg-[#0284c7]/15 backdrop-blur-md text-sky-300 border border-[#0369a1]/30 text-xs font-mono-code font-bold">
             {selectedQuality}
           </span>
         </div>
@@ -180,7 +180,7 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
 
       {/* Diagnostics HUD (Top Left Floating Diagnostics Panel) */}
       {showStatsHUD && (
-        <div className="absolute top-16 left-6 z-30 bg-slate-950/95 backdrop-blur-xl p-4 rounded-2xl border border-sky-500/40 text-[11px] font-mono-code text-slate-200 space-y-2 max-w-xs shadow-2xl">
+        <div className="absolute top-16 left-6 z-30 bg-slate-950/95 backdrop-blur-xl p-4 rounded-2xl border border-[#0369a1]/40 text-[11px] font-mono-code text-slate-200 space-y-2 max-w-xs shadow-2xl">
           <div className="flex items-center justify-between text-sky-400 font-bold border-b border-slate-800 pb-1.5">
             <span>REAL-TIME STREAM DIAGNOSTICS</span>
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
@@ -211,7 +211,7 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
       {/* Centered Bottom Narrative Description & Control Bar */}
       <div className="relative z-20 p-4 sm:p-6">
         <div className="bg-slate-950/85 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-white/10 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 shrink-0 bg-sky-500/20 rounded-xl border border-sky-500/40 flex items-center justify-center text-sky-400">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 shrink-0 bg-[#0284c7]/15 rounded-xl border border-[#0369a1]/30 flex items-center justify-center text-sky-400">
             <Activity className="w-5 h-5 animate-pulse" />
           </div>
           <div className="flex-grow min-w-0">
@@ -251,7 +251,9 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
             <button
               onClick={() => setShowStatsHUD(!showStatsHUD)}
               className={`p-2 rounded-xl border transition-colors ${
-                showStatsHUD ? 'bg-sky-500 text-slate-950 border-sky-400 font-bold' : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-700'
+                showStatsHUD
+                  ? 'bg-[#0284c7]/20 text-sky-300 border-[#0369a1]/50 font-bold shadow-[0_0_10px_rgba(2,132,199,0.15)]'
+                  : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-700'
               }`}
               title="Stream Diagnostics HUD"
             >

@@ -1,4 +1,129 @@
-export type Currency = 'USD' | 'UGX' | 'KES' | 'TZS';
+export type Currency = 'USD' | 'EUR' | 'UGX' | 'KES' | 'TZS';
+export type Language = 'en' | 'sw' | 'lg' | 'fr' | 'pt' | 'ar';
+
+export interface CreatorTipGoal {
+  id: string;
+  title: string;
+  targetAmountUSD: number;
+  currentAmountUSD: number;
+  currency: Currency;
+  description: string;
+  active: boolean;
+}
+
+export interface CreatorTipItem {
+  id: string;
+  donorName: string;
+  donorAvatar?: string;
+  amountUSD: number;
+  amountFormatted: string;
+  currency: string;
+  network: string;
+  message: string;
+  timestamp: string;
+  badge?: string;
+}
+
+export interface CreatorTipJarConfig {
+  enabled: boolean;
+  minTipUSD: number;
+  presetAmountsUSD: number[];
+  bannerHeadline: string;
+  thankYouMessage: string;
+  soundAlertEnabled: boolean;
+  confettiEnabled: boolean;
+  activeGoal: CreatorTipGoal;
+  recentTips: CreatorTipItem[];
+}
+
+export interface CardPaymentMethod {
+  id: string;
+  cardHolder: string;
+  last4: string;
+  expMonth: string;
+  expYear: string;
+  brand: 'visa' | 'mastercard';
+  isDefault: boolean;
+}
+
+export interface ConnectedThirdPartyAccount {
+  id: string;
+  provider: 'discord' | 'twitch' | 'steam' | 'youtube' | 'epic' | 'xbox' | 'playstation';
+  name: string;
+  handle: string;
+  connected: boolean;
+  connectedAt?: string;
+  avatar?: string;
+}
+
+export interface UserBadge {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  unlocked: boolean;
+  progress?: number;
+  maxProgress?: number;
+  unlockedAt?: string;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  category: string;
+  xp: number;
+  icon: string;
+  completed: boolean;
+  completedDate?: string;
+  progress: number;
+  target: number;
+}
+
+export interface ReelClip {
+  id: string;
+  title: string;
+  creator: Streamer;
+  game: string;
+  videoUrl: string;
+  posterUrl: string;
+  views: number;
+  likes: number;
+  commentsCount: number;
+  sharesCount: number;
+  isLiked?: boolean;
+  isSaved?: boolean;
+  timestamp: string;
+  duration: string;
+  tags: string[];
+}
+
+export interface UserLibraryItem {
+  id: string;
+  title: string;
+  type: 'downloaded' | 'saved' | 'created_vod';
+  game: string;
+  author: Streamer;
+  duration: string;
+  fileSize?: string;
+  downloadedAt?: string;
+  savedAt?: string;
+  videoUrl: string;
+  thumbnail: string;
+  progressPercent?: number;
+  isOfflineAvailable?: boolean;
+}
+
+export interface CreatorClip {
+  id: string;
+  title: string;
+  game: string;
+  duration: string;
+  createdAt: string;
+  views: number;
+  thumbnail: string;
+  videoUrl: string;
+}
 
 export interface Streamer {
   id: string;

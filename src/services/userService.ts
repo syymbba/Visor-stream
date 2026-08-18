@@ -21,6 +21,19 @@ export interface UserProfile {
   lowDataMode: boolean;
   notificationsEnabled: boolean;
   proGamerTier?: 'free' | 'fan' | 'pro' | 'legend';
+  balanceUSD?: number;
+  showBalanceInHeader?: boolean;
+  privacyProfileVisibility?: 'public' | 'friends' | 'private';
+  privacyDirectMessages?: 'everyone' | 'subs' | 'nobody';
+  twoFactorEnabled?: boolean;
+  blockedUsers?: string[];
+  streamKey?: string;
+  rtmpServer?: string;
+  bitrateCapKbps?: number;
+  lowLatencyMode?: boolean;
+  userLevel?: number;
+  userXp?: number;
+  chatFlair?: string;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -35,7 +48,20 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
   mobileNumber: '+256 780 123 456',
   lowDataMode: false,
   notificationsEnabled: true,
-  proGamerTier: 'pro'
+  proGamerTier: 'pro',
+  balanceUSD: 245.50,
+  showBalanceInHeader: true,
+  privacyProfileVisibility: 'public',
+  privacyDirectMessages: 'everyone',
+  twoFactorEnabled: false,
+  blockedUsers: ['toxic_troll99', 'spambot_ke'],
+  streamKey: 'live_vsr_ea_9921478120_prod',
+  rtmpServer: 'rtmp://nbo-ingest.visorstream.com/live',
+  bitrateCapKbps: 6500,
+  lowLatencyMode: true,
+  userLevel: 24,
+  userXp: 4850,
+  chatFlair: '🔥 PRO CLUTCH',
 };
 
 export async function fetchUserProfile(uid: string): Promise<UserProfile | null> {

@@ -152,7 +152,9 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
         <button
           onClick={() => setMobileActiveTab('stream')}
           className={`flex-1 py-2 rounded-xl text-xs font-mono-code font-bold flex items-center justify-center gap-1.5 transition-all ${
-            mobileActiveTab === 'stream' ? 'bg-sky-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'
+            mobileActiveTab === 'stream'
+              ? 'bg-[#0284c7]/20 text-sky-300 border border-[#0369a1]/40 shadow-[0_0_10px_rgba(2,132,199,0.15)]'
+              : 'text-slate-400 hover:text-white border border-transparent'
           }`}
         >
           <Tv className="w-3.5 h-3.5" />
@@ -161,7 +163,9 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
         <button
           onClick={() => setMobileActiveTab('chat')}
           className={`flex-1 py-2 rounded-xl text-xs font-mono-code font-bold flex items-center justify-center gap-1.5 transition-all ${
-            mobileActiveTab === 'chat' ? 'bg-sky-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'
+            mobileActiveTab === 'chat'
+              ? 'bg-[#0284c7]/20 text-sky-300 border border-[#0369a1]/40 shadow-[0_0_10px_rgba(2,132,199,0.15)]'
+              : 'text-slate-400 hover:text-white border border-transparent'
           }`}
         >
           <MessageSquare className="w-3.5 h-3.5" />
@@ -170,7 +174,9 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
         <button
           onClick={() => setMobileActiveTab('store')}
           className={`flex-1 py-2 rounded-xl text-xs font-mono-code font-bold flex items-center justify-center gap-1.5 transition-all ${
-            mobileActiveTab === 'store' ? 'bg-sky-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'
+            mobileActiveTab === 'store'
+              ? 'bg-[#0284c7]/20 text-sky-300 border border-[#0369a1]/40 shadow-[0_0_10px_rgba(2,132,199,0.15)]'
+              : 'text-slate-400 hover:text-white border border-transparent'
           }`}
         >
           <ShoppingBag className="w-3.5 h-3.5" />
@@ -179,7 +185,9 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
         <button
           onClick={() => setMobileActiveTab('info')}
           className={`flex-1 py-2 rounded-xl text-xs font-mono-code font-bold flex items-center justify-center gap-1.5 transition-all ${
-            mobileActiveTab === 'info' ? 'bg-sky-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'
+            mobileActiveTab === 'info'
+              ? 'bg-[#0284c7]/20 text-sky-300 border border-[#0369a1]/40 shadow-[0_0_10px_rgba(2,132,199,0.15)]'
+              : 'text-slate-400 hover:text-white border border-transparent'
           }`}
         >
           <Info className="w-3.5 h-3.5" />
@@ -284,6 +292,32 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                 }`}
               >
                 {isFollowing ? 'Following' : '+ Follow'}
+              </button>
+            </div>
+
+            {/* Creator Active Tip Jar Goal Widget */}
+            <div className="p-3.5 bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 rounded-2xl border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1.5 flex-1">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                    <Gift className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Active Tip Jar Goal: 🎙️ Studio Mic & Capture Card Upgrade</span>
+                  </div>
+                  <span className="font-mono-code font-bold text-white text-[11px]">
+                    $335 / $450 USD (74%)
+                  </span>
+                </div>
+                <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                  <div className="bg-gradient-to-r from-amber-500 to-orange-400 h-full w-[74%] rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
+                </div>
+              </div>
+
+              <button
+                onClick={() => setTipModalOpen(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shrink-0"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Tip Jar</span>
               </button>
             </div>
           </div>

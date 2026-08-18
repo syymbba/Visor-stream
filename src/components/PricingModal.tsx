@@ -162,7 +162,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                     onClick={() => setPaymentMethod('card')}
                     className={`p-2.5 rounded-xl border text-center text-xs font-bold transition-all ${
                       paymentMethod === 'card'
-                        ? 'bg-sky-500/20 text-sky-400 border-sky-500/40'
+                        ? 'bg-[#0284c7]/20 text-sky-300 border-[#0369a1]/50 shadow-[0_0_8px_rgba(2,132,199,0.15)]'
                         : 'bg-slate-950 text-slate-400 border-slate-800'
                     }`}
                   >

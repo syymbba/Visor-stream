@@ -362,7 +362,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
                 onClick={() => setSelectedGame(g)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   selectedGame === g
-                    ? 'bg-sky-500 text-slate-950 font-black'
+                    ? 'bg-[#0284c7]/20 text-sky-300 border border-[#0369a1]/40 shadow-[0_0_10px_rgba(2,132,199,0.15)]'
                     : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
                 }`}
               >
@@ -381,7 +381,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
               onClick={() => setSelectedDifficulty(diff)}
               className={`px-2.5 py-1 rounded-lg text-xs font-mono-code transition-colors ${
                 selectedDifficulty === diff
-                  ? 'bg-sky-500/20 text-sky-400 font-bold border border-sky-500/40'
+                  ? 'bg-[#0284c7]/20 text-sky-300 font-bold border border-[#0369a1]/40 shadow-[0_0_8px_rgba(2,132,199,0.12)]'
                   : 'text-slate-400 hover:text-white'
               }`}
             >

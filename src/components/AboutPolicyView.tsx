@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { VisorLogo } from './VisorLogo';
 import {
   Info,
@@ -13,12 +13,26 @@ import {
   DollarSign,
   Gamepad2,
   Lock,
-  ChevronRight
+  ChevronRight,
+  Mail,
+  ExternalLink
 } from 'lucide-react';
 import { PLATFORM_FAQS } from '../data/mockData';
 
-export const AboutPolicyView: React.FC = () => {
-  const [activeSection, setActiveSection] = useState<'about' | 'terms' | 'privacy' | 'guidelines' | 'payouts' | 'careers'>('about');
+interface AboutPolicyViewProps {
+  initialSection?: 'about' | 'terms' | 'privacy' | 'guidelines' | 'payouts' | 'careers' | 'contact';
+}
+
+export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
+  initialSection = 'about'
+}) => {
+  const [activeSection, setActiveSection] = useState<'about' | 'terms' | 'privacy' | 'guidelines' | 'payouts' | 'careers' | 'contact'>(initialSection);
+
+  useEffect(() => {
+    if (initialSection) {
+      setActiveSection(initialSection);
+    }
+  }, [initialSection]);
 
   return (
     <div className="space-y-8 animate-fadeIn pb-16">
