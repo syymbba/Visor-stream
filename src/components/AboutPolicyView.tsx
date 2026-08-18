@@ -176,26 +176,126 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
 
       {/* SECTION 3: TERMS OF SERVICE */}
       {activeSection === 'terms' && (
-        <div className="bg-slate-900 p-7 sm:p-9 rounded-[28px] sm:rounded-[32px] border border-slate-800 shadow-2xl max-w-4xl mx-auto space-y-4 text-xs text-slate-300 leading-relaxed animate-fadeIn">
-          <h2 className="text-xl font-black text-white tracking-tight">
-            Terms of Service
-          </h2>
-          <p><strong className="text-white">1. Acceptance:</strong> By accessing Visor Stream, you agree to comply with these terms, our community safety standards, and local cyber regulations.</p>
-          <p><strong className="text-white">2. Eligibility:</strong> Users must be at least 13 years old. Creators monetizing content must be authorized in their jurisdiction to receive mobile money or card payments.</p>
-          <p><strong className="text-white">3. Content Rights:</strong> Content creators retain full copyright ownership of their live broadcasts and gameplay tutorials. By uploading, creators grant Visor a non-exclusive license to stream and distribute the media.</p>
-          <p><strong className="text-white">4. Subscriptions & Refunds:</strong> Subscriptions renew automatically each month. Refunds are issued in cases of verified technical billing errors.</p>
+        <div className="bg-slate-900 p-7 sm:p-9 rounded-[28px] sm:rounded-[32px] border border-slate-800 shadow-2xl max-w-4xl mx-auto space-y-6 text-xs text-slate-300 leading-relaxed animate-fadeIn font-sans">
+          <div className="border-b border-slate-800 pb-4">
+            <h2 className="text-2xl font-black text-white tracking-tight font-rajdhani uppercase">
+              TERMS OF SERVICE
+            </h2>
+            <p className="text-[11px] text-slate-400 font-mono-code mt-1">Last Updated: August 18, 2026</p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 space-y-1.5">
+              <h4 className="font-bold text-white text-sm">1. Acceptance of Terms:</h4>
+              <p>By creating an account or accessing Visor Stream, you agree to comply with these Terms of Service, our Community Guidelines, and applicable local digital regulations.</p>
+            </div>
+
+            <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 space-y-1.5">
+              <h4 className="font-bold text-white text-sm">2. Account Eligibility & Registration:</h4>
+              <p>Users must be at least 13 years of age to register an account. Creators who monetize content must be authorized in their jurisdiction to receive mobile money, card, or banking transfers.</p>
+            </div>
+
+            <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 space-y-1.5">
+              <h4 className="font-bold text-white text-sm">3. Content Ownership & Licensing:</h4>
+              <p>Creators retain full copyright ownership of all live streams, VODs, and clips created on Visor Stream. By broadcasting or uploading content, creators grant Visor Stream a non-exclusive, worldwide license to host, stream, and distribute the media across the platform.</p>
+            </div>
+
+            <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 space-y-1.5">
+              <h4 className="font-bold text-white text-sm">4. Subscriptions, Payments & Refunds:</h4>
+              <p>Paid channel subscriptions, passes, and digital items renew automatically on a recurring billing cycle unless canceled prior to the renewal date. Refunds are processed in accordance with our financial policy for verified billing or technical errors.</p>
+            </div>
+
+            <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 space-y-1.5">
+              <h4 className="font-bold text-white text-sm">5. Service Modifications & Termination:</h4>
+              <p>We reserve the right to suspend or terminate accounts that violate our Community Guidelines or engage in unauthorized platform activity.</p>
+            </div>
+
+            <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 space-y-1.5">
+              <h4 className="font-bold text-white text-sm">6. Developer & Legal Contact:</h4>
+              <p>
+                For legal inquiries, support, or data deletion requests, contact us at{' '}
+                <a href="mailto:syymbba@gmail.com" className="text-sky-400 underline font-mono-code font-bold">
+                  syymbba@gmail.com
+                </a>
+                .
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
       {/* SECTION 4: PRIVACY POLICY */}
       {activeSection === 'privacy' && (
-        <div className="bg-slate-900 p-7 sm:p-9 rounded-[28px] sm:rounded-[32px] border border-slate-800 shadow-2xl max-w-4xl mx-auto space-y-4 text-xs text-slate-300 leading-relaxed animate-fadeIn">
-          <h2 className="text-xl font-black text-white tracking-tight">
-            Privacy Policy
-          </h2>
-          <p><strong className="text-white">1. Data Collected:</strong> We collect account profile information (username, email, phone number) and telemetry usage data (latency pings, viewed streams).</p>
-          <p><strong className="text-white">2. Payment Security:</strong> All mobile money transactions and credit card information are processed via PCI-DSS compliant gateways (Flutterwave, Paystack, Stripe). Visor does not store raw mobile money PINs.</p>
-          <p><strong className="text-white">3. Data Ownership:</strong> We never sell user data to third-party ad brokers. You may request account and data deletion at any time via Settings.</p>
+        <div className="bg-[#0b0e14] p-7 sm:p-9 rounded-[28px] sm:rounded-[32px] border border-[#2a475e] shadow-2xl max-w-4xl mx-auto space-y-6 text-xs text-slate-300 leading-relaxed animate-fadeIn font-sans">
+          <div className="border-b border-[#2a475e]/80 pb-4">
+            <div className="flex items-center gap-2 text-[#38bdf8] mb-1">
+              <Lock className="w-5 h-5" />
+              <span className="text-[10px] font-mono-code uppercase font-bold tracking-wider">Legal Compliance & Data Governance</span>
+            </div>
+            <h2 className="text-2xl font-black text-white tracking-tight font-rajdhani uppercase">
+              PRIVACY POLICY
+            </h2>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[11px] text-slate-400 font-mono-code">Last Updated: August 18, 2026</span>
+            </div>
+          </div>
+
+          {/* Section 1: Information We Collect */}
+          <div className="p-5 bg-[#171a21] rounded-2xl border border-[#2a475e] space-y-2">
+            <div className="flex items-center gap-2 text-white font-bold text-sm">
+              <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 font-mono-code text-xs flex items-center justify-center border border-sky-500/30">1</span>
+              <h4>Information We Collect</h4>
+            </div>
+            <p className="text-slate-300 leading-relaxed pl-8">
+              We collect account profile information (username, email address, profile picture) when you authenticate via Google or standard sign-up. We also collect usage telemetry data (latency pings, stream view counts) to improve streaming performance.
+            </p>
+          </div>
+
+          {/* Section 2: Use of Google User Data */}
+          <div className="p-5 bg-[#171a21] rounded-2xl border border-[#2a475e] space-y-2">
+            <div className="flex items-center gap-2 text-white font-bold text-sm">
+              <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 font-mono-code text-xs flex items-center justify-center border border-sky-500/30">2</span>
+              <h4>Use of Google User Data</h4>
+            </div>
+            <p className="text-slate-300 leading-relaxed pl-8">
+              Visor Stream accesses your Google account information solely to authenticate your user identity and set up your account profile. We do not use Google user data for serving advertisements, nor do we transfer or share this data with external AI models or third-party data brokers.
+            </p>
+          </div>
+
+          {/* Section 3: Data Protection & Payment Security */}
+          <div className="p-5 bg-[#171a21] rounded-2xl border border-[#2a475e] space-y-2">
+            <div className="flex items-center gap-2 text-white font-bold text-sm">
+              <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 font-mono-code text-xs flex items-center justify-center border border-sky-500/30">3</span>
+              <h4>Data Protection & Payment Security</h4>
+            </div>
+            <p className="text-slate-300 leading-relaxed pl-8">
+              All financial transactions (Mobile Money and Credit/Debit Cards) are processed via PCI-DSS compliant third-party payment gateways (such as Flutterwave, Paystack, and Stripe). Visor Stream never stores raw payment PINs, passwords, or full credit card numbers.
+            </p>
+          </div>
+
+          {/* Section 4: Data Retention & Deletion */}
+          <div className="p-5 bg-[#171a21] rounded-2xl border border-[#2a475e] space-y-2">
+            <div className="flex items-center gap-2 text-white font-bold text-sm">
+              <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 font-mono-code text-xs flex items-center justify-center border border-sky-500/30">4</span>
+              <h4>Data Retention & Deletion</h4>
+            </div>
+            <p className="text-slate-300 leading-relaxed pl-8">
+              Users retain full control over their data. You can request complete account and personal data deletion at any time by navigating to Settings &gt; Account &gt; Delete Account, or by contacting{' '}
+              <a href="mailto:syymbba@gmail.com" className="text-sky-400 underline font-mono-code font-bold">
+                syymbba@gmail.com
+              </a>
+              .
+            </p>
+          </div>
+
+          {/* Contact / Inquiries Note */}
+          <div className="p-4 bg-[#0b0e14] rounded-2xl border border-[#2a475e] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono-code">
+            <div className="flex items-center gap-2 text-slate-300">
+              <Mail className="w-4 h-4 text-sky-400" />
+              <span>Data Protection Officer: <strong className="text-white">syymbba@gmail.com</strong></span>
+            </div>
+            <span className="text-slate-400 text-[11px]">Kampala, Uganda • Global CDN Relay</span>
+          </div>
         </div>
       )}
 

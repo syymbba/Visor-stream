@@ -3,10 +3,12 @@ import { LiveStream, ChatMessage, Currency } from '../types';
 import { CURRENCY_RATES } from '../data/mockData';
 import { StreamPlayer } from './StreamPlayer';
 import { TipModal } from './TipModal';
+import { auth, onAuthStateChanged, User as FirebaseUser } from '../firebase';
 import { 
   subscribeToStreamChat, 
   sendStreamChatMessage, 
-  getLocalChatMessages 
+  getLocalChatMessages,
+  getRandomSimulatedChatter 
 } from '../services/chatService';
 import confetti from 'canvas-confetti';
 import {
@@ -25,7 +27,16 @@ import {
   Cpu,
   ShoppingBag,
   Info,
-  Tv
+  Tv,
+  Smile,
+  Volume2,
+  VolumeX,
+  Pin,
+  Flame,
+  Zap,
+  ArrowDown,
+  Filter,
+  Check
 } from 'lucide-react';
 
 interface LivePlayerViewProps {
@@ -37,6 +48,9 @@ interface LivePlayerViewProps {
   currentCurrency: Currency;
   onSelectCategory?: (categoryId: string) => void;
 }
+
+// Quick reaction hype chips
+const QUICK_EMOTES = ['🔥', '👑', '🎮', 'GG', 'W', 'LFG', '⚡', '🚀', '💥'];
 
 export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
   currentStream,
@@ -58,12 +72,73 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
   // Real-time Chat State (Firestore + Local fallback)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => getLocalChatMessages(currentStream.id));
   const [inputMessage, setInputMessage] = useState('');
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [customGamerTag, setCustomGamerTag] = useState('You (Gamer)');
+  const [customAvatar, setCustomAvatar] = useState('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&auto=format&fit=crop&q=80');
+
+  // Chat settings & filters
+  const [chatFilter, setChatFilter] = useState<'all' | 'tips'>('all');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isLiveHypeActive, setIsLiveHypeActive] = useState(true);
+  const [pinnedNoticeOpen, setPinnedNoticeOpen] = useState(true);
+  const [showEmotePicker, setShowEmotePicker] = useState(false);
   
   // Tipping Modal State
   const [tipModalOpen, setTipModalOpen] = useState(false);
   const [activeTipAlert, setActiveTipAlert] = useState<{ sender: string; amount: string; msg: string } | null>(null);
 
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Track Firebase Auth user & profile
+  useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      if (user) {
+        setCustomGamerTag(user.displayName || user.email?.split('@')[0] || 'GamerPro');
+        if (user.photoURL) {
+          setCustomAvatar(user.photoURL);
+        }
+      } else {
+        try {
+          const savedTag = localStorage.getItem('visor_user_gamertag');
+          if (savedTag) setCustomGamerTag(savedTag);
+        } catch (e) {}
+      }
+    });
+
+    return () => unsubAuth();
+  }, []);
+
+  // Web Audio chime for sound notifications
+  const playChatChime = (isSuperTip = false) => {
+    if (!soundEnabled) return;
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (isSuperTip) {
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+      } else {
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
+        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.15);
+      }
+    } catch (e) {
+      // Audio context may be restricted before user gesture
+    }
+  };
 
   // Subscribe to real-time Cloud Firestore chat updates
   useEffect(() => {
@@ -75,34 +150,81 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
     };
   }, [currentStream.id]);
 
+  // Live Community Chatter Simulation for realistic broadcast hype
+  useEffect(() => {
+    if (!isLiveHypeActive) return;
+
+    const interval = setInterval(() => {
+      const randomChatter = getRandomSimulatedChatter();
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      
+      const newMsg: ChatMessage = {
+        id: 'sim_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        sender: randomChatter.sender,
+        avatar: randomChatter.avatar,
+        badge: randomChatter.badge,
+        text: randomChatter.text,
+        timestamp: timeStr
+      };
+
+      setChatMessages(prev => {
+        const next = [...prev.slice(-60), newMsg];
+        return next;
+      });
+    }, 12000);
+
+    return () => clearInterval(interval);
+  }, [isLiveHypeActive, currentStream.id]);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
+  }, [chatMessages, chatFilter]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim()) return;
+  const handleSendMessage = async (e?: React.FormEvent, directText?: string) => {
+    if (e) e.preventDefault();
+    const textToSend = directText || inputMessage;
+    if (!textToSend.trim()) return;
 
-    const userText = inputMessage;
     setInputMessage('');
+    setShowEmotePicker(false);
 
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
+    playChatChime(false);
+
     await sendStreamChatMessage(currentStream.id, {
-      sender: 'You (Gamer)',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&auto=format&fit=crop&q=80',
-      badge: 'PRO',
-      text: userText,
+      sender: customGamerTag,
+      avatar: customAvatar,
+      badge: currentUser ? 'VIP' : 'PRO',
+      text: textToSend,
       timestamp: timeStr
     });
   };
 
+  const handleInsertEmote = (emote: string) => {
+    setInputMessage(prev => (prev ? `${prev} ${emote}` : emote));
+    inputRef.current?.focus();
+  };
+
+  const handleMentionUser = (senderName: string) => {
+    setInputMessage(prev => `@${senderName} ${prev}`);
+    inputRef.current?.focus();
+  };
+
   const handleTipSuccess = (tipDetails: { amount: string; currency: string; message: string; sender: string }) => {
+    playChatChime(true);
     setActiveTipAlert({
       sender: tipDetails.sender || 'You',
       amount: tipDetails.amount,
       msg: tipDetails.message
+    });
+
+    confetti({
+      particleCount: 50,
+      spread: 60,
+      origin: { y: 0.6 }
     });
 
     setTimeout(() => {
@@ -124,6 +246,10 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
       });
     }
   };
+
+  const filteredChatMessages = chatFilter === 'tips'
+    ? chatMessages.filter(m => m.isDonation)
+    : chatMessages;
 
   return (
     <div className="space-y-5 animate-fadeIn pb-12">
@@ -324,95 +450,217 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
         </section>
 
         {/* Bento Event Stream & Persistent Firestore Chat Panel (4 cols) */}
-        <section className={`lg:col-span-4 bg-slate-900 border border-slate-800 rounded-[28px] sm:rounded-[32px] flex flex-col overflow-hidden shadow-2xl shadow-black/40 h-[620px] ${mobileActiveTab === 'stream' ? 'hidden lg:flex' : 'flex'}`}>
+        <section className={`lg:col-span-4 bg-slate-900 border border-slate-800 rounded-[28px] sm:rounded-[32px] flex flex-col overflow-hidden shadow-2xl shadow-black/40 h-[640px] ${mobileActiveTab === 'stream' ? 'hidden lg:flex' : 'flex'}`}>
           {/* Header */}
-          <div className="p-5 sm:p-6 border-b border-slate-800 flex items-center justify-between">
+          <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
             <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-sky-400" />
-              <h2 className="font-black text-xs uppercase tracking-widest text-slate-400">
-                Live Chat & Super Tips
-              </h2>
+              <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center">
+                <MessageSquare className="w-4 h-4 text-sky-400" />
+              </div>
+              <div>
+                <h2 className="font-black text-xs uppercase tracking-wider text-white">
+                  Live Stream Chat
+                </h2>
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono-code">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Real-Time Sync Active</span>
+                </div>
+              </div>
             </div>
-            <div className="bg-emerald-500/10 text-emerald-400 text-[10px] px-2.5 py-1 rounded-lg font-mono-code font-bold border border-emerald-500/20 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>FIRESTORE SYNC</span>
+
+            {/* Chat Controls: Sound Mute & Live Hype Toggle */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className={`p-1.5 rounded-lg border transition-all ${
+                  soundEnabled
+                    ? 'bg-slate-800 text-sky-400 border-slate-700 hover:bg-slate-700'
+                    : 'bg-slate-800/40 text-slate-500 border-slate-800'
+                }`}
+                title={soundEnabled ? 'Mute Chat Sound Effects' : 'Enable Chat Sound Effects'}
+              >
+                {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+              </button>
+
+              <button
+                onClick={() => setIsLiveHypeActive(!isLiveHypeActive)}
+                className={`px-2 py-1 rounded-lg text-[10px] font-mono-code font-bold border transition-all flex items-center gap-1 ${
+                  isLiveHypeActive
+                    ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                    : 'bg-slate-800 text-slate-400 border-slate-700'
+                }`}
+                title="Toggle simulated community live chat hype"
+              >
+                <Zap className="w-3 h-3 text-amber-400" />
+                <span>{isLiveHypeActive ? 'HYPE ON' : 'HYPE PAUSED'}</span>
+              </button>
             </div>
           </div>
 
-          {/* Messages & Event Log Container */}
-          <div className="flex-grow p-4 sm:p-6 space-y-3.5 overflow-y-auto font-sans">
-            {/* Telemetry info banner */}
-            <div className="p-3.5 bg-sky-500/5 rounded-2xl border border-sky-500/10 text-xs text-slate-300 flex items-start gap-2.5">
-              <span className="text-[10px] font-mono text-sky-400 mt-0.5">STREAM</span>
-              <div className="space-y-0.5">
-                <h4 className="text-xs font-bold text-sky-400 uppercase">Live Super Chat Active</h4>
-                <p className="text-xs text-slate-300 leading-normal">
-                  MTN MoMo, M-Pesa, and Airtel Money live superchat tips pinned to top.
-                </p>
-              </div>
-            </div>
-
-            {chatMessages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`p-3 rounded-2xl transition-all ${
-                  msg.isDonation
-                    ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 shadow-lg'
-                    : 'bg-slate-800/40 hover:bg-slate-800/70 border border-slate-800'
+          {/* Chat Filter Tabs: All vs Super Tips */}
+          <div className="px-4 py-2 bg-slate-950/60 border-b border-slate-800/80 flex items-center justify-between text-xs font-mono-code">
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setChatFilter('all')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all ${
+                  chatFilter === 'all'
+                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm'
+                    : 'text-slate-400 hover:text-white border border-transparent'
                 }`}
               >
-                {msg.isDonation && (
-                  <div className="flex items-center justify-between text-amber-300 font-bold text-[10px] font-mono-code mb-1.5">
-                    <span className="flex items-center gap-1.5">
-                      <Gift className="w-3.5 h-3.5 text-amber-400" />
-                      SUPER TIP: {msg.donationAmount}
-                    </span>
-                    <span className="text-[9px] px-1.5 py-0.2 bg-amber-500/20 rounded">★ VIP PIN</span>
-                  </div>
-                )}
+                All Messages ({chatMessages.length})
+              </button>
+              <button
+                onClick={() => setChatFilter('tips')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all flex items-center gap-1 ${
+                  chatFilter === 'tips'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                    : 'text-slate-400 hover:text-amber-300 border border-transparent'
+                }`}
+              >
+                <Gift className="w-3 h-3 text-amber-400" />
+                <span>Super Tips ({chatMessages.filter(m => m.isDonation).length})</span>
+              </button>
+            </div>
 
-                <div className="flex items-start gap-2.5">
-                  <img
-                    src={msg.avatar}
-                    alt={msg.sender}
-                    className="w-7 h-7 rounded-xl object-cover mt-0.5"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs text-slate-200 truncate">{msg.sender}</span>
-                        {msg.badge && (
-                          <span
-                            className={`text-[8px] px-1.5 py-0.5 rounded font-mono-code font-bold uppercase ${
-                              msg.badge === 'CREATOR'
-                                ? 'bg-indigo-500/30 text-indigo-300 border border-indigo-500/40'
-                                : msg.badge === 'VIP'
-                                ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40'
-                                : 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
-                            }`}
-                          >
-                            {msg.badge}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[10px] font-mono-code text-slate-500">{msg.timestamp}</span>
-                    </div>
-                    <p className={`mt-1 text-xs leading-normal ${msg.isDonation ? 'text-amber-100 font-semibold' : 'text-slate-300'}`}>
-                      {msg.text}
-                    </p>
+            <span className="text-[10px] text-slate-500">
+              {currentUser ? `@${customGamerTag}` : 'Guest Mode'}
+            </span>
+          </div>
+
+          {/* Streamer Pinned Banner */}
+          {pinnedNoticeOpen && (
+            <div className="mx-3 mt-2.5 p-2.5 bg-gradient-to-r from-indigo-950/40 via-slate-900 to-sky-950/40 rounded-xl border border-indigo-500/30 flex items-start justify-between gap-2 text-xs">
+              <div className="flex items-start gap-2">
+                <Pin className="w-3.5 h-3.5 text-indigo-400 mt-0.5 shrink-0" />
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1 text-[10px] font-mono-code font-bold text-indigo-300">
+                    <span>📌 PINNED BY {currentStream.streamer.name.toUpperCase()}</span>
                   </div>
+                  <p className="text-[11px] text-slate-300 leading-snug">
+                    Welcome to the broadcast! Sub goal 500. Tips via MTN MoMo, M-Pesa & Card will show on live overlay!
+                  </p>
                 </div>
               </div>
-            ))}
+              <button
+                onClick={() => setPinnedNoticeOpen(false)}
+                className="text-slate-500 hover:text-white text-xs p-1"
+                title="Dismiss Notice"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Messages Container */}
+          <div 
+            ref={chatContainerRef}
+            className="flex-grow p-4 space-y-3 overflow-y-auto font-sans text-xs scroll-smooth"
+          >
+            {filteredChatMessages.length === 0 ? (
+              <div className="py-12 text-center space-y-2 text-slate-500">
+                <MessageSquare className="w-8 h-8 mx-auto opacity-40 text-slate-600" />
+                <p className="text-xs">No messages in this filter yet.</p>
+                <button
+                  onClick={() => setChatFilter('all')}
+                  className="text-xs text-sky-400 font-bold underline"
+                >
+                  View all chat messages
+                </button>
+              </div>
+            ) : (
+              filteredChatMessages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`p-3 rounded-2xl transition-all ${
+                    msg.isDonation
+                      ? 'bg-gradient-to-r from-amber-500/15 via-slate-900 to-orange-500/10 border border-amber-500/40 shadow-lg shadow-amber-500/5'
+                      : 'bg-slate-800/40 hover:bg-slate-800/70 border border-slate-800/80'
+                  }`}
+                >
+                  {msg.isDonation && (
+                    <div className="flex items-center justify-between text-amber-300 font-bold text-[10px] font-mono-code mb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <Gift className="w-3.5 h-3.5 text-amber-400" />
+                        SUPER TIP: {msg.donationAmount}
+                      </span>
+                      <span className="text-[9px] px-2 py-0.5 bg-amber-500/20 text-amber-200 rounded font-bold uppercase">
+                        ★ SUPER CHAT
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex items-start gap-2.5">
+                    <img
+                      src={msg.avatar}
+                      alt={msg.sender}
+                      className="w-7 h-7 rounded-xl object-cover mt-0.5 shrink-0 border border-slate-700"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <button
+                            onClick={() => handleMentionUser(msg.sender)}
+                            className="font-bold text-xs text-slate-200 hover:text-sky-300 truncate text-left transition-colors"
+                            title={`Mention @${msg.sender}`}
+                          >
+                            {msg.sender}
+                          </button>
+                          {msg.badge && (
+                            <span
+                              className={`text-[8px] px-1.5 py-0.2 rounded font-mono-code font-bold uppercase shrink-0 ${
+                                msg.badge === 'CREATOR'
+                                  ? 'bg-indigo-500/30 text-indigo-300 border border-indigo-500/40'
+                                  : msg.badge === 'VIP'
+                                  ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40'
+                                  : msg.badge === 'MOD'
+                                  ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
+                                  : 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                              }`}
+                            >
+                              {msg.badge}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] font-mono-code text-slate-500 shrink-0">{msg.timestamp}</span>
+                      </div>
+                      <p className={`mt-1 text-xs leading-normal break-words ${msg.isDonation ? 'text-amber-100 font-semibold' : 'text-slate-300'}`}>
+                        {msg.text}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
             <div ref={chatEndRef} />
           </div>
 
-          {/* Chat Form & Bento Action Button */}
-          <div className="p-4 sm:p-5 bg-slate-950/50 border-t border-slate-800 space-y-3">
+          {/* Quick Hype Emotes Bar */}
+          <div className="px-3.5 py-2 bg-slate-950/70 border-t border-slate-800 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <span className="text-[10px] font-mono-code text-slate-400 uppercase font-bold shrink-0 flex items-center gap-1 mr-1">
+              <Flame className="w-3 h-3 text-orange-400" />
+              <span>Hype:</span>
+            </span>
+            {QUICK_EMOTES.map((emote, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSendMessage(undefined, emote)}
+                className="px-2 py-1 bg-slate-800 hover:bg-sky-500/20 hover:border-sky-500/40 border border-slate-700 text-xs rounded-lg transition-all shrink-0 hover:scale-105 active:scale-95"
+                title={`Send ${emote}`}
+              >
+                {emote}
+              </button>
+            ))}
+          </div>
+
+          {/* Chat Form & Actions */}
+          <div className="p-3.5 sm:p-4 bg-slate-950 border-t border-slate-800 space-y-2.5">
             <form onSubmit={handleSendMessage} className="flex items-center gap-2">
               <input
+                ref={inputRef}
                 type="text"
-                placeholder="Send a chat message..."
+                placeholder={currentUser ? `Chat as ${customGamerTag}...` : "Send a message in live chat..."}
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 className="flex-1 px-3.5 py-2.5 bg-slate-900 border border-slate-800 focus:border-sky-400 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none"
@@ -420,26 +668,42 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
               <button
                 type="button"
                 onClick={() => setTipModalOpen(true)}
-                className="p-2.5 rounded-xl bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40"
-                title="Send Mobile Money Tip"
+                className="p-2.5 rounded-xl bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 transition-colors"
+                title="Send Mobile Money Super Tip"
               >
                 <Coins className="w-4 h-4" />
               </button>
               <button
                 type="submit"
-                className="p-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold"
+                disabled={!inputMessage.trim()}
+                className={`p-2.5 rounded-xl font-bold transition-all ${
+                  inputMessage.trim()
+                    ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-md shadow-sky-500/20'
+                    : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                }`}
               >
                 <Send className="w-4 h-4" />
               </button>
             </form>
 
-            <button
-              type="button"
-              onClick={() => onOpenSubscribe(currentStream.streamer.name)}
-              className="w-full py-3 bg-white text-slate-950 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-sky-400 transition-colors shadow-lg shadow-sky-500/10"
-            >
-              Subscribe to Streamer ($5)
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setTipModalOpen(true)}
+                className="py-2 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Gift className="w-3.5 h-3.5 text-amber-400" />
+                <span>Super Tip</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onOpenSubscribe(currentStream.streamer.name)}
+                className="py-2 px-3 bg-white text-slate-950 hover:bg-sky-400 border border-transparent rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors shadow-md"
+              >
+                <span>Subscribe ($5)</span>
+              </button>
+            </div>
           </div>
         </section>
       </div>

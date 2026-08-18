@@ -205,7 +205,7 @@ export async function recordStreamTip(
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&auto=format&fit=crop&q=80',
       badge: 'VIP',
       text: tipData.message,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isDonation: true,
       donationAmount: `${tipData.amount.toLocaleString()} ${tipData.currency}`,
       donationCurrency: tipData.currency,
@@ -215,3 +215,65 @@ export async function recordStreamTip(
     console.warn('Tip recording error:', error);
   }
 }
+
+// Pool of realistic African and global esports community live chatters
+export const SIMULATED_COMMUNITY_CHATTERS: Array<{
+  sender: string;
+  avatar: string;
+  badge: 'VIP' | 'PRO' | 'FAN' | 'CREATOR' | 'MOD';
+  text: string;
+}> = [
+  {
+    sender: 'Kiprono_Eldoret',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&auto=format&fit=crop&q=80',
+    badge: 'PRO',
+    text: 'That 360 no-scope was pure witchcraft! 🔥🔥'
+  },
+  {
+    sender: 'Fatuma_Mombasa',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&auto=format&fit=crop&q=80',
+    badge: 'FAN',
+    text: 'Watching live from Coastal Kenya! 🇰🇪 Great stream quality today'
+  },
+  {
+    sender: 'Kigozi_Gamers',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&auto=format&fit=crop&q=80',
+    badge: 'VIP',
+    text: 'Sent MoMo support! Let us hit that sub goal before tournament finals! 🚀'
+  },
+  {
+    sender: 'Amina_DarEsSalaam',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=60&auto=format&fit=crop&q=80',
+    badge: 'PRO',
+    text: 'Tanzania gamers in the building 🇹🇿 Show the loadout specs!'
+  },
+  {
+    sender: 'Nsubuga_Apex',
+    avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=60&auto=format&fit=crop&q=80',
+    badge: 'MOD',
+    text: 'Keep chat clean and friendly fam! Type !discord for the clan link.'
+  },
+  {
+    sender: 'Juma_Sniper99',
+    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=60&auto=format&fit=crop&q=80',
+    badge: 'FAN',
+    text: 'GGs! That clutch in round 3 saved the entire match 👑'
+  },
+  {
+    sender: 'Zola_Luanda',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60&auto=format&fit=crop&q=80',
+    badge: 'PRO',
+    text: '120fps stream looking silky smooth on Nairobi relay node ⚡'
+  }
+];
+
+export function getRandomSimulatedChatter(): Omit<ChatMessage, 'id' | 'timestamp'> {
+  const item = SIMULATED_COMMUNITY_CHATTERS[Math.floor(Math.random() * SIMULATED_COMMUNITY_CHATTERS.length)];
+  return {
+    sender: item.sender,
+    avatar: item.avatar,
+    badge: item.badge,
+    text: item.text
+  };
+}
+
