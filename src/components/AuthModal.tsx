@@ -16,14 +16,26 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAuthSuccess: (profile: UserProfile) => void;
+  initialMode?: 'login' | 'signup';
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
-  onAuthSuccess
+  onAuthSuccess,
+  initialMode = 'login'
 }) => {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
+
+  // Synchronize when initialMode changes or modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setIsSignUp(initialMode === 'signup');
+      setErrorMsg(null);
+      setSuccessMsg(null);
+    }
+  }, [isOpen, initialMode]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [gamerTag, setGamerTag] = useState('');

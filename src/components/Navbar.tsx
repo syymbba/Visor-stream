@@ -362,13 +362,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             })}
           </div>
 
-          {/* Quick links to Support, Terms, Privacy */}
+          {/* Quick links to Landing, Support, Terms, Privacy */}
           <div className="flex items-center justify-around pt-2 border-t border-[#2a475e]/60 text-[11px] text-slate-400 font-medium">
             <button 
-              onClick={() => { setActiveTab('support'); setMobileMenuOpen(false); }}
-              className="hover:text-[#38bdf8] transition-colors"
+              onClick={() => { setActiveTab('landing'); setMobileMenuOpen(false); }}
+              className="hover:text-[#38bdf8] transition-colors font-bold text-sky-400"
             >
-              Support & Help
+              Landing Page
             </button>
             <span>•</span>
             <button 

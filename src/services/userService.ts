@@ -83,6 +83,8 @@ export async function fetchUserProfile(uid: string): Promise<UserProfile | null>
   }
 }
 
+export const getUserProfile = fetchUserProfile;
+
 export async function saveUserProfile(profile: UserProfile): Promise<boolean> {
   try {
     const docRef = doc(db, 'users', profile.uid);

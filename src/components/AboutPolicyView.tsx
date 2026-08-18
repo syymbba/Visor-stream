@@ -15,16 +15,24 @@ import {
   Lock,
   ChevronRight,
   Mail,
-  ExternalLink
+  ExternalLink,
+  ArrowLeft,
+  LayoutDashboard
 } from 'lucide-react';
 import { PLATFORM_FAQS } from '../data/mockData';
 
 interface AboutPolicyViewProps {
   initialSection?: 'about' | 'terms' | 'privacy' | 'guidelines' | 'payouts' | 'careers' | 'contact';
+  onBackToLanding?: () => void;
+  onEnterApp?: () => void;
+  isStandalone?: boolean;
 }
 
 export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
-  initialSection = 'about'
+  initialSection = 'about',
+  onBackToLanding,
+  onEnterApp,
+  isStandalone = false
 }) => {
   const [activeSection, setActiveSection] = useState<'about' | 'terms' | 'privacy' | 'guidelines' | 'payouts' | 'careers' | 'contact'>(initialSection);
 
@@ -35,7 +43,35 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
   }, [initialSection]);
 
   return (
-    <div className="space-y-8 animate-fadeIn pb-16">
+    <div className={`space-y-8 animate-fadeIn pb-16 ${isStandalone ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6' : ''}`}>
+      {/* Standalone Top Bar if viewing in standalone legal route */}
+      {isStandalone && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-slate-900/90 backdrop-blur-md rounded-[24px] border border-slate-800 shadow-xl">
+          <div className="flex items-center gap-3">
+            {onBackToLanding && (
+              <button
+                onClick={onBackToLanding}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 font-mono-code font-bold text-xs flex items-center gap-2 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Landing Page</span>
+              </button>
+            )}
+            <VisorLogo size="sm" glow={false} />
+          </div>
+
+          {onEnterApp && (
+            <button
+              onClick={onEnterApp}
+              className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md shadow-sky-500/20"
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Launch Live Feed</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Navigation Header for Legal / Info Pages */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar p-2 bg-slate-900 rounded-[24px] border border-slate-800 text-xs font-mono-code">
         {[
@@ -262,10 +298,31 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
             </p>
           </div>
 
-          {/* Section 3: Data Protection & Payment Security */}
+          {/* Section 3: Google API Limited Use Disclosure */}
+          <div className="p-5 bg-gradient-to-br from-[#171a21] to-[#0d1f30] rounded-2xl border border-[#0284c7]/40 shadow-lg space-y-2">
+            <div className="flex items-center gap-2 text-sky-300 font-bold text-sm">
+              <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-300 font-mono-code text-xs flex items-center justify-center border border-sky-400/40">3</span>
+              <h4>Google API Limited Use Disclosure</h4>
+            </div>
+            <p className="text-slate-200 leading-relaxed pl-8 font-medium">
+              Visor Stream’s use and transfer to any other app of information received from Google APIs will adhere to the{' '}
+              <a
+                href="https://developers.google.com/terms/api-services-user-data-policy"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#38bdf8] underline hover:text-sky-300 font-bold inline-flex items-center gap-1"
+              >
+                Google API Services User Data Policy
+                <ExternalLink className="w-3 h-3" />
+              </a>
+              , including the Limited Use requirements.
+            </p>
+          </div>
+
+          {/* Section 4: Data Protection & Payment Security */}
           <div className="p-5 bg-[#171a21] rounded-2xl border border-[#2a475e] space-y-2">
             <div className="flex items-center gap-2 text-white font-bold text-sm">
-              <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 font-mono-code text-xs flex items-center justify-center border border-sky-500/30">3</span>
+              <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 font-mono-code text-xs flex items-center justify-center border border-sky-500/30">4</span>
               <h4>Data Protection & Payment Security</h4>
             </div>
             <p className="text-slate-300 leading-relaxed pl-8">
@@ -273,10 +330,10 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
             </p>
           </div>
 
-          {/* Section 4: Data Retention & Deletion */}
+          {/* Section 5: Data Retention & Deletion */}
           <div className="p-5 bg-[#171a21] rounded-2xl border border-[#2a475e] space-y-2">
             <div className="flex items-center gap-2 text-white font-bold text-sm">
-              <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 font-mono-code text-xs flex items-center justify-center border border-sky-500/30">4</span>
+              <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 font-mono-code text-xs flex items-center justify-center border border-sky-500/30">5</span>
               <h4>Data Retention & Deletion</h4>
             </div>
             <p className="text-slate-300 leading-relaxed pl-8">
