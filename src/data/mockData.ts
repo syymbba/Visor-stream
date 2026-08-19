@@ -660,51 +660,26 @@ export const MOCK_CREATOR_DASHBOARD: CreatorDashboardStats = {
   peakViewers: 4890,
   averageViewers: 2840,
   followersGainedToday: 184,
-  totalSubscribers: 1248,
+  totalSubscribers: 0,
   liveBitrateKbps: 6540,
   frameDropRate: 0.08,
   streamHealth: 'Excellent',
   fps: 60,
   cpuLoad: 24,
   uptimeSeconds: 9858, // ~2h 44m
-  revenueThisMonthUSD: 2480,
+  revenueThisMonthUSD: 0,
   payoutBreakdown: {
-    fanSubs: 420, // $840
-    proSubs: 210, // $1050
-    legendSubs: 35, // $350
-    adImpressionsRevenue: 280, // ~$5-8 CPM
-    ppvTicketRevenue: 460, // $2 tickets
-    sponsorshipRevenue: 300,
+    fanSubs: 0,
+    proSubs: 0,
+    legendSubs: 0,
+    adImpressionsRevenue: 0,
+    ppvTicketRevenue: 0,
+    sponsorshipRevenue: 0,
     platformFeeRate: 0.30, // 30% platform fee, 70% streamer
-    grossTotalUSD: 3280,
-    netPayoutUSD: 2480,
+    grossTotalUSD: 0,
+    netPayoutUSD: 0,
   },
-  recentPayouts: [
-    {
-      id: 'po_091',
-      date: 'Aug 01, 2026',
-      amountUSD: 1840,
-      method: 'MTN MoMo',
-      account: '+256 78*** **** (UGX 6,900,000)',
-      status: 'Completed'
-    },
-    {
-      id: 'po_090',
-      date: 'Jul 01, 2026',
-      amountUSD: 1420,
-      method: 'MTN MoMo',
-      account: '+256 78*** **** (UGX 5,325,000)',
-      status: 'Completed'
-    },
-    {
-      id: 'po_089',
-      date: 'Jun 01, 2026',
-      amountUSD: 980,
-      method: 'M-Pesa',
-      account: '+254 71*** **** (KES 127,400)',
-      status: 'Completed'
-    }
-  ]
+  recentPayouts: [],
 };
 
 export const MOCK_STORE_ITEMS: StoreMerchItem[] = [

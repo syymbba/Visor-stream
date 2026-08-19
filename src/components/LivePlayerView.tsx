@@ -247,6 +247,40 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
     }
   };
 
+  // ✅ Redirects user to Pesapal payment portal
+  const handleDirectSubscribe = async (planAmountUSD = 5) => {
+    try {
+      const rate = CURRENCY_RATES[currentCurrency]?.rate || 3750;
+      const calculatedAmount = Math.round(planAmountUSD * rate);
+      const res = await fetch('/api/payments/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: calculatedAmount,
+          currency: currentCurrency,
+          email: currentUser?.email || 'gamer@visorstream.com',
+          phone: '0780123456',
+          creatorId: currentStream.streamer.name,
+          streamId: currentStream.id,
+          type: 'subscription',
+          description: `Visor Stream Pro Gamer Subscription (${currentStream.streamer.name})`
+        })
+      });
+
+      const data = await res.json();
+      if (data.redirectUrl) {
+        // Redirects browser to Pesapal checkout for MTN/Airtel MoMo/Card payment
+        window.location.href = data.redirectUrl;
+      } else {
+        onOpenSubscribe(currentStream.streamer.name);
+      }
+    } catch (err) {
+      console.error('Subscription checkout error:', err);
+      onOpenSubscribe(currentStream.streamer.name);
+    }
+  };
+
+
   const filteredChatMessages = chatFilter === 'tips'
     ? chatMessages.filter(m => m.isDonation)
     : chatMessages;

@@ -62,7 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   searchQuery,
   setSearchQuery,
   onOpenAuthModal,
-  userBalanceUSD = 245.50,
+  userBalanceUSD = 0,
   showBalanceInHeader = true,
   onToggleBalanceVisibility,
   customLogoUrl
@@ -90,6 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'esports', label: t('nav.esports'), icon: Trophy, badge: '$15K' },
     { id: 'community', label: t('nav.community'), icon: Users },
     { id: 'creator', label: t('nav.creator'), icon: LayoutDashboard, isHighlighted: true },
+    { id: 'payments', label: 'Ledger', icon: Wallet, badge: 'MOMO' },
     { id: 'store', label: t('nav.store'), icon: ShoppingBag },
     { id: 'pricing', label: t('nav.pricing'), icon: CreditCard },
     { id: 'about', label: 'About', icon: Info },
@@ -157,9 +158,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-1.5 sm:gap-2.5">
             {/* Account Balance Widget */}
             <div 
-              onClick={() => setActiveTab('settings')}
+              onClick={() => setActiveTab('payments')}
               className="cursor-pointer hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#1b2838] border border-[#2a475e] hover:border-[#38bdf8]/50 rounded-xl text-xs transition-all touch-active-state"
-              title="Click to view wallet in settings"
+              title="Click to view real-time payment history and balance"
             >
               <Wallet className="w-3.5 h-3.5 text-[#38bdf8]" />
               <div className="flex flex-col text-left leading-tight">

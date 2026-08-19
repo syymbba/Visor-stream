@@ -3,6 +3,8 @@ import { CreatorDashboardStats, Currency } from '../types';
 import { CURRENCY_RATES, REGIONAL_SERVER_NODES, MOCK_CREATOR_DASHBOARD } from '../data/mockData';
 import { CreatorTipJarWidget } from './CreatorTipJarWidget';
 import { TipModal } from './TipModal';
+import { PaymentHistory } from './PaymentHistory';
+import { useWalletBalance } from '../hooks/useWalletBalance';
 import confetti from 'canvas-confetti';
 import {
   LayoutDashboard,
@@ -26,7 +28,8 @@ import {
   Sliders,
   Layers,
   Radio,
-  Gift
+  Gift,
+  Receipt
 } from 'lucide-react';
 import {
   AreaChart,
@@ -57,14 +60,22 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedIngest, setCopiedIngest] = useState(false);
   const [selectedIngestServer, setSelectedIngestServer] = useState(REGIONAL_SERVER_NODES[0].id);
+  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'broadcast'>('overview');
+
+  // Live Wallet Balance Hook
+  const wallet = useWalletBalance('me');
 
   // Cashout Modal State
   const [cashoutModalOpen, setCashoutModalOpen] = useState(false);
   const [isTipModalOpen, setIsTipModalOpen] = useState(false);
   const [cashoutMethod, setCashoutMethod] = useState<'M-Pesa' | 'MTN MoMo' | 'Airtel Money' | 'PayPal'>('MTN MoMo');
   const [cashoutPhone, setCashoutPhone] = useState('0780123456');
-  const [cashoutAmountUSD, setCashoutAmountUSD] = useState(effectiveStats?.payoutBreakdown?.netPayoutUSD || 2450);
+  const [cashoutAmountUSD, setCashoutAmountUSD] = useState(wallet.balanceUSD || 0);
   const [cashoutSuccessAlert, setCashoutSuccessAlert] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCashoutAmountUSD(wallet.balanceUSD);
+  }, [wallet.balanceUSD]);
 
   useEffect(() => {
     if (propsStats || initialStats) {
@@ -186,7 +197,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           {onStartBroadcast && (
             <button
               onClick={onStartBroadcast}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-red-500/20 transition-transform active:scale-95"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-red-500/20 transition-transform active:scale-95 cursor-pointer"
             >
               <Radio className="w-4 h-4 text-white animate-pulse" />
               <span>Launch Live Stream</span>
@@ -200,12 +211,44 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
 
           <button
             onClick={() => setCashoutModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 transition-transform active:scale-95"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 transition-transform active:scale-95 cursor-pointer"
           >
             <DollarSign className="w-4 h-4 text-slate-950" />
             <span>Request Mobile Money Payout</span>
           </button>
         </div>
+      </div>
+
+      {/* Studio Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold font-mono-code transition-all cursor-pointer ${
+            activeTab === 'overview'
+              ? 'bg-sky-500 text-slate-950 font-black shadow-lg shadow-sky-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <LayoutDashboard className="w-3.5 h-3.5" />
+          <span>Studio Dashboard</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('payments')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold font-mono-code transition-all cursor-pointer ${
+            activeTab === 'payments'
+              ? 'bg-emerald-500 text-slate-950 font-black shadow-lg shadow-emerald-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Receipt className="w-3.5 h-3.5" />
+          <span>Payment History & Ledger</span>
+          {wallet.completedOrdersCount > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full bg-slate-950 text-emerald-400 text-[10px]">
+              {wallet.completedOrdersCount}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* 4 Core Real-Time Metric Bento Tiles */}
@@ -252,10 +295,10 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           </div>
           <div className="my-3 flex items-baseline gap-2">
             <span className="text-3xl sm:text-4xl font-bold text-white font-rajdhani">
-              {stats.totalSubscribers.toLocaleString()}
+              {wallet.totalSubscribers.toLocaleString()}
             </span>
             <span className="text-xs text-indigo-400 font-bold font-mono-code">
-              {stats.payoutBreakdown.fanSubs} Fan / {stats.payoutBreakdown.proSubs} Pro
+              {wallet.totalTipsCount} Super Tips
             </span>
           </div>
           <p className="text-[11px] text-slate-400 font-mono-code">+{stats.followersGainedToday} new followers today</p>
@@ -269,14 +312,19 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           </div>
           <div className="my-3 flex items-baseline gap-2">
             <span className="text-3xl sm:text-4xl font-bold text-emerald-400 font-rajdhani">
-              {symbol} {(stats.payoutBreakdown.netPayoutUSD * rate).toLocaleString()}
+              {symbol} {(wallet.getBalanceInCurrency(currentCurrency)).toLocaleString()}
             </span>
           </div>
           <p className="text-[11px] text-slate-400 font-mono-code">
-            ${stats.payoutBreakdown.netPayoutUSD} USD gross: ${stats.payoutBreakdown.grossTotalUSD}
+            ${wallet.balanceUSD.toFixed(2)} USD (Gross: ${wallet.totalRevenueUSD.toFixed(2)})
           </p>
         </div>
       </div>
+
+      {activeTab === 'payments' ? (
+        <PaymentHistory currentCurrency={currentCurrency} />
+      ) : (
+        <>
 
       {/* Creator Tip Jar & Community Goal Widget */}
       <CreatorTipJarWidget
@@ -522,6 +570,8 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           </div>
         </div>
       </div>
+      </>
+      )}
 
       {/* Cashout / Mobile Money Withdrawal Modal */}
       {cashoutModalOpen && (

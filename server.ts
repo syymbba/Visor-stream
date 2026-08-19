@@ -238,15 +238,206 @@ async function startServer() {
     }
   });
 
-  // 4. Query Pesapal Transaction Status
-  app.get("/api/payments/status/:orderTrackingId", async (req, res) => {
+  // 4. Query Pesapal Transaction Status (Supports route param or query param ?id=...)
+  app.get("/api/payments/status/:orderTrackingId?", async (req, res) => {
     try {
-      const { orderTrackingId } = req.params;
-      const status = await getPesapalTransactionStatus(orderTrackingId);
-      res.json({ success: true, status });
+      const trackingId =
+        req.params.orderTrackingId ||
+        (req.query.id as string) ||
+        (req.query.trackingId as string) ||
+        (req.query.OrderTrackingId as string);
+
+      if (!trackingId) {
+        return res.status(400).json({ error: "Missing orderTrackingId parameter" });
+      }
+
+      // 1. Fetch DB record
+      let dbOrder = null;
+      try {
+        const orderRows = await db
+          .select()
+          .from(pesapalOrders)
+          .where(eq(pesapalOrders.orderTrackingId, trackingId))
+          .limit(1);
+        dbOrder = orderRows[0] || null;
+      } catch (dbErr) {
+        console.warn("DB lookup error for status check:", dbErr);
+      }
+
+      // 2. Fetch live Pesapal status
+      let pesapalStatus: any = null;
+      try {
+        pesapalStatus = await getPesapalTransactionStatus(trackingId);
+
+        // If Pesapal reports completed but DB is still pending, update DB
+        const isCompleted =
+          pesapalStatus.payment_status_description?.toLowerCase() === "completed" ||
+          pesapalStatus.status_code === 1;
+
+        if (isCompleted && dbOrder && dbOrder.status !== "COMPLETED") {
+          const totalAmount = pesapalStatus.amount || parseFloat(dbOrder.amount) || 0;
+          const creatorShare = (totalAmount * 0.7).toFixed(2);
+          const platformShare = (totalAmount * 0.3).toFixed(2);
+
+          await db
+            .update(pesapalOrders)
+            .set({
+              status: "COMPLETED",
+              paymentMethod: pesapalStatus.payment_method || dbOrder.paymentMethod,
+              creatorEarnings: creatorShare,
+              platformEarnings: platformShare,
+              pesapalConfirmationCode: pesapalStatus.confirmation_code || null,
+              updatedAt: new Date(),
+            })
+            .where(eq(pesapalOrders.orderTrackingId, trackingId));
+          
+          dbOrder.status = "COMPLETED";
+        }
+      } catch (statusErr) {
+        console.warn("Pesapal remote status check note:", statusErr);
+      }
+
+      res.json({
+        success: true,
+        order: dbOrder,
+        status: pesapalStatus || (dbOrder ? { payment_status_description: dbOrder.status } : null),
+      });
     } catch (error: any) {
       console.error("Get Payment Status Error:", error);
       res.status(500).json({ error: error.message || "Failed to fetch transaction status" });
+    }
+  });
+
+  // 5. Payment Transaction History API
+  app.get("/api/payments/history", async (req, res) => {
+    try {
+      const { userId, creatorId, type, status, limit = "50" } = req.query;
+      const numLimit = Math.min(100, Math.max(1, parseInt(limit as string) || 50));
+
+      let query = db
+        .select()
+        .from(pesapalOrders)
+        .orderBy(desc(pesapalOrders.createdAt))
+        .limit(numLimit);
+
+      const orders = await query;
+
+      // Filter in memory if specific filter requested
+      const filtered = orders.filter((o) => {
+        if (userId && o.userId && o.userId !== userId) return false;
+        if (creatorId && o.creatorId && o.creatorId !== creatorId && o.creatorId !== "me") return false;
+        if (type && o.type !== type) return false;
+        if (status && o.status !== status) return false;
+        return true;
+      });
+
+      res.json({
+        success: true,
+        count: filtered.length,
+        history: filtered.map((item) => ({
+          id: item.merchantReference,
+          merchantReference: item.merchantReference,
+          orderTrackingId: item.orderTrackingId,
+          type: item.type,
+          planId: item.planId,
+          userId: item.userId,
+          creatorId: item.creatorId,
+          streamId: item.streamId,
+          amount: parseFloat(item.amount) || 0,
+          currency: item.currency || "UGX",
+          status: item.status,
+          paymentMethod: item.paymentMethod || "Pesapal Mobile Money / Card",
+          description: item.description,
+          email: item.email,
+          phone: item.phone,
+          creatorEarnings: item.creatorEarnings ? parseFloat(item.creatorEarnings) : null,
+          platformEarnings: item.platformEarnings ? parseFloat(item.platformEarnings) : null,
+          confirmationCode: item.pesapalConfirmationCode,
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt,
+        })),
+      });
+    } catch (error: any) {
+      console.error("Fetch Payment History Error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch payment history" });
+    }
+  });
+
+  // 6. Real-Time Dynamic Wallet Balance API
+  app.get("/api/wallet/balance", async (req, res) => {
+    try {
+      const { userId = "me" } = req.query;
+
+      // Fetch all completed orders from database
+      const completedOrders = await db
+        .select()
+        .from(pesapalOrders)
+        .where(eq(pesapalOrders.status, "COMPLETED"));
+
+      // Conversion rates standard for Visor Stream
+      // 1 USD = 3,750 UGX | 130 KES | 2,600 TZS
+      const toUSD = (amt: number, curr: string): number => {
+        const c = (curr || "UGX").toUpperCase();
+        if (c === "USD") return amt;
+        if (c === "UGX") return amt / 3750;
+        if (c === "KES") return amt / 130;
+        if (c === "TZS") return amt / 2600;
+        return amt / 3750;
+      };
+
+      let totalGrossUSD = 0;
+      let totalCreatorEarningsUSD = 0;
+      let totalPlatformFeesUSD = 0;
+      let completedTipsCount = 0;
+      let completedSubsCount = 0;
+
+      completedOrders.forEach((order) => {
+        const rawAmt = parseFloat(order.amount) || 0;
+        const amtUSD = toUSD(rawAmt, order.currency);
+        totalGrossUSD += amtUSD;
+
+        if (order.type === "subscription") {
+          completedSubsCount += 1;
+          // 70% to creator, 30% platform
+          totalCreatorEarningsUSD += amtUSD * 0.7;
+          totalPlatformFeesUSD += amtUSD * 0.3;
+        } else if (order.type === "tip") {
+          completedTipsCount += 1;
+          // Tips go 100% (or 95%) to creator
+          totalCreatorEarningsUSD += amtUSD;
+        } else {
+          totalCreatorEarningsUSD += amtUSD * 0.7;
+          totalPlatformFeesUSD += amtUSD * 0.3;
+        }
+      });
+
+      const netBalanceUSD = Math.max(0, Math.round(totalCreatorEarningsUSD * 100) / 100);
+      const netBalanceUGX = Math.round(netBalanceUSD * 3750);
+      const netBalanceKES = Math.round(netBalanceUSD * 130);
+      const netBalanceTZS = Math.round(netBalanceUSD * 2600);
+
+      res.json({
+        success: true,
+        balanceUSD: netBalanceUSD,
+        balanceUGX: netBalanceUGX,
+        balanceKES: netBalanceKES,
+        balanceTZS: netBalanceTZS,
+        totalRevenueUSD: Math.round(totalGrossUSD * 100) / 100,
+        creatorEarningsUSD: netBalanceUSD,
+        platformFeesUSD: Math.round(totalPlatformFeesUSD * 100) / 100,
+        totalSubscribers: completedSubsCount,
+        totalTipsCount: completedTipsCount,
+        completedOrdersCount: completedOrders.length,
+        currencyRates: {
+          UGX: 3750,
+          KES: 130,
+          TZS: 2600,
+          USD: 1,
+        },
+      });
+    } catch (error: any) {
+      console.error("Fetch Wallet Balance Error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch wallet balance" });
     }
   });
 

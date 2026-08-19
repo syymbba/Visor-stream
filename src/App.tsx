@@ -25,6 +25,9 @@ import { PricingView } from './components/PricingView';
 import { PricingModal } from './components/PricingModal';
 import { SettingsView } from './components/SettingsView';
 import { AboutPolicyView } from './components/AboutPolicyView';
+import { PaymentStatusView } from './components/PaymentStatusView';
+import { PaymentHistory } from './components/PaymentHistory';
+import { useWalletBalance } from './hooks/useWalletBalance';
 import { GoLiveModal } from './components/GoLiveModal';
 import { NotificationsModal } from './components/NotificationsModal';
 import { AuthModal } from './components/AuthModal';
@@ -34,14 +37,25 @@ import confetti from 'canvas-confetti';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
-type AppTab = 'landing' | 'live' | 'reels' | 'library' | 'tutorials' | 'games' | 'esports' | 'community' | 'store' | 'creator' | 'pricing' | 'settings' | 'about' | 'terms' | 'privacy' | 'support';
+type AppTab = 'landing' | 'live' | 'reels' | 'library' | 'tutorials' | 'games' | 'esports' | 'community' | 'store' | 'creator' | 'pricing' | 'settings' | 'about' | 'terms' | 'privacy' | 'support' | 'payment-status' | 'payments';
 
 export function App() {
   // Parse initial route from URL path or hash
   const getInitialTabFromUrl = (): AppTab => {
     const path = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
     const hash = window.location.hash.toLowerCase().replace(/^#/, '');
+    const search = window.location.search;
 
+    if (
+      path === '/payment-status' ||
+      hash === 'payment-status' ||
+      search.includes('OrderTrackingId') ||
+      search.includes('trackingId') ||
+      search.includes('payment=')
+    ) {
+      return 'payment-status';
+    }
+    if (path === '/payments' || hash === 'payments' || path === '/history') return 'payments';
     if (path === '/privacy' || hash === 'privacy') return 'privacy';
     if (path === '/terms' || hash === 'terms') return 'terms';
     if (path === '/about' || hash === 'about') return 'about';
@@ -65,10 +79,18 @@ export function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
 
+  // Real-Time Dynamic Wallet Balance Hook
+  const wallet = useWalletBalance(currentUser?.uid || 'me');
+
   const [currentCurrency, setCurrentCurrency] = useState<Currency>('UGX');
   const [showBalanceInHeader, setShowBalanceInHeader] = useState(true);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
-  const [userBalanceUSD, setUserBalanceUSD] = useState(245.50);
+  const [userBalanceUSD, setUserBalanceUSD] = useState(0);
+
+  // Sync wallet balance
+  useEffect(() => {
+    setUserBalanceUSD(wallet.balanceUSD);
+  }, [wallet.balanceUSD]);
 
   const [liveStreams, setLiveStreams] = useState<LiveStream[]>(MOCK_LIVE_STREAMS);
   const [tutorials, setTutorials] = useState<GamingTutorial[]>(MOCK_TUTORIALS);
@@ -447,6 +469,22 @@ export function App() {
                 onOpenSubscribe={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
                 onOpenAuthModal={openAuthLogin}
                 onNavigateToTab={(tab) => handleNavigateTab(tab as AppTab)}
+              />
+            )}
+
+            {activeTab === 'payments' && (
+              <PaymentHistory
+                currentCurrency={currentCurrency}
+                userId={currentUser?.uid}
+              />
+            )}
+
+            {activeTab === 'payment-status' && (
+              <PaymentStatusView
+                onNavigateHome={() => handleNavigateTab('live')}
+                onNavigateStudio={() => handleNavigateTab('creator')}
+                onNavigateLive={() => handleNavigateTab('live')}
+                onTryAgain={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
               />
             )}
           </main>

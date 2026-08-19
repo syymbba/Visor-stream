@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SubscriptionPlan, Currency } from '../types';
 import { CURRENCY_RATES } from '../data/mockData';
-import confetti from 'canvas-confetti';
+import { auth } from '../firebase';
 import {
   CreditCard,
   CheckCircle2,
@@ -34,8 +34,13 @@ export const PricingModal: React.FC<PricingModalProps> = ({
   const [phone, setPhone] = useState('0780123456');
   const [email, setEmail] = useState('gamer@visorstream.com');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (auth.currentUser?.email) {
+      setEmail(auth.currentUser.email);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -44,6 +49,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
   const priceCalculated = Math.round(selectedPlan.priceUSD * rate);
   const priceFormatted = priceCalculated.toLocaleString();
 
+  // ✅ Redirects user directly to Pesapal payment portal
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
@@ -57,19 +63,19 @@ export const PricingModal: React.FC<PricingModalProps> = ({
         body: JSON.stringify({
           amount: priceCalculated,
           currency: currentCurrency,
-          email: email.trim() || 'gamer@visorstream.com',
+          email: email.trim() || auth.currentUser?.email || 'gamer@visorstream.com',
           phone: phone.trim(),
           creatorId: 'me',
           planId: selectedPlan.id,
           type: 'subscription',
-          description: `Visor Stream ${selectedPlan.name} Subscription (${selectedPlan.badge})`,
+          description: `Visor Stream ${selectedPlan.name} Subscription`,
         }),
       });
 
       const data = await response.json();
 
       if (data.redirectUrl) {
-        // Directs user to Pesapal v3 secure checkout screen (MTN MoMo, Airtel, M-Pesa, Card)
+        // Redirects browser to Pesapal checkout for MTN/Airtel MoMo/Card payment
         window.location.href = data.redirectUrl;
         return;
       }
@@ -78,26 +84,14 @@ export const PricingModal: React.FC<PricingModalProps> = ({
         throw new Error(data.error);
       }
 
-      // Fallback local activation if redirected URL wasn't provided
-      setIsProcessing(false);
-      setIsComplete(true);
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.5 }
-      });
-      setTimeout(() => {
-        onSuccess(selectedPlan);
-        onClose();
-        setIsComplete(false);
-      }, 2000);
+      throw new Error('Pesapal gateway redirect URL not returned. Please try again.');
     } catch (err: any) {
       console.error('Pesapal checkout error:', err);
-      // If error occurs, inform user and allow sandbox fallback
       setErrorMessage(err.message || 'Payment initiation failed. Please check network or try again.');
       setIsProcessing(false);
     }
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
@@ -139,35 +133,22 @@ export const PricingModal: React.FC<PricingModalProps> = ({
             </div>
           )}
 
-          {isComplete ? (
-            <div className="py-8 text-center space-y-3">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center animate-bounce border border-emerald-500/30">
-                <CheckCircle2 className="w-10 h-10" />
+          <form onSubmit={handleCheckout} className="space-y-4 font-mono-code">
+            {/* Plan Summary */}
+            <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-sky-400">
+                  Selected Plan
+                </span>
+                <p className="font-black text-white text-sm">{selectedPlan.name}</p>
               </div>
-              <h4 className="text-xl font-black text-white">
-                Subscription Activated!
-              </h4>
-              <p className="text-xs text-slate-300">
-                You are now an active {selectedPlan.badge}. All perks & masterclass tutorials are unlocked.
-              </p>
+              <div className="text-right">
+                <span className="text-lg font-black text-emerald-400">
+                  {symbol} {priceFormatted}
+                </span>
+                <span className="text-[10px] text-slate-400 block">/ month</span>
+              </div>
             </div>
-          ) : (
-            <form onSubmit={handleCheckout} className="space-y-4 font-mono-code">
-              {/* Plan Summary */}
-              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-sky-400">
-                    Selected Plan
-                  </span>
-                  <p className="font-black text-white text-sm">{selectedPlan.name}</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-lg font-black text-emerald-400">
-                    {symbol} {priceFormatted}
-                  </span>
-                  <span className="text-[10px] text-slate-400 block">/ month</span>
-                </div>
-              </div>
 
               {/* Payment Method Selector */}
               <div className="space-y-2">
@@ -289,7 +270,6 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                 )}
               </button>
             </form>
-          )}
         </div>
       </div>
     </div>
