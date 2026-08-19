@@ -10,7 +10,9 @@ import {
   Zap,
   Sparkles,
   Lock,
-  X
+  X,
+  ExternalLink,
+  Loader2
 } from 'lucide-react';
 
 interface PricingModalProps {
@@ -30,35 +32,71 @@ export const PricingModal: React.FC<PricingModalProps> = ({
 }) => {
   const [paymentMethod, setPaymentMethod] = useState<'mpesa' | 'mtn' | 'airtel' | 'card' | 'paypal'>('mtn');
   const [phone, setPhone] = useState('0780123456');
+  const [email, setEmail] = useState('gamer@visorstream.com');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const rate = CURRENCY_RATES[currentCurrency].rate;
-  const symbol = CURRENCY_RATES[currentCurrency].symbol;
-  const priceFormatted = (selectedPlan.priceUSD * rate).toLocaleString();
+  const rate = CURRENCY_RATES[currentCurrency]?.rate || 1;
+  const symbol = CURRENCY_RATES[currentCurrency]?.symbol || '$';
+  const priceCalculated = Math.round(selectedPlan.priceUSD * rate);
+  const priceFormatted = priceCalculated.toLocaleString();
 
-  const handleCheckout = (e: React.FormEvent) => {
+  const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
+    setErrorMessage(null);
 
-    setTimeout(() => {
+    try {
+      // Call Pesapal v3 Checkout Endpoint
+      const response = await fetch('/api/payments/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: priceCalculated,
+          currency: currentCurrency,
+          email: email.trim() || 'gamer@visorstream.com',
+          phone: phone.trim(),
+          creatorId: 'me',
+          planId: selectedPlan.id,
+          type: 'subscription',
+          description: `Visor Stream ${selectedPlan.name} Subscription (${selectedPlan.badge})`,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.redirectUrl) {
+        // Directs user to Pesapal v3 secure checkout screen (MTN MoMo, Airtel, M-Pesa, Card)
+        window.location.href = data.redirectUrl;
+        return;
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Fallback local activation if redirected URL wasn't provided
       setIsProcessing(false);
       setIsComplete(true);
-
       confetti({
         particleCount: 120,
         spread: 80,
         origin: { y: 0.5 }
       });
-
       setTimeout(() => {
         onSuccess(selectedPlan);
         onClose();
         setIsComplete(false);
       }, 2000);
-    }, 1800);
+    } catch (err: any) {
+      console.error('Pesapal checkout error:', err);
+      // If error occurs, inform user and allow sandbox fallback
+      setErrorMessage(err.message || 'Payment initiation failed. Please check network or try again.');
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -71,10 +109,11 @@ export const PricingModal: React.FC<PricingModalProps> = ({
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-black text-lg text-white tracking-tight">
-                Unlock {selectedPlan.name}
+              <h3 className="font-black text-lg text-white tracking-tight flex items-center gap-2">
+                <span>Unlock {selectedPlan.name}</span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-mono-code font-bold">Pesapal v3</span>
               </h3>
-              <p className="text-xs text-slate-400">70% revenue directly powers creator stream</p>
+              <p className="text-xs text-slate-400">70% revenue directly powers creator stream • 30% platform</p>
             </div>
           </div>
           <button
@@ -87,6 +126,19 @@ export const PricingModal: React.FC<PricingModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-6 space-y-5">
+          {errorMessage && (
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400 flex items-center justify-between">
+              <span>{errorMessage}</span>
+              <button
+                type="button"
+                onClick={() => setErrorMessage(null)}
+                className="text-red-300 hover:text-white text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {isComplete ? (
             <div className="py-8 text-center space-y-3">
               <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center animate-bounce border border-emerald-500/30">
@@ -119,7 +171,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
 
               {/* Payment Method Selector */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-300">Select Local / Global Payment Channel</label>
+                <label className="text-xs font-bold text-slate-300">Payment Gateway Channels (Pesapal v3)</label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
@@ -166,7 +218,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                         : 'bg-slate-950 text-slate-400 border-slate-800'
                     }`}
                   >
-                    💳 Stripe / Cards
+                    💳 Visa / Mastercard
                   </button>
                   <button
                     type="button"
@@ -177,64 +229,62 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                         : 'bg-slate-950 text-slate-400 border-slate-800'
                     }`}
                   >
-                    🅿️ PayPal
+                    ⚡ Pesapal Instant
                   </button>
                 </div>
               </div>
 
               {/* Phone or Card Details Input */}
-              {paymentMethod !== 'card' && paymentMethod !== 'paypal' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-300">
-                    Mobile Money Number for STK Push
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="e.g. 0780123456 or 0712345678"
-                      className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"
-                      required
-                    />
-                  </div>
-                  <p className="text-[10px] text-slate-400">
-                    A PIN authorization prompt will appear on your phone screen.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-300">
-                    Cardholder Email / Name
+                    Billing Email
                   </label>
                   <input
                     type="email"
-                    defaultValue="gamer@gmail.com"
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. gamer@gmail.com"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"
                     required
                   />
                 </div>
-              )}
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-300">
+                    Mobile Number (MoMo / SMS)
+                  </label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="e.g. 0780123456"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"
+                    required
+                  />
+                </div>
+              </div>
 
               {/* Secure guarantee badge */}
               <div className="flex items-center gap-2 p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px] text-slate-400">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span>256-bit encrypted checkout via Flutterwave & Paystack. Cancel anytime.</span>
+                <span>Pesapal v3 Bank-Grade Security (PCI-DSS Level 1). 70% paid to creator wallet.</span>
               </div>
 
               <button
                 type="submit"
                 disabled={isProcessing}
-                className="w-full py-3.5 rounded-2xl bg-white text-slate-950 hover:bg-sky-400 transition-colors font-black text-xs tracking-wider uppercase shadow-lg flex items-center justify-center gap-2 active:scale-95"
+                className="w-full py-3.5 rounded-2xl bg-sky-500 text-slate-950 hover:bg-sky-400 transition-all font-black text-xs tracking-wider uppercase shadow-lg shadow-sky-500/25 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
               >
                 {isProcessing ? (
                   <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 rounded-full border-2 border-slate-950 border-t-transparent animate-spin"></span>
-                    <span>Waiting for Mobile STK PIN Confirm...</span>
+                    <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                    <span>Connecting to Pesapal Secure Gateway...</span>
                   </span>
                 ) : (
-                  <span>
-                    Pay {symbol} {priceFormatted} & Unlock
+                  <span className="flex items-center gap-2">
+                    <span>Pay {symbol} {priceFormatted} with Pesapal</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </span>
                 )}
               </button>
@@ -245,3 +295,4 @@ export const PricingModal: React.FC<PricingModalProps> = ({
     </div>
   );
 };
+

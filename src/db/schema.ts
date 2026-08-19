@@ -40,3 +40,28 @@ export const creatorStats = pgTable('creator_stats', {
   subscribersCount: integer('subscribers_count').default(0),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+
+// Pesapal v3 Orders and Transaction Records (70/30 Split Tracking)
+export const pesapalOrders = pgTable('pesapal_orders', {
+  id: serial('id').primaryKey(),
+  merchantReference: text('merchant_reference').notNull().unique(),
+  orderTrackingId: text('order_tracking_id'),
+  type: text('type').notNull(), // 'subscription' | 'tip'
+  planId: text('plan_id'),
+  userId: text('user_id'),
+  creatorId: text('creator_id'),
+  streamId: text('stream_id'),
+  amount: text('amount').notNull(),
+  currency: text('currency').notNull(),
+  status: text('status').notNull().default('PENDING'), // 'PENDING' | 'COMPLETED' | 'FAILED' | 'INVALID'
+  paymentMethod: text('payment_method'),
+  description: text('description'),
+  email: text('email'),
+  phone: text('phone'),
+  creatorEarnings: text('creator_earnings'), // 70% share
+  platformEarnings: text('platform_earnings'), // 30% share
+  pesapalConfirmationCode: text('pesapal_confirmation_code'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+

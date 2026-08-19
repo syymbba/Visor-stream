@@ -83,6 +83,40 @@ export function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [searchQuery, setSearchQuery] = useState('');
+  const [paymentNotice, setPaymentNotice] = useState<{ status: 'success' | 'pending' | 'error'; orderId?: string; amount?: string; currency?: string } | null>(null);
+
+  // Check URL parameters for Pesapal payment callback outcomes
+  useEffect(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentStatus = urlParams.get('payment');
+      if (paymentStatus) {
+        const orderId = urlParams.get('orderId') || undefined;
+        const amount = urlParams.get('amount') || undefined;
+        const currency = urlParams.get('currency') || undefined;
+
+        if (paymentStatus === 'success') {
+          setPaymentNotice({ status: 'success', orderId, amount, currency });
+          confetti({
+            particleCount: 100,
+            spread: 80,
+            origin: { y: 0.6 },
+          });
+        } else if (paymentStatus === 'pending') {
+          setPaymentNotice({ status: 'pending', orderId, amount, currency });
+        } else if (paymentStatus === 'error' || paymentStatus === 'failed') {
+          setPaymentNotice({ status: 'error', orderId });
+        }
+
+        // Clean up URL query parameters without full reload
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    } catch (e) {
+      console.warn('Payment callback query error:', e);
+    }
+  }, []);
+
 
   // Listen to Firebase Auth state
   useEffect(() => {
@@ -262,6 +296,60 @@ export function App() {
 
           {/* Main Content Viewport */}
           <main className="flex-1 max-w-[1720px] w-full mx-auto px-2 sm:px-4 lg:px-8 py-3 sm:py-6">
+            {/* Pesapal Payment Settlement Notification Banner */}
+            {paymentNotice && (
+              <div
+                className={`mb-6 p-4 rounded-2xl border flex items-center justify-between shadow-2xl animate-fadeIn ${
+                  paymentNotice.status === 'success'
+                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                    : paymentNotice.status === 'pending'
+                    ? 'bg-amber-500/10 border-amber-500/40 text-amber-300'
+                    : 'bg-red-500/10 border-red-500/40 text-red-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base ${
+                      paymentNotice.status === 'success'
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : paymentNotice.status === 'pending'
+                        ? 'bg-amber-500/20 text-amber-400'
+                        : 'bg-red-500/20 text-red-400'
+                    }`}
+                  >
+                    {paymentNotice.status === 'success' ? '✓' : paymentNotice.status === 'pending' ? '⏳' : '✕'}
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-white flex items-center gap-2">
+                      <span>
+                        {paymentNotice.status === 'success'
+                          ? 'Pesapal Payment Confirmed & Activated!'
+                          : paymentNotice.status === 'pending'
+                          ? 'Pesapal Payment Processing...'
+                          : 'Payment Unsuccessful'}
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700 font-mono-code">
+                        70% Direct to Creator
+                      </span>
+                    </h4>
+                    <p className="text-xs text-slate-300 font-mono-code mt-0.5">
+                      {paymentNotice.status === 'success'
+                        ? `Transaction ${paymentNotice.orderId ? `(${paymentNotice.orderId})` : ''} settled successfully via Pesapal v3. Instant streamer allocation credited.`
+                        : paymentNotice.status === 'pending'
+                        ? 'Your transaction is being confirmed by your mobile provider. Your balance will update automatically.'
+                        : 'The payment could not be finalized. Please try again or choose another payment rail.'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setPaymentNotice(null)}
+                  className="p-1.5 rounded-lg bg-slate-900/60 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-mono-code transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
             {activeTab === 'live' && (
               <LivePlayerView
                 currentStream={selectedStream}

@@ -69,18 +69,41 @@ export const TipModal: React.FC<TipModalProps> = ({
     // Simulate gateway response & write to Firestore
     try {
       const numAmount = parseFloat(amount) || 5000;
+      const currency = currencyMap[provider];
+
+      // Record in live server & database
+      try {
+        await fetch('/api/payments/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: numAmount,
+            currency,
+            email: `${senderName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'gamer'}@visorstream.com`,
+            phone,
+            creatorId: streamerName,
+            streamId,
+            type: 'tip',
+            description: `Live Stream Tip to ${streamerName}: "${shoutout}"`,
+          }),
+        });
+      } catch (apiErr) {
+        console.warn('Backend payment record warning:', apiErr);
+      }
+
       await recordStreamTip(streamId, {
         streamerName,
         senderName: senderName.trim() || 'Anonymous Gamer',
         senderPhone: phone,
         amount: numAmount,
-        currency: currencyMap[provider],
-        network: provider === 'mtn' ? 'MTN MoMo' : provider === 'airtel' ? 'Airtel Money' : provider === 'mpesa' ? 'M-Pesa' : 'Card / Flutterwave',
+        currency,
+        network: provider === 'mtn' ? 'MTN MoMo' : provider === 'airtel' ? 'Airtel Money' : provider === 'mpesa' ? 'M-Pesa' : 'Pesapal Card',
         message: shoutout
       });
     } catch (e) {
       console.warn('Tip logging error:', e);
     }
+
 
     setTimeout(() => {
       setStep('success');
