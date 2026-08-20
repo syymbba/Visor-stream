@@ -64,6 +64,59 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [reconcilingId, setReconcilingId] = useState<string | null>(null);
+  const [simulatingIpn, setSimulatingIpn] = useState<boolean>(false);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  const handleReconcile = async (merchantRef: string, trackingId?: string) => {
+    try {
+      setReconcilingId(merchantRef);
+      const res = await fetch('/api/payments/reconcile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          merchantReference: merchantRef,
+          orderTrackingId: trackingId,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionNotice(`Reconciled ${merchantRef}: ${data.reconciledStatus}`);
+        fetchHistory();
+      } else {
+        setActionNotice(`Reconcile note: ${data.error || 'No change'}`);
+      }
+    } catch (err: any) {
+      setActionNotice(`Reconcile failed: ${err.message}`);
+    } finally {
+      setReconcilingId(null);
+      setTimeout(() => setActionNotice(null), 4000);
+    }
+  };
+
+  const handleSimulateIpn = async () => {
+    try {
+      setSimulatingIpn(true);
+      const res = await fetch('/api/payments/simulate-ipn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: 25000,
+          currency: currentCurrency === 'USD' ? 'USD' : 'UGX',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionNotice(`Simulated IPN Confirmed! Ref: ${data.merchantReference}`);
+        fetchHistory();
+      }
+    } catch (err: any) {
+      setActionNotice(`Simulation failed: ${err.message}`);
+    } finally {
+      setSimulatingIpn(false);
+      setTimeout(() => setActionNotice(null), 4000);
+    }
+  };
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -73,10 +126,14 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
         ? `/api/payments/history?userId=${encodeURIComponent(userId)}`
         : '/api/payments/history';
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to load transactions`);
-      const data = await res.json();
-      if (data.success && Array.isArray(data.history)) {
-        setTransactions(data.history);
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.history)) {
+          setTransactions(data.history);
+        } else {
+          setTransactions([]);
+        }
       } else {
         setTransactions([]);
       }
@@ -187,15 +244,35 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={fetchHistory}
-          disabled={loading}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all disabled:opacity-50 self-start md:self-auto cursor-pointer"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-sky-400' : ''}`} />
-          <span>Refresh Ledger</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+          <button
+            onClick={handleSimulateIpn}
+            disabled={simulatingIpn}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+            title="Simulate Pesapal IPN Webhook"
+          >
+            <Sparkles className={`w-3.5 h-3.5 ${simulatingIpn ? 'animate-spin' : ''}`} />
+            <span>Test IPN Webhook</span>
+          </button>
+
+          <button
+            onClick={fetchHistory}
+            disabled={loading}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-sky-400' : ''}`} />
+            <span>Refresh Ledger</span>
+          </button>
+        </div>
       </div>
+
+      {/* Action Toast Notice */}
+      {actionNotice && (
+        <div className="mt-4 p-3 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-300 text-xs font-semibold flex items-center justify-between animate-fadeIn">
+          <span>{actionNotice}</span>
+          <button onClick={() => setActionNotice(null)} className="text-slate-400 hover:text-white text-xs font-bold">Dismiss</button>
+        </div>
+      )}
 
       {/* Filter Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 my-5">
@@ -339,17 +416,30 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
 
                   {/* Actions / Details */}
                   <td className="py-3.5 pr-2 text-right">
-                    {tx.orderTrackingId && (
-                      <a
-                        href={`/api/payments/status/${encodeURIComponent(tx.orderTrackingId)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 text-[10px] font-bold transition-colors"
-                      >
-                        <span>Verify</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
-                    )}
+                    <div className="flex items-center justify-end gap-1.5">
+                      {tx.status === 'PENDING' && (
+                        <button
+                          onClick={() => handleReconcile(tx.merchantReference, tx.orderTrackingId)}
+                          disabled={reconcilingId === tx.merchantReference}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-bold transition-colors disabled:opacity-50"
+                          title="Force Reconcile with Pesapal IPN"
+                        >
+                          <RefreshCw className={`w-2.5 h-2.5 ${reconcilingId === tx.merchantReference ? 'animate-spin' : ''}`} />
+                          <span>Reconcile</span>
+                        </button>
+                      )}
+                      {tx.orderTrackingId && (
+                        <a
+                          href={`/api/payments/status/${encodeURIComponent(tx.orderTrackingId)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 text-[10px] font-bold transition-colors"
+                        >
+                          <span>Verify</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

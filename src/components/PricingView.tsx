@@ -38,7 +38,7 @@ export const PricingView: React.FC<PricingViewProps> = ({
       <div className="text-center space-y-3 max-w-3xl mx-auto pt-4">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/30 text-xs font-mono-code font-bold uppercase tracking-wider">
           <CreditCard className="w-3.5 h-3.5" />
-          <span>AFRICA-FIRST ACCESSIBLE PRICING</span>
+          <span>ACCESSIBLE CREATOR-FIRST PRICING</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
           Support Creators. Unlock Pro Perks. Level Up.

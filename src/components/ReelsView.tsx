@@ -41,7 +41,7 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
   const [commentsList, setCommentsList] = useState([
     { id: 'c_1', user: 'KampalaGamer99', text: 'That flick shot was completely unreal! 🔥', time: '2m ago' },
     { id: 'c_2', user: 'NairobiSniper', text: 'What sensitivity are you using on gyro?', time: '12m ago' },
-    { id: 'c_3', user: 'DarEsSalaamFC', text: 'East Africa esports is unmatched! 🇺🇬🇰🇪🇹🇿', time: '1h ago' }
+    { id: 'c_3', user: 'ApexPredator_99', text: 'Visor Stream esports is unmatched! 🔥🎮', time: '1h ago' }
   ]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 

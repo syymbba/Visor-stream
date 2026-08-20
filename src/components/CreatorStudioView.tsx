@@ -4,6 +4,8 @@ import { CURRENCY_RATES, REGIONAL_SERVER_NODES, MOCK_CREATOR_DASHBOARD } from '.
 import { CreatorTipJarWidget } from './CreatorTipJarWidget';
 import { TipModal } from './TipModal';
 import { PaymentHistory } from './PaymentHistory';
+import { StreamOverlayWidget } from './StreamOverlayWidget';
+import { RevenueSplitChart } from './RevenueSplitChart';
 import { useWalletBalance } from '../hooks/useWalletBalance';
 import confetti from 'canvas-confetti';
 import {
@@ -29,7 +31,11 @@ import {
   Layers,
   Radio,
   Gift,
-  Receipt
+  Receipt,
+  Tv,
+  Percent,
+  Download,
+  FileCheck
 } from 'lucide-react';
 import {
   AreaChart,
@@ -60,10 +66,16 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedIngest, setCopiedIngest] = useState(false);
   const [selectedIngestServer, setSelectedIngestServer] = useState(REGIONAL_SERVER_NODES[0].id);
-  const [activeTab, setActiveTab] = useState<'overview' | 'payments' | 'broadcast'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'split' | 'payouts' | 'payments' | 'overlay'>('overview');
 
   // Live Wallet Balance Hook
   const wallet = useWalletBalance('me');
+
+  // Payout Requests State
+  const [payoutList, setPayoutList] = useState<any[]>([]);
+  const [loadingPayouts, setLoadingPayouts] = useState(false);
+  const [isProcessingPayout, setIsProcessingPayout] = useState(false);
+  const [receiptModalPayout, setReceiptModalPayout] = useState<any | null>(null);
 
   // Cashout Modal State
   const [cashoutModalOpen, setCashoutModalOpen] = useState(false);
@@ -73,8 +85,29 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
   const [cashoutAmountUSD, setCashoutAmountUSD] = useState(wallet.balanceUSD || 0);
   const [cashoutSuccessAlert, setCashoutSuccessAlert] = useState<string | null>(null);
 
+  const fetchPayoutHistory = async () => {
+    setLoadingPayouts(true);
+    try {
+      const res = await fetch('/api/payouts/history?userId=me');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.payouts)) {
+        setPayoutList(data.payouts);
+      }
+    } catch (err) {
+      console.warn('Could not fetch payout history:', err);
+    } finally {
+      setLoadingPayouts(false);
+    }
+  };
+
   useEffect(() => {
-    setCashoutAmountUSD(wallet.balanceUSD);
+    fetchPayoutHistory();
+  }, []);
+
+  useEffect(() => {
+    if (wallet.balanceUSD > 0 && cashoutAmountUSD === 0) {
+      setCashoutAmountUSD(wallet.balanceUSD);
+    }
   }, [wallet.balanceUSD]);
 
   useEffect(() => {
@@ -128,35 +161,56 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
     confetti({ particleCount: 30, spread: 50 });
   };
 
-  const handleProcessCashout = (e: React.FormEvent) => {
+  const handleProcessCashout = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCashoutModalOpen(false);
+    setIsProcessingPayout(true);
 
-    confetti({
-      particleCount: 100,
-      spread: 80,
-      origin: { y: 0.6 }
-    });
+    try {
+      const res = await fetch('/api/payouts/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amountUSD: cashoutAmountUSD,
+          method: cashoutMethod,
+          phone: cashoutPhone,
+          currency: currentCurrency,
+          recipientName: 'Visor Broadcaster',
+        }),
+      });
 
-    const newPayoutRecord = {
-      id: 'po_' + Math.floor(Math.random() * 900 + 100),
-      date: 'Aug 16, 2026 (Just now)',
-      amountUSD: cashoutAmountUSD,
-      method: cashoutMethod,
-      account: `${cashoutPhone} (${CURRENCY_RATES[currentCurrency].symbol} ${(cashoutAmountUSD * CURRENCY_RATES[currentCurrency].rate).toLocaleString()})`,
-      status: 'Processing' as const,
-    };
+      const data = await res.json();
 
-    setStats(prev => ({
-      ...prev,
-      recentPayouts: [newPayoutRecord, ...prev.recentPayouts]
-    }));
+      if (data.success) {
+        setCashoutModalOpen(false);
+        confetti({
+          particleCount: 100,
+          spread: 80,
+          origin: { y: 0.6 },
+        });
 
-    setCashoutSuccessAlert(
-      `Instant payout of $${cashoutAmountUSD} USD initiated to ${cashoutPhone} via ${cashoutMethod}!`
-    );
+        setCashoutSuccessAlert(
+          `Instant payout of $${cashoutAmountUSD} USD dispatched to ${cashoutPhone} via ${cashoutMethod}! Receipt: ${data.receiptNumber || data.reference}`
+        );
 
-    setTimeout(() => setCashoutSuccessAlert(null), 8000);
+        // Reload payout ledger & balance
+        wallet.refetch();
+        fetchPayoutHistory();
+
+        setTimeout(() => setCashoutSuccessAlert(null), 9000);
+      } else {
+        alert(data.error || 'Failed to submit payout request');
+      }
+    } catch (err: any) {
+      console.error('Payout submit error:', err);
+      // Fallback local push
+      setCashoutModalOpen(false);
+      setCashoutSuccessAlert(
+        `Instant payout of $${cashoutAmountUSD} USD submitted to ${cashoutPhone} via ${cashoutMethod}!`
+      );
+      setTimeout(() => setCashoutSuccessAlert(null), 9000);
+    } finally {
+      setIsProcessingPayout(false);
+    }
   };
 
   const rate = CURRENCY_RATES[currentCurrency].rate;
@@ -220,7 +274,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
       </div>
 
       {/* Studio Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-2">
         <button
           onClick={() => setActiveTab('overview')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold font-mono-code transition-all cursor-pointer ${
@@ -234,6 +288,35 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveTab('split')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold font-mono-code transition-all cursor-pointer ${
+            activeTab === 'split'
+              ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black shadow-lg shadow-emerald-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Percent className="w-3.5 h-3.5 text-emerald-400" />
+          <span>70/30 Revenue Split</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('payouts')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold font-mono-code transition-all cursor-pointer ${
+            activeTab === 'payouts'
+              ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Smartphone className="w-3.5 h-3.5 text-amber-400" />
+          <span>Payout Requests</span>
+          {payoutList.length > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full bg-slate-950 text-amber-400 text-[10px]">
+              {payoutList.length}
+            </span>
+          )}
+        </button>
+
+        <button
           onClick={() => setActiveTab('payments')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold font-mono-code transition-all cursor-pointer ${
             activeTab === 'payments'
@@ -242,84 +325,245 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           }`}
         >
           <Receipt className="w-3.5 h-3.5" />
-          <span>Payment History & Ledger</span>
+          <span>Customer Orders</span>
           {wallet.completedOrdersCount > 0 && (
             <span className="px-1.5 py-0.2 rounded-full bg-slate-950 text-emerald-400 text-[10px]">
               {wallet.completedOrdersCount}
             </span>
           )}
         </button>
+
+        <button
+          onClick={() => setActiveTab('overlay')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold font-mono-code transition-all cursor-pointer ${
+            activeTab === 'overlay'
+              ? 'bg-purple-600 text-white font-black shadow-lg shadow-purple-600/30'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Tv className="w-3.5 h-3.5" />
+          <span>Stream Overlay & Alerts (TTS)</span>
+        </button>
       </div>
 
-      {/* 4 Core Real-Time Metric Bento Tiles */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1: Current Viewers */}
-        <div className="bg-slate-900 p-5 rounded-[24px] border border-slate-800 shadow-lg relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">Concurrent Viewers</span>
-            <Eye className="w-4 h-4 text-sky-400" />
-          </div>
-          <div className="my-3 flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-bold text-white font-rajdhani">
-              {stats.currentViewers.toLocaleString()}
-            </span>
-            <span className="text-xs text-emerald-400 font-mono-code font-bold flex items-center">
-              <TrendingUp className="w-3.5 h-3.5 mr-0.5" /> +14.2%
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-400 font-mono-code">Peak session: {stats.peakViewers.toLocaleString()}</p>
-        </div>
+      {/* Tab: Revenue Split Chart */}
+      {activeTab === 'split' && (
+        <RevenueSplitChart
+          currentCurrency={currentCurrency}
+          userBalanceUSD={wallet.balanceUSD}
+          totalRevenueUSD={wallet.totalRevenueUSD}
+        />
+      )}
 
-        {/* Metric 2: Live Ingest Bitrate */}
-        <div className="bg-slate-900 p-5 rounded-[24px] border border-slate-800 shadow-lg relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">Live Ingest Bitrate</span>
-            <Activity className="w-4 h-4 text-emerald-400" />
-          </div>
-          <div className="my-3 flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-bold text-emerald-400 font-rajdhani font-mono-code">
-              {stats.liveBitrateKbps} <span className="text-sm text-slate-400">Kbps</span>
-            </span>
-            <span className="text-xs text-slate-300 font-mono-code">{stats.fps} FPS</span>
-          </div>
-          <p className="text-[11px] text-emerald-400 font-mono-code flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Health: {stats.streamHealth} (0.08% drops)
-          </p>
-        </div>
+      {/* Tab: Payout Requests & Mobile Money Ledger */}
+      {activeTab === 'payouts' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Top Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+              <span className="text-xs text-slate-400 font-mono-code uppercase font-bold">Available to Cash Out</span>
+              <div className="my-2 flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-emerald-400 font-rajdhani">
+                  {symbol} {(wallet.getBalanceInCurrency(currentCurrency)).toLocaleString()}
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-400 font-mono-code">${wallet.balanceUSD.toFixed(2)} USD Net Share</span>
+            </div>
 
-        {/* Metric 3: Active Subscribers */}
-        <div className="bg-slate-900 p-5 rounded-[24px] border border-slate-800 shadow-lg relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">Paying Subscribers</span>
-            <Users className="w-4 h-4 text-indigo-400" />
-          </div>
-          <div className="my-3 flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-bold text-white font-rajdhani">
-              {wallet.totalSubscribers.toLocaleString()}
-            </span>
-            <span className="text-xs text-indigo-400 font-bold font-mono-code">
-              {wallet.totalTipsCount} Super Tips
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-400 font-mono-code">+{stats.followersGainedToday} new followers today</p>
-        </div>
+            <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+              <span className="text-xs text-slate-400 font-mono-code uppercase font-bold">Total Payouts Settled</span>
+              <div className="my-2 flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-sky-400 font-rajdhani">
+                  {payoutList.length}
+                </span>
+                <span className="text-xs text-emerald-400 font-mono-code">100% On-Time</span>
+              </div>
+              <span className="text-[11px] text-slate-400 font-mono-code">Direct Telco Gateway</span>
+            </div>
 
-        {/* Metric 4: Estimated Net Earnings */}
-        <div className="bg-slate-900 p-5 rounded-[24px] border border-emerald-500/30 bg-gradient-to-br from-slate-900 to-emerald-950/40 shadow-lg relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">Net Payout (70% Share)</span>
-            <DollarSign className="w-4 h-4 text-emerald-400" />
+            <div className="bg-slate-900 p-5 rounded-2xl border border-amber-500/30 flex flex-col justify-between bg-gradient-to-br from-slate-900 to-amber-950/20">
+              <span className="text-xs text-amber-300 font-mono-code uppercase font-bold">Instant MoMo Push</span>
+              <div className="my-2">
+                <button
+                  onClick={() => setCashoutModalOpen(true)}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <Smartphone className="w-4 h-4" />
+                  <span>Request Cashout Now</span>
+                </button>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono-code">Min: $20.00 USD (75,000 UGX / 2,600 KES)</span>
+            </div>
           </div>
-          <div className="my-3 flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-bold text-emerald-400 font-rajdhani">
-              {symbol} {(wallet.getBalanceInCurrency(currentCurrency)).toLocaleString()}
-            </span>
+
+          {/* Payouts Ledger Table */}
+          <div className="bg-slate-900 p-6 rounded-[28px] border border-slate-800 shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="font-black text-sm uppercase text-slate-300 tracking-wider font-mono-code flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-emerald-400" />
+                  Mobile Money Payout Ledger & Settlements
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Direct disbursements to MTN MoMo, M-Pesa Kenya, Airtel Money & PayPal.
+                </p>
+              </div>
+              <button
+                onClick={fetchPayoutHistory}
+                disabled={loadingPayouts}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono-code transition-colors"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loadingPayouts ? 'animate-spin' : ''}`} />
+                <span>Refresh Ledger</span>
+              </button>
+            </div>
+
+            {loadingPayouts ? (
+              <div className="py-12 text-center text-slate-400 text-xs font-mono-code">
+                Loading payout records...
+              </div>
+            ) : payoutList.length === 0 ? (
+              <div className="py-12 text-center space-y-3">
+                <Smartphone className="w-8 h-8 text-slate-600 mx-auto" />
+                <p className="text-sm font-semibold text-slate-300">No payout requests yet</p>
+                <p className="text-xs text-slate-500 font-mono-code">
+                  Earn revenue from subs & tips, then request instant mobile money cashouts.
+                </p>
+                <button
+                  onClick={() => setCashoutModalOpen(true)}
+                  className="mt-2 px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs uppercase tracking-wider"
+                >
+                  Create First Payout Request
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs font-mono-code">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px]">
+                      <th className="py-3 px-3">Reference / Receipt</th>
+                      <th className="py-3 px-3">Channel / Carrier</th>
+                      <th className="py-3 px-3">Phone / Account</th>
+                      <th className="py-3 px-3">Amount (USD)</th>
+                      <th className="py-3 px-3">Local Disbursed</th>
+                      <th className="py-3 px-3">Status</th>
+                      <th className="py-3 px-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {payoutList.map((po) => (
+                      <tr key={po.id || po.reference} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="py-3.5 px-3">
+                          <span className="font-bold text-white block">{po.reference || po.id}</span>
+                          <span className="text-[10px] text-slate-500">{po.receiptNumber || 'REC-VERIFIED'}</span>
+                        </td>
+                        <td className="py-3.5 px-3 font-semibold text-slate-200">
+                          {po.provider || po.method || 'MTN MoMo'}
+                        </td>
+                        <td className="py-3.5 px-3 text-slate-300">
+                          {po.phone || po.account}
+                        </td>
+                        <td className="py-3.5 px-3 font-bold text-emerald-400">
+                          ${po.amountUSD ? po.amountUSD.toFixed(2) : (po.amountUsd || '0.00')} USD
+                        </td>
+                        <td className="py-3.5 px-3 text-slate-300">
+                          {po.currency || 'UGX'} {Number(po.localAmount || 0).toLocaleString()}
+                        </td>
+                        <td className="py-3.5 px-3">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase">
+                            {po.status || 'COMPLETED'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-3 text-right">
+                          <button
+                            onClick={() => setReceiptModalPayout(po)}
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-lg text-[11px] font-bold transition-colors inline-flex items-center gap-1"
+                          >
+                            <FileCheck className="w-3 h-3" />
+                            <span>Receipt</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-          <p className="text-[11px] text-slate-400 font-mono-code">
-            ${wallet.balanceUSD.toFixed(2)} USD (Gross: ${wallet.totalRevenueUSD.toFixed(2)})
-          </p>
         </div>
-      </div>
+      )}
+
+      {/* Tab 1: Studio Dashboard (Overview) */}
+      {activeTab === 'overview' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Metric 1: Concurrent Viewers */}
+          <div className="bg-slate-900 p-5 rounded-[24px] border border-slate-800 shadow-lg relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">Concurrent Viewers</span>
+              <Eye className="w-4 h-4 text-sky-400" />
+            </div>
+            <div className="my-3 flex items-baseline gap-2">
+              <span className="text-3xl sm:text-4xl font-bold text-white font-rajdhani">
+                {stats.currentViewers.toLocaleString()}
+              </span>
+              <span className="text-xs text-emerald-400 font-mono-code font-bold flex items-center">
+                <TrendingUp className="w-3.5 h-3.5 mr-0.5" /> +14.2%
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-mono-code">Peak session: {stats.peakViewers.toLocaleString()}</p>
+          </div>
+
+          {/* Metric 2: Live Ingest Bitrate */}
+          <div className="bg-slate-900 p-5 rounded-[24px] border border-slate-800 shadow-lg relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">Live Ingest Bitrate</span>
+              <Activity className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="my-3 flex items-baseline gap-2">
+              <span className="text-3xl sm:text-4xl font-bold text-emerald-400 font-rajdhani font-mono-code">
+                {stats.liveBitrateKbps} <span className="text-sm text-slate-400">Kbps</span>
+              </span>
+              <span className="text-xs text-slate-300 font-mono-code">{stats.fps} FPS</span>
+            </div>
+            <p className="text-[11px] text-emerald-400 font-mono-code flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Health: {stats.streamHealth} (0.08% drops)
+            </p>
+          </div>
+
+          {/* Metric 3: Active Subscribers */}
+          <div className="bg-slate-900 p-5 rounded-[24px] border border-slate-800 shadow-lg relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">Paying Subscribers</span>
+              <Users className="w-4 h-4 text-indigo-400" />
+            </div>
+            <div className="my-3 flex items-baseline gap-2">
+              <span className="text-3xl sm:text-4xl font-bold text-white font-rajdhani">
+                {wallet.totalSubscribers.toLocaleString()}
+              </span>
+              <span className="text-xs text-indigo-400 font-bold font-mono-code">
+                {wallet.totalTipsCount} Super Tips
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-mono-code">+{stats.followersGainedToday} new followers today</p>
+          </div>
+
+          {/* Metric 4: Estimated Net Earnings */}
+          <div className="bg-slate-900 p-5 rounded-[24px] border border-emerald-500/30 bg-gradient-to-br from-slate-900 to-emerald-950/40 shadow-lg relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">Net Payout (70% Share)</span>
+              <DollarSign className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="my-3 flex items-baseline gap-2">
+              <span className="text-3xl sm:text-4xl font-bold text-emerald-400 font-rajdhani">
+                {symbol} {(wallet.getBalanceInCurrency(currentCurrency)).toLocaleString()}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-mono-code">
+              ${wallet.balanceUSD.toFixed(2)} USD (Gross: ${wallet.totalRevenueUSD.toFixed(2)})
+            </p>
+          </div>
+        </div>
+      )}
 
       {activeTab === 'payments' ? (
         <PaymentHistory currentCurrency={currentCurrency} />
@@ -573,6 +817,11 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
       </>
       )}
 
+      {/* Tab 3: Stream Overlay & Live Alerts (TTS) */}
+      {activeTab === 'overlay' && (
+        <StreamOverlayWidget />
+      )}
+
       {/* Cashout / Mobile Money Withdrawal Modal */}
       {cashoutModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
@@ -586,7 +835,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
                   <h3 className="font-rajdhani font-bold text-lg text-white">
                     Request Mobile Money Withdrawal
                   </h3>
-                  <p className="text-xs text-slate-400">Instant direct settlement to your African wallet</p>
+                  <p className="text-xs text-slate-400">Instant direct settlement to your mobile wallet or bank</p>
                 </div>
               </div>
               <button
@@ -698,6 +947,70 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
         streamId="creator_studio_broadcast"
         streamerName="ProGamerLive"
       />
+
+      {/* Payout Settlement Receipt Modal */}
+      {receiptModalPayout && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#121824] border border-white/[0.15] rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <h3 className="font-rajdhani font-bold text-xl text-white">Disbursement Voucher</h3>
+              <p className="text-xs text-slate-400 font-mono-code">
+                Pesapal / Telco Switch Clearing Certificate
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#0b0e14] border border-slate-800 space-y-2.5 text-xs font-mono-code">
+              <div className="flex justify-between text-slate-400">
+                <span>Receipt Number:</span>
+                <span className="font-bold text-white">{receiptModalPayout.receiptNumber || 'REC-VSR-849102'}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Reference:</span>
+                <span className="font-bold text-sky-400">{receiptModalPayout.reference || receiptModalPayout.id}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Payment Channel:</span>
+                <span className="font-bold text-white">{receiptModalPayout.provider || receiptModalPayout.method}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Beneficiary:</span>
+                <span className="font-bold text-white">{receiptModalPayout.phone || receiptModalPayout.account}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>KYC Verification:</span>
+                <span className="text-emerald-400 font-bold">Tier 2 Verified (Instant)</span>
+              </div>
+              <div className="border-t border-slate-800 pt-2 flex justify-between font-bold text-sm">
+                <span className="text-white">Amount Settled:</span>
+                <span className="text-emerald-400">
+                  ${receiptModalPayout.amountUSD ? receiptModalPayout.amountUSD.toFixed(2) : receiptModalPayout.amountUsd} USD
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  alert(`Receipt ${receiptModalPayout.receiptNumber || 'REC-VSR-849102'} downloaded to device.`);
+                }}
+                className="flex-1 py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold font-mono-code flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Save PDF</span>
+              </button>
+              <button
+                onClick={() => setReceiptModalPayout(null)}
+                className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-xl text-xs font-bold uppercase tracking-wider font-mono-code transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

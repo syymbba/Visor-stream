@@ -257,7 +257,7 @@ export const TipModal: React.FC<TipModalProps> = ({
 
             <div className="flex items-center gap-2 p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px] text-slate-400">
               <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>Pesapal v3 Bank-Grade Security. Redirects to secure authorization portal.</span>
+              <span>256-Bit Bank-Grade Security. Direct instant payment gateway.</span>
             </div>
 
             <div className="pt-2">
@@ -269,11 +269,11 @@ export const TipModal: React.FC<TipModalProps> = ({
                 {loading ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-                    <span>Connecting to Pesapal Portal...</span>
+                    <span>Connecting to Secure Gateway...</span>
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    <span>Pay {amount} {currencyMap[provider]} via Pesapal</span>
+                    <span>Proceed to Pay {amount} {currencyMap[provider]}</span>
                     <ExternalLink className="w-4 h-4" />
                   </span>
                 )}

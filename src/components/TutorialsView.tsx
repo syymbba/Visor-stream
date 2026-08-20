@@ -137,7 +137,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
               Master Every Mission. Level Up Your Skills.
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Step-by-step video tutorials, zero-recoil sensitivity blueprints, frame data breakdowns, and pro meta tactics crafted by Africa's top ranked esports champions.
+              Step-by-step video tutorials, zero-recoil sensitivity blueprints, frame data breakdowns, and pro meta tactics crafted by top-ranked tournament champions.
             </p>
           </div>
 

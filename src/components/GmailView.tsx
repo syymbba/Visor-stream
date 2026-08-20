@@ -57,7 +57,7 @@ const CREATOR_TEMPLATES = [
 
 Thank you for reaching out to partner with my stream on Visor Stream.
 
-My gaming community currently reaches over [Number] concurrent active viewers across East Africa and the global gaming diaspora, specializing in Mobile & PC Esports.
+My gaming community currently reaches over [Number] concurrent active viewers across global gaming hubs, specializing in Mobile & PC Esports.
 
 Key Metrics:
 • Average Concurrent Viewers: 2,500+

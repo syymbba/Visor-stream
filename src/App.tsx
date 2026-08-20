@@ -21,13 +21,16 @@ import { EsportsView } from './components/EsportsView';
 import { CommunityView } from './components/CommunityView';
 import { StoreView } from './components/StoreView';
 import { CreatorStudioView } from './components/CreatorStudioView';
+import { StreamOverlayWidget } from './components/StreamOverlayWidget';
 import { PricingView } from './components/PricingView';
 import { PricingModal } from './components/PricingModal';
 import { SettingsView } from './components/SettingsView';
 import { AboutPolicyView } from './components/AboutPolicyView';
 import { PaymentStatusView } from './components/PaymentStatusView';
 import { PaymentHistory } from './components/PaymentHistory';
+import { OfflineBanner } from './components/OfflineBanner';
 import { useWalletBalance } from './hooks/useWalletBalance';
+import { useOfflineManager } from './hooks/useOfflineManager';
 import { GoLiveModal } from './components/GoLiveModal';
 import { NotificationsModal } from './components/NotificationsModal';
 import { AuthModal } from './components/AuthModal';
@@ -37,7 +40,7 @@ import confetti from 'canvas-confetti';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
-type AppTab = 'landing' | 'live' | 'reels' | 'library' | 'tutorials' | 'games' | 'esports' | 'community' | 'store' | 'creator' | 'pricing' | 'settings' | 'about' | 'terms' | 'privacy' | 'support' | 'payment-status' | 'payments';
+type AppTab = 'landing' | 'live' | 'reels' | 'library' | 'tutorials' | 'games' | 'esports' | 'community' | 'store' | 'creator' | 'overlay' | 'pricing' | 'settings' | 'about' | 'terms' | 'privacy' | 'support' | 'payment-status' | 'payments';
 
 export function App() {
   // Parse initial route from URL path or hash
@@ -46,6 +49,7 @@ export function App() {
     const hash = window.location.hash.toLowerCase().replace(/^#/, '');
     const search = window.location.search;
 
+    if (path === '/overlay' || hash === 'overlay') return 'overlay';
     if (
       path === '/payment-status' ||
       hash === 'payment-status' ||
@@ -82,9 +86,11 @@ export function App() {
   // Real-Time Dynamic Wallet Balance Hook
   const wallet = useWalletBalance(currentUser?.uid || 'me');
 
+  // Offline Mode Manager Hook
+  const offlineManager = useOfflineManager();
+
   const [currentCurrency, setCurrentCurrency] = useState<Currency>('UGX');
   const [showBalanceInHeader, setShowBalanceInHeader] = useState(true);
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [userBalanceUSD, setUserBalanceUSD] = useState(0);
 
   // Sync wallet balance
@@ -259,6 +265,15 @@ export function App() {
     setIsAuthModalOpen(true);
   };
 
+  // Standalone OBS / vMix Overlay View
+  if (activeTab === 'overlay') {
+    return (
+      <div className="min-h-screen bg-transparent p-4 flex flex-col justify-start">
+        <StreamOverlayWidget standalone={true} />
+      </div>
+    );
+  }
+
   // Check if current view is public legal standalone page
   const isPublicLegal = activeTab === 'privacy' || activeTab === 'terms' || activeTab === 'about';
 
@@ -314,6 +329,15 @@ export function App() {
             userBalanceUSD={userBalanceUSD}
             showBalanceInHeader={showBalanceInHeader}
             onToggleBalanceVisibility={() => setShowBalanceInHeader(!showBalanceInHeader)}
+            isOfflineMode={offlineManager.isOfflineMode}
+            onToggleOfflineMode={() => offlineManager.toggleOfflineMode()}
+          />
+
+          {/* Offline Mode Banner Alert */}
+          <OfflineBanner
+            isOffline={offlineManager.isOfflineMode}
+            onDisableOffline={() => offlineManager.toggleOfflineMode(false)}
+            onNavigateToLibrary={() => handleNavigateTab('library')}
           />
 
           {/* Main Content Viewport */}
@@ -379,6 +403,8 @@ export function App() {
                 onSelectStream={setSelectedStream}
                 currentCurrency={currentCurrency}
                 onOpenSubscribe={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
+                isOfflineMode={offlineManager.isOfflineMode}
+                onNavigateToLibrary={() => handleNavigateTab('library')}
               />
             )}
 
@@ -393,8 +419,8 @@ export function App() {
             {activeTab === 'library' && (
               <LibraryView
                 currentCurrency={currentCurrency}
-                isOfflineMode={isOfflineMode}
-                setIsOfflineMode={setIsOfflineMode}
+                isOfflineMode={offlineManager.isOfflineMode}
+                setIsOfflineMode={offlineManager.toggleOfflineMode}
                 onNavigateToTutorials={() => handleNavigateTab('tutorials')}
                 onNavigateToReels={() => handleNavigateTab('reels')}
               />

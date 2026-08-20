@@ -39,10 +39,34 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(true);
   const [showStatsHUD, setShowStatsHUD] = useState(false);
   const [dataSaverMode, setDataSaverMode] = useState(isDataSaverGlobal);
-  const [selectedQuality, setSelectedQuality] = useState<'4K' | '1080p' | '720p' | '480p' | 'Data-Saver' | 'Auto'>('1080p');
+  const [isAudioOnlyMode, setIsAudioOnlyMode] = useState(false);
+  const [dataSavedMB, setDataSavedMB] = useState(0);
+  const [selectedQuality, setSelectedQuality] = useState<'4K' | '1080p' | '720p' | '480p' | 'Audio-Only' | 'Auto'>('1080p');
   const [latencyMs, setLatencyMs] = useState(14);
   const [currentBitrate, setCurrentBitrate] = useState('4.8 Mbps');
   const [droppedFrames, setDroppedFrames] = useState(0);
+
+  // Real-time data savings accumulator when in Audio-Only Mode (~550 KB saved every second vs 1080p)
+  useEffect(() => {
+    if (!isAudioOnlyMode) return;
+    const interval = setInterval(() => {
+      setDataSavedMB((prev) => Math.round((prev + 0.55) * 10) / 10);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isAudioOnlyMode]);
+
+  // Handle data-saver quality switches
+  const handleToggleAudioOnly = () => {
+    const nextState = !isAudioOnlyMode;
+    setIsAudioOnlyMode(nextState);
+    if (nextState) {
+      setSelectedQuality('Audio-Only');
+      setCurrentBitrate('0.06 Mbps (Audio Shoutcast)');
+    } else {
+      setSelectedQuality('1080p');
+      setCurrentBitrate('4.8 Mbps');
+    }
+  };
 
   // Initialize HLS adaptive streaming or fallback video
   useEffect(() => {
@@ -108,17 +132,64 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
       ref={containerRef}
       className="bg-slate-900 rounded-[28px] sm:rounded-[32px] border border-slate-800 relative overflow-hidden group shadow-2xl shadow-black/60 aspect-video flex flex-col justify-between select-none"
     >
-      {/* Live Video Media Layer */}
-      <video
-        ref={videoRef}
-        autoPlay
-        loop
-        muted={isMuted}
-        playsInline
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-          dataSaverMode ? 'brightness-95 contrast-105' : ''
-        }`}
-      />
+      {/* Live Video Media Layer or Audio-Only Shoutcast Canvas */}
+      {isAudioOnlyMode ? (
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-6 text-center z-10 animate-fadeIn">
+          {/* Animated Audio Equalizer Bars */}
+          <div className="flex items-end justify-center gap-1.5 h-20 mb-4">
+            {[40, 75, 95, 60, 85, 100, 70, 90, 50, 80, 65, 95, 45, 85, 60].map((height, i) => (
+              <div
+                key={i}
+                className="w-1.5 sm:w-2 bg-gradient-to-t from-emerald-500 via-teal-400 to-sky-400 rounded-full animate-pulse"
+                style={{
+                  height: `${height}%`,
+                  animationDuration: `${0.4 + (i % 5) * 0.15}s`,
+                  animationDelay: `${(i * 0.08)}s`,
+                }}
+              ></div>
+            ))}
+          </div>
+
+          <div className="space-y-1 max-w-md">
+            <span className="px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[11px] font-mono-code font-bold uppercase tracking-wider inline-flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span>Ultra Data-Saver Shoutcast (Audio Only)</span>
+            </span>
+            <h3 className="text-base sm:text-lg font-black text-white">
+              {stream.title}
+            </h3>
+            <p className="text-xs text-slate-400">
+              Low-Bandwidth Shoutcast active • Consuming &lt;64 Kbps
+            </p>
+          </div>
+
+          {/* Live Data Savings Tracker Meter */}
+          <div className="mt-4 px-4 py-2 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs font-mono-code flex items-center gap-3">
+            <span className="text-amber-400 font-bold">
+              💾 Saved {dataSavedMB} MB
+            </span>
+            <span className="text-slate-500">•</span>
+            <span className="text-emerald-400">92% Bandwidth Reduced</span>
+            <button
+              onClick={handleToggleAudioOnly}
+              className="ml-2 px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-[10px] transition-colors"
+            >
+              Resume HD Video
+            </button>
+          </div>
+        </div>
+      ) : (
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted={isMuted}
+          playsInline
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+            dataSaverMode ? 'brightness-95 contrast-105' : ''
+          }`}
+        />
+      )}
 
       {/* Video Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/40 pointer-events-none"></div>
@@ -157,6 +228,21 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
 
         {/* Quality & Data Saver Action Controls */}
         <div className="flex items-center gap-2">
+          {/* Audio-Only Shoutcast Mode (Optional User Toggle) */}
+          <button
+            type="button"
+            onClick={handleToggleAudioOnly}
+            className={`px-3 py-1 rounded-xl text-xs font-mono-code font-bold border transition-all flex items-center gap-1.5 ${
+              isAudioOnlyMode
+                ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg shadow-emerald-500/30'
+                : 'bg-slate-950/80 backdrop-blur-md text-emerald-300 border-slate-800 hover:border-emerald-500/60'
+            }`}
+            title="Toggle Optional Audio-Only Shoutcasting Mode"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="hidden sm:inline">Audio Shoutcast</span>
+          </button>
+
           {/* Data Saver Mode Pill Button */}
           <button
             type="button"

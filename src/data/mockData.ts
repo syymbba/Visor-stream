@@ -38,7 +38,7 @@ export const INITIAL_STREAMERS = [
     countryCode: 'UG',
     countryFlag: '🇺🇬',
     subscribers: 28400,
-    bio: 'No.1 Apex Mobile & Warzone player in East Africa. Daily tournaments & mission walkthroughs. Powered by MTN MoMo.',
+    bio: 'No.1 Apex Mobile & Warzone pro player. Daily tournaments & mission walkthroughs. Powered by MTN MoMo.',
     discordJoined: true,
     mobileMoneySupported: true,
   },
@@ -107,7 +107,7 @@ export const INITIAL_STREAMERS = [
 export const MOCK_LIVE_STREAMS: LiveStream[] = [
   {
     id: 'live_1',
-    title: '🔥 [GRAND FINALS] East Africa Invitational Cup — Apex Mobile Champions Squad!',
+    title: '🔥 [GRAND FINALS] Visor Pro Invitational Cup — Apex Mobile Champions Squad!',
     streamer: INITIAL_STREAMERS[0],
     game: 'Apex Legends Mobile',
     gameId: 'apex_legends',
@@ -119,7 +119,7 @@ export const MOCK_LIVE_STREAMS: LiveStream[] = [
     bitrate: '6500 Kbps',
     fps: 60,
     uptime: '02:44:18',
-    tags: ['Esports', 'Ranked Master', 'Drops Enabled', 'East Africa'],
+    tags: ['Esports', 'Ranked Master', 'Drops Enabled', 'Pro Circuit'],
     description: 'We are in match 5 of 6 in the regional finals. Tips via MTN MoMo and M-Pesa trigger on-screen cyber HUD alerts!',
   },
   {
@@ -286,11 +286,11 @@ export const MOCK_TUTORIALS: GamingTutorial[] = [
     missionName: 'Advanced Movement Mechanics Masterclass',
     platform: 'Mobile',
     updatedAt: '3 days ago',
-    description: 'Detailed tutorial on tap-strafing on touchscreens, super-glides off low geometry, and configuring Visor low-latency African CDN nodes for 15ms ping.',
+    description: 'Detailed tutorial on tap-strafing on touchscreens, super-glides off low geometry, and configuring Visor ultra-low latency edge CDN nodes for 15ms ping.',
     keyTakeaways: [
       'Timing slide-jump at the peak of momentum vector',
       'Switching weapons while jumping to cancel animation recovery',
-      'Selecting Nairobi / Johannesburg low-latency server relays'
+      'Selecting optimal low-latency server relays'
     ],
     recommendedLoadout: ['R-99 (Laser Sight + Ext Mag)', 'Peacekeeper', 'Wingman'],
     chapters: [
@@ -476,14 +476,14 @@ export const MOCK_GAMES: GameCategory[] = [
 export const MOCK_TOURNAMENTS: EsportsTournament[] = [
   {
     id: 'tourn_1',
-    title: 'East Africa Gaming Invitational Season 4',
+    title: 'Visor Gaming Invitational Season 4',
     game: 'PUBG Mobile & Free Fire',
     banner: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&auto=format&fit=crop&q=80',
     prizePoolUSD: 15000,
     prizePoolFormatted: '$15,000 USD (56M+ UGX / 1.95M KES)',
     status: 'Live Now',
     startDate: 'Aug 16–18, 2026',
-    region: 'Nairobi & Kampala LAN Finals',
+    region: 'Pro Masters LAN Finals',
     registeredTeams: 32,
     maxTeams: 32,
     isPayPerView: false,
@@ -504,7 +504,7 @@ export const MOCK_TOURNAMENTS: EsportsTournament[] = [
     prizePoolFormatted: '$5,000 USD (18.7M UGX / 650K KES)',
     status: 'Upcoming',
     startDate: 'Aug 22, 2026',
-    region: 'East Africa Online',
+    region: 'Pro Global Online',
     registeredTeams: 64,
     maxTeams: 128,
     isPayPerView: true,
@@ -525,7 +525,7 @@ export const MOCK_TOURNAMENTS: EsportsTournament[] = [
     prizePoolFormatted: '$3,500 USD (13.1M UGX / 455K KES)',
     status: 'Upcoming',
     startDate: 'Aug 29, 2026',
-    region: 'Pan-African Server Node',
+    region: 'Direct Edge Server Node',
     registeredTeams: 48,
     maxTeams: 60,
     isPayPerView: false,
@@ -548,7 +548,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     priceKES: 260,
     priceTZS: 5200,
     accentColor: '#38BDF8',
-    description: 'Affordable entry pass designed for everyday African gamers. Enjoy uninterrupted viewing and basic community perks.',
+    description: 'Affordable entry pass designed for competitive gamers. Enjoy uninterrupted viewing and premium community perks.',
     features: [
       '100% Ad-Free Video & Stream Viewing',
       'Access to exclusive highlights, guides & secret clip vault',
@@ -603,7 +603,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
 
 export const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
   { id: 'c1', sender: 'Musa_Uganda', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60&auto=format&fit=crop&q=80', text: 'That slide-jump maneuver was insane bro!! 🔥', timestamp: '2m ago', badge: 'PRO' },
-  { id: 'c2', sender: 'NairobiGamer', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=60&auto=format&fit=crop&q=80', text: 'M-Pesa tip incoming! Show us the sensitivity settings again', timestamp: '1m ago', badge: 'VIP', isDonation: true, donationAmount: '500 KES', donationCurrency: 'KES', donationMessage: 'Keep repping East Africa king! 👑' },
+  { id: 'c2', sender: 'NairobiGamer', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=60&auto=format&fit=crop&q=80', text: 'M-Pesa tip incoming! Show us the sensitivity settings again', timestamp: '1m ago', badge: 'VIP', isDonation: true, donationAmount: '500 KES', donationCurrency: 'KES', donationMessage: 'Keep carrying the squad king! 👑' },
   { id: 'c3', sender: 'Sarah_Kampala', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=60&auto=format&fit=crop&q=80', text: 'Best tutorial on the platform hands down.', timestamp: 'Just now', badge: 'FAN' },
   { id: 'c4', sender: 'RexGamingUG', avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=60&auto=format&fit=crop&q=80', text: 'Thanks for the love everyone! We are pushing to 30k subs today! 🚀', timestamp: 'Just now', badge: 'CREATOR' }
 ];
@@ -627,7 +627,7 @@ export const MOCK_COMMUNITY_POSTS: CommunityPost[] = [
     id: 'p_2',
     author: INITIAL_STREAMERS[1],
     timestamp: '4 hours ago',
-    content: 'East Africa Invitational LAN finals bracket is OUT! Nairobi CyberKnights vs Kampala Kings this Saturday at 7 PM EAT. Who are you putting your M-Pesa on? Drop your predictions below! 🔥🏆',
+    content: 'Visor Invitational LAN finals bracket is OUT! Nairobi CyberKnights vs Kampala Kings this Saturday at 7 PM EAT. Who are you putting your M-Pesa on? Drop your predictions below! 🔥🏆',
     mediaUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80',
     mediaType: 'image',
     likesCount: 512,
@@ -652,7 +652,7 @@ export const MOCK_COMMUNITY_POSTS: CommunityPost[] = [
 ];
 
 export const MOCK_CREATOR_DASHBOARD: CreatorDashboardStats = {
-  streamTitle: '🔥 [GRAND FINALS] East Africa Invitational Cup — Apex Mobile Champions Squad!',
+  streamTitle: '🔥 [GRAND FINALS] Visor Pro Invitational Cup — Apex Mobile Champions Squad!',
   gameCategory: 'Apex Legends Mobile',
   streamKey: 'live_vsr_af90248c89b12049e7a90f1',
   serverIngestUrl: 'rtmp://ingest.nairobi.visorstream.com/live',
@@ -685,7 +685,7 @@ export const MOCK_CREATOR_DASHBOARD: CreatorDashboardStats = {
 export const MOCK_STORE_ITEMS: StoreMerchItem[] = [
   {
     id: 'merch_1',
-    name: 'Visor Pro Esports Jersey (Africa Edition)',
+    name: 'Visor Pro Esports Jersey (Championship Edition)',
     category: 'Apparel',
     priceUSD: 25,
     originalPriceUSD: 35,
@@ -871,7 +871,7 @@ export const MOCK_LIBRARY_ITEMS: UserLibraryItem[] = [
   },
   {
     id: 'lib_vod_1',
-    title: 'My Broadcast: East Africa Invitational Qualifier Day 1',
+    title: 'My Broadcast: Visor Pro Invitational Qualifier Day 1',
     type: 'created_vod',
     game: 'Apex Legends Mobile',
     author: {
@@ -925,7 +925,7 @@ export const MOCK_CONNECTED_ACCOUNTS: ConnectedThirdPartyAccount[] = [
   { id: 'conn_1', provider: 'discord', name: 'Discord', handle: 'VisorGamer#4482', connected: true, connectedAt: 'Linked Aug 10, 2026', avatar: 'https://images.unsplash.com/photo-1614680376593-902f749f7ffc?w=80&auto=format&fit=crop&q=80' },
   { id: 'conn_2', provider: 'twitch', name: 'Twitch', handle: 'visor_streamer_ug', connected: true, connectedAt: 'Linked Aug 12, 2026', avatar: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=80&auto=format&fit=crop&q=80' },
   { id: 'conn_3', provider: 'steam', name: 'Steam', handle: 'SteamID: 765611980289', connected: true, connectedAt: 'Linked Jul 28, 2026', avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=80&auto=format&fit=crop&q=80' },
-  { id: 'conn_4', provider: 'youtube', name: 'YouTube Gaming', handle: '@VisorGamingAfrica', connected: false },
+  { id: 'conn_4', provider: 'youtube', name: 'YouTube Gaming', handle: '@VisorGamingLive', connected: false },
   { id: 'conn_5', provider: 'epic', name: 'Epic Games', handle: 'RexVisor_Official', connected: true, connectedAt: 'Linked Aug 01, 2026' },
   { id: 'conn_6', provider: 'xbox', name: 'Xbox Live / Game Pass', handle: 'Not Connected', connected: false },
   { id: 'conn_7', provider: 'playstation', name: 'PlayStation Network', handle: 'Not Connected', connected: false }
@@ -942,7 +942,7 @@ export const MOCK_USER_BADGES: UserBadge[] = [
 
 export const MOCK_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach_1', title: 'First Blood Stream', category: 'Broadcasting', xp: 500, icon: '🎮', completed: true, completedDate: 'Aug 04, 2026', progress: 1, target: 1 },
-  { id: 'ach_2', title: 'East Africa Edge Routing', category: 'Networking', xp: 350, icon: '🌐', completed: true, completedDate: 'Aug 08, 2026', progress: 1, target: 1 },
+  { id: 'ach_2', title: 'Ultra-Low Edge Routing', category: 'Networking', xp: 350, icon: '🌐', completed: true, completedDate: 'Aug 08, 2026', progress: 1, target: 1 },
   { id: 'ach_3', title: 'High-Bitrate Pioneer (1080p60)', category: 'Quality', xp: 600, icon: '📺', completed: true, completedDate: 'Aug 12, 2026', progress: 1, target: 1 },
   { id: 'ach_4', title: 'Community Pillar (100 Chat Messages)', category: 'Social', xp: 400, icon: '💬', completed: true, completedDate: 'Aug 14, 2026', progress: 100, target: 100 },
   { id: 'ach_5', title: 'Clan Master (Host a Scrim)', category: 'Esports', xp: 800, icon: '🛡️', completed: false, progress: 2, target: 5 },
@@ -972,7 +972,7 @@ export const MOCK_CREATOR_TIP_JAR: CreatorTipJarConfig = {
     id: 'goal_sm7b_rig',
     title: '🎙️ Shure SM7B Studio Mic & Dedicated Capture Card',
     targetAmountUSD: 450,
-    currentAmountUSD: 335,
+    currentAmountUSD: 0,
     currency: 'USD',
     description: 'Upgrading audio fidelity for crystal clear tournament commentary and 1080p60 zero-latency capture.',
     active: true
@@ -1010,7 +1010,7 @@ export const MOCK_CREATOR_TIP_JAR: CreatorTipJarConfig = {
       amountFormatted: '12,500 TZS',
       currency: 'TZS',
       network: 'Airtel Money',
-      message: 'Best movement player in East Africa without doubt. Let’s get this mic goal done!',
+      message: 'Best movement player on the server without doubt. Let’s get this mic goal done!',
       timestamp: '2 hours ago',
       badge: 'FAN'
     },
@@ -1040,7 +1040,7 @@ export const PLATFORM_FAQS = [
   },
   {
     q: 'What makes Visor different from Twitch or YouTube?',
-    a: 'Global platforms charge high subscription fees without local payment integration, lack low-latency African server routes, and offer little focus on regional esports. Visor offers $2–$10 localized pricing, instant mobile money support, dedicated gaming tutorials & walkthroughs, and low-latency servers in Nairobi, Kampala, and Dar es Salaam.'
+    a: 'Global platforms charge high subscription fees without local payment integration, lack low-latency edge server routes, and offer little focus on regional esports. Visor offers $2–$10 localized pricing, instant mobile money support, dedicated gaming tutorials & walkthroughs, and low-latency servers.'
   },
   {
     q: 'How do I access gaming tutorials and walkthroughs?',

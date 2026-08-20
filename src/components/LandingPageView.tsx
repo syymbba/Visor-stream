@@ -191,7 +191,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-300 text-xs font-mono-code font-bold">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>AFRICA'S PREMIER GAMING & STREAMING PLATFORM</span>
+                <span>PREMIER GAMING & ESPORTS STREAMING PLATFORM</span>
               </div>
 
               {/* Headline */}
@@ -228,7 +228,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-slate-800/80">
                 <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800/80 text-left">
                   <div className="text-sky-400 font-mono-code font-black text-base">&lt; 45ms</div>
-                  <div className="text-[10px] text-slate-400 uppercase font-mono-code">Pan-African Latency</div>
+                  <div className="text-[10px] text-slate-400 uppercase font-mono-code">Ultra-Low Latency</div>
                 </div>
                 <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800/80 text-left">
                   <div className="text-amber-400 font-mono-code font-black text-base">70 / 30</div>
@@ -611,7 +611,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               CREATOR SUCCESS STORIES
             </span>
             <h2 className="text-3xl font-black text-white font-rajdhani uppercase tracking-tight">
-              Trusted by Africa's Top Gaming Creators
+              Trusted by Top Pro Gaming Creators
             </h2>
           </div>
 

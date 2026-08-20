@@ -15,6 +15,7 @@ import {
   DEFAULT_USER_PROFILE, 
   UserProfile 
 } from '../services/userService';
+import { useWalletBalance } from '../hooks/useWalletBalance';
 import {
   Settings,
   User,
@@ -339,6 +340,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     showToast(`Unblocked ${name}`);
   };
 
+  const { balanceUSD: liveBalanceUSD, formattedBalance: liveFormattedBalance } = useWalletBalance({
+    pollIntervalMs: 15000,
+    currentCurrency,
+  });
+
   const handleDownloadUserDataArchive = () => {
     const archiveData = {
       user: {
@@ -346,7 +352,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         displayName: username,
         email,
         bio,
-        balanceUSD: profile.balanceUSD || 245.50,
+        balanceUSD: liveBalanceUSD || profile.balanceUSD || 0,
         currency: currentCurrency,
         level: profile.userLevel || 24,
         xp: profile.userXp || 4850,
@@ -358,7 +364,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         blockedUsers,
       },
       exportTimestamp: new Date().toISOString(),
-      platform: 'Visor Stream Africa',
+      platform: 'Visor Stream Pro',
       version: '2.5.0-steam-slate'
     };
 
@@ -386,8 +392,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const rate = CURRENCY_RATES[currentCurrency]?.rate || 1;
   const symbol = CURRENCY_RATES[currentCurrency]?.symbol || '$';
-  const balanceUSD = profile.balanceUSD || 245.50;
-  const formattedBalance = (balanceUSD * rate).toLocaleString(undefined, {
+  const balanceUSD = liveBalanceUSD || profile.balanceUSD || 0;
+  const formattedBalance = liveFormattedBalance || (balanceUSD * rate).toLocaleString(undefined, {
     minimumFractionDigits: currentCurrency === 'UGX' || currentCurrency === 'TZS' ? 0 : 2,
     maximumFractionDigits: currentCurrency === 'UGX' || currentCurrency === 'TZS' ? 0 : 2,
   });
@@ -741,7 +747,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </h4>
                 </div>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  Visor Stream delivers seamless translation across African gaming hubs, featuring dedicated support for Swahili (Kenya, Tanzania), Luganda (Uganda), French (DRC, Rwanda), Portuguese (Angola, Mozambique), and Arabic (North Africa). Changing your language automatically adapts live stream badges, donation tip jar units, and studio creator telemetry.
+                  Visor Stream delivers seamless multilingual accessibility across global gaming hubs, featuring dedicated support for Swahili (Kenya, Tanzania), Luganda (Uganda), French (DRC, Rwanda, France), Portuguese (Angola, Mozambique, Portugal), and Arabic (MENA). Changing your language automatically adapts live stream badges, donation tip jar units, and studio creator telemetry.
                 </p>
                 <div className="flex flex-wrap items-center gap-2 pt-1 font-mono-code text-xs">
                   <span className="px-2.5 py-1 rounded-xl bg-[#171a21] border border-[#2a475e] text-slate-300">
@@ -888,7 +894,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       className="w-full px-3 py-2 bg-[#171a21] border border-[#2a475e] rounded-xl text-xs text-white focus:border-[#38bdf8] focus:outline-none"
                     >
                       <option value="mtn">🇺🇬 MTN Mobile Money (Uganda)</option>
-                      <option value="airtel">🔴 Airtel Money (East Africa)</option>
+                      <option value="airtel">🔴 Airtel Money (Mobile Wallet)</option>
                       <option value="mpesa">🇰🇪 Safaricom M-Pesa (Kenya)</option>
                       <option value="card">💳 International Cards</option>
                     </select>
@@ -1196,7 +1202,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     </div>
                   </div>
                   <span className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-mono-code font-bold rounded">
-                    RANK #12 EAST AFRICA
+                    RANK #12 REGIONAL MASTERS
                   </span>
                 </div>
 
@@ -1271,7 +1277,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <h3 className="font-bold text-base sm:text-lg text-white">
                   Regional Server Edge Infrastructure
                 </h3>
-                <p className="text-xs text-slate-400">Direct fiber low-latency relays across East & Southern Africa</p>
+                <p className="text-xs text-slate-400">Direct fiber low-latency relays across global & regional edge networks</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

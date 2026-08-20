@@ -107,7 +107,7 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
           <div className="text-center space-y-3">
             <VisorLogo size="xl" glow={true} className="justify-center" />
             <h1 className="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight mt-4">
-              Africa's Dedicated Gaming & Learning Hub
+              The Dedicated Next-Gen Gaming & Learning Hub
             </h1>
             <p className="text-sm text-slate-300 max-w-2xl mx-auto leading-relaxed">
               Visor is a high-performance video streaming and social platform designed specifically for gamers who want more than just entertainment. We give players and creators a place to share gameplay, connect with fans, build communities, master challenging missions, and monetize their creativity without barriers.
@@ -133,10 +133,10 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
                 OUR VISION
               </span>
               <h3 className="text-xl font-black text-white">
-                The Continental Stage for Esports & Creators
+                The Global Stage for Esports & Creators
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                To become the premier Africa-first gaming ecosystem, hosting seasonal esports tournaments with six-figure prize pools and scaling low-latency server relays across the globe.
+                To become the premier creator-first gaming ecosystem, hosting seasonal esports tournaments with six-figure prize pools and scaling ultra low-latency server relays across the globe.
               </p>
             </div>
           </div>
@@ -374,19 +374,19 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
           <h2 className="text-xl font-black text-white tracking-tight">
             Join the Visor Team
           </h2>
-          <p>We are building Africa's largest digital gaming and esports company. Open roles include:</p>
+          <p>We are building the leading modern digital gaming and esports company. Open roles include:</p>
           <div className="space-y-2.5 pt-2">
             <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 flex items-center justify-between">
               <div>
-                <h4 className="font-bold text-white text-xs">Esports Tournament Coordinator (Uganda & Kenya)</h4>
-                <p className="text-[10px] text-slate-400 font-mono-code">Full-time • Kampala / Nairobi</p>
+                <h4 className="font-bold text-white text-xs">Esports Tournament Operations Lead</h4>
+                <p className="text-[10px] text-slate-400 font-mono-code">Full-time • Hybrid / Remote</p>
               </div>
               <span className="text-sky-400 font-bold text-xs font-mono-code">Apply →</span>
             </div>
             <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 flex items-center justify-between">
               <div>
                 <h4 className="font-bold text-white text-xs">Video Streaming & CDN Infrastructure Engineer</h4>
-                <p className="text-[10px] text-slate-400 font-mono-code">Remote • Pan-African</p>
+                <p className="text-[10px] text-slate-400 font-mono-code">Remote • Global Hubs</p>
               </div>
               <span className="text-sky-400 font-bold text-xs font-mono-code">Apply →</span>
             </div>

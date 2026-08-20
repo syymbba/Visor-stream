@@ -59,12 +59,16 @@ export const PricingModal: React.FC<PricingModalProps> = ({
       // Call Pesapal v3 Checkout Endpoint
       const response = await fetch('/api/payments/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: JSON.stringify({
           amount: priceCalculated,
           currency: currentCurrency,
           email: email.trim() || auth.currentUser?.email || 'gamer@visorstream.com',
           phone: phone.trim(),
+          provider: paymentMethod,
           creatorId: 'me',
           planId: selectedPlan.id,
           type: 'subscription',
@@ -72,7 +76,16 @@ export const PricingModal: React.FC<PricingModalProps> = ({
         }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      let data: any = {};
+
+      if (contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const rawText = await response.text();
+        console.error(`Non-JSON response from /api/payments/checkout (${response.status}):`, rawText);
+        throw new Error(`Server returned status ${response.status}. Payment gateway route unreachable.`);
+      }
 
       if (data.redirectUrl) {
         // Redirects browser to Pesapal checkout for MTN/Airtel MoMo/Card payment

@@ -3,6 +3,8 @@ import { LiveStream, ChatMessage, Currency } from '../types';
 import { CURRENCY_RATES } from '../data/mockData';
 import { StreamPlayer } from './StreamPlayer';
 import { TipModal } from './TipModal';
+import { HypeTrainWidget } from './HypeTrainWidget';
+import { LiveMatchPredictionsWidget } from './LiveMatchPredictionsWidget';
 import { auth, onAuthStateChanged, User as FirebaseUser } from '../firebase';
 import { 
   subscribeToStreamChat, 
@@ -36,7 +38,9 @@ import {
   Zap,
   ArrowDown,
   Filter,
-  Check
+  Check,
+  WifiOff,
+  Download
 } from 'lucide-react';
 
 interface LivePlayerViewProps {
@@ -47,6 +51,8 @@ interface LivePlayerViewProps {
   onOpenSubscribe: (streamerName?: string) => void;
   currentCurrency: Currency;
   onSelectCategory?: (categoryId: string) => void;
+  isOfflineMode?: boolean;
+  onNavigateToLibrary?: () => void;
 }
 
 // Quick reaction hype chips
@@ -60,6 +66,8 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
   onOpenSubscribe,
   currentCurrency,
   onSelectCategory,
+  isOfflineMode = false,
+  onNavigateToLibrary,
 }) => {
   const displayStreams = allStreams || propStreams || [];
   const [isFollowing, setIsFollowing] = useState(false);
@@ -359,6 +367,26 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Bento Hero Section: Live Video + Streamer Telemetry (8 cols) */}
         <section className={`lg:col-span-8 flex flex-col gap-4 ${mobileActiveTab === 'chat' ? 'hidden lg:flex' : 'flex'}`}>
+          {isOfflineMode && (
+            <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs font-mono-code flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn">
+              <div className="flex items-center gap-2.5">
+                <WifiOff className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>
+                  <strong>Offline Mode Active:</strong> Live stream playback paused to conserve cellular data. You can watch cached matches in your offline library.
+                </span>
+              </div>
+              {onNavigateToLibrary && (
+                <button
+                  onClick={onNavigateToLibrary}
+                  className="px-3 py-1.5 bg-amber-500 text-slate-950 rounded-xl font-bold uppercase text-[11px] shrink-0 hover:bg-amber-400 transition-colors flex items-center gap-1"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>Open Offline Library</span>
+                </button>
+              )}
+            </div>
+          )}
+
           {/* HLS Adaptive Stream Player */}
           <StreamPlayer
             stream={currentStream}
@@ -480,6 +508,12 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                 <span>Tip Jar</span>
               </button>
             </div>
+
+            {/* Live Community Match Prediction Widget */}
+            <LiveMatchPredictionsWidget
+              streamTitle={currentStream.title}
+              gameCategory={currentStream.game}
+            />
           </div>
         </section>
 
@@ -529,6 +563,15 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                 <span>{isLiveHypeActive ? 'HYPE ON' : 'HYPE PAUSED'}</span>
               </button>
             </div>
+          </div>
+
+          {/* MoMo Community Hype Train Widget */}
+          <div className="p-2.5 bg-slate-950/40 border-b border-slate-800/80">
+            <HypeTrainWidget
+              streamId={currentStream.id}
+              onOpenTip={() => setTipModalOpen(true)}
+              onOpenSubscribe={() => onOpenSubscribe(currentStream.streamer.name)}
+            />
           </div>
 
           {/* Chat Filter Tabs: All vs Super Tips */}
@@ -782,7 +825,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono-code">
                 Regional CDN Routing
               </h3>
-              <span className="text-xs text-slate-400">East Africa edge latency</span>
+              <span className="text-xs text-slate-400">Ultra-low edge latency</span>
             </div>
             <div className="flex gap-1.5">
               <div className="w-1.5 h-4 bg-indigo-500 rounded-full animate-pulse"></div>

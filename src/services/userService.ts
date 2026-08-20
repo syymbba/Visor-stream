@@ -40,7 +40,7 @@ export interface UserProfile {
 
 export const DEFAULT_USER_PROFILE: UserProfile = {
   uid: 'guest',
-  displayName: 'ProGamer_EastAfrica',
+  displayName: 'ProGamer_Elite',
   email: 'gamer@visorstream.com',
   photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
   bio: 'Apex Legends & PUBG Mobile competitor. Clan Captain @ VSR Squad.',

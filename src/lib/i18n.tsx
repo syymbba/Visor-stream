@@ -25,7 +25,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
     name: 'Swahili',
     nativeName: 'Kiswahili',
     flag: '🇹🇿',
-    region: 'East Africa (Tanzania, Kenya, DRC)',
+    region: 'Swahili (Tanzania, Kenya, DRC)',
     greeting: 'Karibu tena, Mchezaji'
   },
   {
@@ -41,7 +41,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
     name: 'French',
     nativeName: 'Français',
     flag: '🇫🇷',
-    region: 'Francophone Africa (DRC, Rwanda, Senegal)',
+    region: 'Francophone (DRC, Rwanda, Senegal, France)',
     greeting: 'Bienvenue, Joueur'
   },
   {
@@ -57,7 +57,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
     name: 'Arabic',
     nativeName: 'العربية',
     flag: '🇪🇬',
-    region: 'North & East Africa (Egypt, Sudan)',
+    region: 'MENA & Arabic (Egypt, Sudan, UAE)',
     greeting: 'أهلاً بك مجدداً، أيها اللاعب'
   }
 ];

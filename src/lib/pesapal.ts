@@ -224,7 +224,7 @@ export interface PesapalTransactionStatus {
   amount?: number;
   created_date?: string;
   confirmation_code?: string;
-  payment_status_description: 'Completed' | 'Pending' | 'Failed' | 'Invalid' | string;
+  payment_status_description: 'Completed' | 'Pending' | 'Failed' | 'Invalid' | 'Reversed' | string;
   description?: string;
   message?: string;
   payment_account?: string;
@@ -232,6 +232,7 @@ export interface PesapalTransactionStatus {
   status_code?: number; // 1 = Completed, 0 = Invalid, 2 = Failed, 3 = Reversed
   merchant_reference?: string;
   currency?: string;
+  error?: any;
 }
 
 /**
@@ -241,22 +242,47 @@ export async function getPesapalTransactionStatus(orderTrackingId: string): Prom
   const token = await getPesapalToken();
   const baseUrl = getPesapalBaseUrl();
 
-  const response = await fetch(
-    `${baseUrl}/Transactions/GetTransactionStatus?orderTrackingId=${encodeURIComponent(orderTrackingId)}`,
-    {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json',
-      },
-    }
-  );
+  const url = `${baseUrl}/Transactions/GetTransactionStatus?orderTrackingId=${encodeURIComponent(orderTrackingId)}`;
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+    },
+  });
 
   if (!response.ok) {
     const errText = await response.text();
     throw new Error(`Pesapal GetTransactionStatus failed (${response.status}): ${errText}`);
   }
 
-  const data = await response.json();
+  const data: PesapalTransactionStatus = await response.json();
   return data;
+}
+
+/**
+ * Helper to normalize and map Pesapal v3 status codes into standard application statuses
+ */
+export function normalizePesapalStatus(statusData: Partial<PesapalTransactionStatus>): {
+  isCompleted: boolean;
+  isFailed: boolean;
+  isPending: boolean;
+  standardStatus: 'COMPLETED' | 'FAILED' | 'REVERSED' | 'PENDING';
+  statusCode: number;
+} {
+  const desc = (statusData.payment_status_description || '').toLowerCase();
+  const code = typeof statusData.status_code === 'number' ? statusData.status_code : -1;
+
+  if (desc === 'completed' || code === 1) {
+    return { isCompleted: true, isFailed: false, isPending: false, standardStatus: 'COMPLETED', statusCode: 1 };
+  }
+  if (desc === 'reversed' || code === 3) {
+    return { isCompleted: false, isFailed: true, isPending: false, standardStatus: 'REVERSED', statusCode: 3 };
+  }
+  if (desc === 'failed' || desc === 'invalid' || code === 2 || code === 0) {
+    return { isCompleted: false, isFailed: true, isPending: false, standardStatus: 'FAILED', statusCode: 2 };
+  }
+
+  return { isCompleted: false, isFailed: false, isPending: true, standardStatus: 'PENDING', statusCode: 0 };
 }

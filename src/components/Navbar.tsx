@@ -29,7 +29,9 @@ import {
   Headphones,
   FileText,
   Shield,
-  LogIn
+  LogIn,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -48,6 +50,8 @@ interface NavbarProps {
   showBalanceInHeader?: boolean;
   onToggleBalanceVisibility?: () => void;
   customLogoUrl?: string;
+  isOfflineMode?: boolean;
+  onToggleOfflineMode?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -65,7 +69,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   userBalanceUSD = 0,
   showBalanceInHeader = true,
   onToggleBalanceVisibility,
-  customLogoUrl
+  customLogoUrl,
+  isOfflineMode = false,
+  onToggleOfflineMode,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
@@ -125,7 +131,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
                   <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider font-mono-code">
-                    East Africa Edge • {activeServer.city.toUpperCase()} ({activeServer.pingMs}ms)
+                    Edge Relay • {activeServer.city.toUpperCase()} ({activeServer.pingMs}ms)
                   </span>
                 </div>
               </div>
@@ -170,6 +176,29 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               </div>
             </div>
+
+            {/* Offline Mode Switch */}
+            <button
+              onClick={onToggleOfflineMode}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-mono-code transition-all touch-active-state border ${
+                isOfflineMode
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md shadow-amber-500/20'
+                  : 'bg-[#1b2838] border-[#2a475e] text-slate-300 hover:text-white hover:border-[#38bdf8]/50'
+              }`}
+              title={isOfflineMode ? 'Offline Mode Active (Click to go Online)' : 'Switch to Offline Mode (Play cached VODs)'}
+            >
+              {isOfflineMode ? (
+                <>
+                  <WifiOff className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                  <span className="hidden sm:inline font-bold">Offline</span>
+                </>
+              ) : (
+                <>
+                  <Wifi className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden lg:inline font-medium">Online</span>
+                </>
+              )}
+            </button>
 
             {/* Currency Switcher */}
             <div className="relative">
@@ -320,21 +349,36 @@ export const Navbar: React.FC<NavbarProps> = ({
             />
           </div>
 
-          {/* Mobile Balance Quick View */}
-          <div className="flex items-center justify-between p-2.5 bg-[#1b2838] border border-[#2a475e] rounded-xl text-xs font-mono-code">
-            <div className="flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-[#38bdf8]" />
-              <span className="text-slate-400">Balance:</span>
-              <span className="font-bold text-white">{symbol}{formattedBalance}</span>
+          {/* Mobile Balance & Offline Status Quick View */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center justify-between p-2 bg-[#1b2838] border border-[#2a475e] rounded-xl text-xs font-mono-code">
+              <div className="flex items-center gap-1.5 truncate">
+                <Wallet className="w-3.5 h-3.5 text-[#38bdf8] shrink-0" />
+                <span className="font-bold text-white truncate">{symbol}{formattedBalance}</span>
+              </div>
             </div>
+
             <button
               onClick={() => {
-                setActiveTab('settings');
-                setMobileMenuOpen(false);
+                if (onToggleOfflineMode) onToggleOfflineMode();
               }}
-              className="text-[#38bdf8] text-[11px] font-bold underline"
+              className={`flex items-center justify-center gap-1.5 p-2 rounded-xl text-xs font-mono-code font-bold transition-all border ${
+                isOfflineMode
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                  : 'bg-[#1b2838] text-slate-300 border-[#2a475e]'
+              }`}
             >
-              Manage
+              {isOfflineMode ? (
+                <>
+                  <WifiOff className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                  <span>Offline Active</span>
+                </>
+              ) : (
+                <>
+                  <Wifi className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Online Mode</span>
+                </>
+              )}
             </button>
           </div>
 

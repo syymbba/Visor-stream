@@ -63,6 +63,7 @@ export function usePesapalCheckout(): UsePesapalCheckoutReturn {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
           body: JSON.stringify({
             amount: payload.amount,
@@ -80,7 +81,20 @@ export function usePesapalCheckout(): UsePesapalCheckoutReturn {
           }),
         });
 
-        const data = await res.json();
+        // Safely parse JSON or handle HTML/Text error page
+        const contentType = res.headers.get('content-type') || '';
+        let data: any = {};
+
+        if (contentType.includes('application/json')) {
+          data = await res.json();
+        } else {
+          const rawText = await res.text();
+          console.error(`Non-JSON response received from /api/payments/checkout (${res.status}):`, rawText);
+          const errMsg = `Server returned status ${res.status}. Payment gateway endpoint unreachable or returned HTML.`;
+          setError(errMsg);
+          setLoading(false);
+          return { success: false, error: errMsg };
+        }
 
         if (!res.ok || data.error) {
           const errMsg = data.error || `Payment initiation failed (${res.status})`;

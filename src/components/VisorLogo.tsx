@@ -172,7 +172,7 @@ export const VisorLogo: React.FC<VisorLogoProps> = ({
               VISOR<span className="text-[#38BDF8] font-extrabold ml-1">STREAM</span>
             </span>
             <span className="hidden sm:inline-block text-[9px] font-mono-code uppercase font-semibold px-1.5 py-0.5 rounded bg-[#38BDF8]/10 text-[#38BDF8] border border-[#38BDF8]/30">
-              AFRICA • LIVE
+              PRO • LIVE
             </span>
           </div>
           <span className="text-[10px] tracking-widest uppercase font-medium text-slate-400 font-rajdhani mt-0.5">

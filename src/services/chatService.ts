@@ -38,7 +38,7 @@ const INITIAL_MOCK_MESSAGES: Record<string, ChatMessage[]> = {
       isDonation: true, 
       donationAmount: '500 KES', 
       donationCurrency: 'KES', 
-      donationMessage: 'Repping East Africa king! 👑 Keep carrying!' 
+      donationMessage: 'Repping the squad king! 👑 Keep carrying!' 
     },
     { 
       id: 'c3', 
@@ -216,7 +216,7 @@ export async function recordStreamTip(
   }
 }
 
-// Pool of realistic African and global esports community live chatters
+// Pool of realistic esports and gaming community live chatters
 export const SIMULATED_COMMUNITY_CHATTERS: Array<{
   sender: string;
   avatar: string;
