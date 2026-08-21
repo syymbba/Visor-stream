@@ -520,12 +520,15 @@ async function startServer() {
 
       // Verify status with Pesapal
       let isSuccess = false;
+      let isFailed = false;
       let statusData: any = {};
       try {
         statusData = await getPesapalTransactionStatus(orderTrackingId);
-        isSuccess =
-          statusData.payment_status_description?.toLowerCase() === "completed" ||
-          statusData.status_code === 1;
+        const desc = (statusData.payment_status_description || "").toLowerCase();
+        const code = statusData.status_code;
+
+        isSuccess = desc === "completed" || code === 1;
+        isFailed = desc === "failed" || desc === "invalid" || desc === "reversed" || code === 0 || code === 2 || code === 3;
 
         if (isSuccess && orderMerchantReference) {
           const totalAmount = statusData.amount || 0;
@@ -549,9 +552,14 @@ async function startServer() {
         console.warn("Status check during callback warning:", checkErr);
       }
 
-      const redirectPath = isSuccess
-        ? `/?payment=success&orderId=${encodeURIComponent(orderMerchantReference || "")}&trackingId=${encodeURIComponent(orderTrackingId)}&amount=${statusData.amount || ""}&currency=${encodeURIComponent(statusData.currency || "UGX")}`
-        : `/?payment=pending&orderId=${encodeURIComponent(orderMerchantReference || "")}&trackingId=${encodeURIComponent(orderTrackingId)}`;
+      const statusDesc = statusData.payment_status_description || (isSuccess ? "Completed" : isFailed ? "Failed" : "Pending");
+      const statusCode = statusData.status_code !== undefined ? statusData.status_code : (isSuccess ? 1 : isFailed ? 2 : 0);
+      const errorCode = statusData.error?.error_type || statusData.error?.code || statusData.error_type || "";
+      const errorMessage = statusData.message || statusData.error?.message || statusData.description || "";
+      const paymentMethod = statusData.payment_method || "";
+
+      const statusParam = isSuccess ? "success" : isFailed ? "failed" : "pending";
+      const redirectPath = `/?payment=${statusParam}&orderId=${encodeURIComponent(orderMerchantReference || "")}&trackingId=${encodeURIComponent(orderTrackingId)}&amount=${statusData.amount || ""}&currency=${encodeURIComponent(statusData.currency || "UGX")}&statusDesc=${encodeURIComponent(statusDesc)}&statusCode=${encodeURIComponent(statusCode)}&errorCode=${encodeURIComponent(errorCode)}&errorMessage=${encodeURIComponent(errorMessage)}&paymentMethod=${encodeURIComponent(paymentMethod)}`;
 
       res.redirect(redirectPath);
     } catch (error: any) {

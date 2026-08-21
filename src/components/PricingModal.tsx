@@ -89,7 +89,15 @@ export const PricingModal: React.FC<PricingModalProps> = ({
 
       if (data.redirectUrl) {
         // Redirects browser to Pesapal checkout for MTN/Airtel MoMo/Card payment
-        window.location.href = data.redirectUrl;
+        try {
+          if (window.top && window.top !== window) {
+            window.top.location.href = data.redirectUrl;
+          } else {
+            window.location.href = data.redirectUrl;
+          }
+        } catch {
+          window.location.href = data.redirectUrl;
+        }
         return;
       }
 

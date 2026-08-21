@@ -117,7 +117,15 @@ export function usePesapalCheckout(): UsePesapalCheckoutReturn {
 
         // Auto-redirect user to Pesapal payment portal
         if (payload.autoRedirect !== false) {
-          window.location.href = data.redirectUrl;
+          try {
+            if (window.top && window.top !== window) {
+              window.top.location.href = data.redirectUrl;
+            } else {
+              window.location.href = data.redirectUrl;
+            }
+          } catch {
+            window.location.href = data.redirectUrl;
+          }
         }
 
         return {

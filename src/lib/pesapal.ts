@@ -3,23 +3,23 @@
  * Supports Mobile Money (MTN MoMo, Airtel Money, M-Pesa) and Visa/Mastercard.
  */
 
-// Fallback sandbox credentials provided for testing and development
-const DEFAULT_SANDBOX_KEY = '4ktSq8HdqPUtJS+Ni7dBIzI59O5UR7vf';
-const DEFAULT_SANDBOX_SECRET = 'ege3G7Pj3rlvRKLscbp4egDpD48=';
+// Live production credentials provided for Pesapal v3 gateway
+const DEFAULT_LIVE_KEY = '4ktSq8HdqPUtJS+Ni7dBIzI59O5UR7vf';
+const DEFAULT_LIVE_SECRET = 'ege3G7Pj3rlvRKLscbp4egDpD48=';
 
 export const getPesapalBaseUrl = (): string => {
-  const env = process.env.PESAPAL_ENV?.toLowerCase().trim();
-  return env === 'production'
-    ? 'https://pay.pesapal.com/v3/api'
-    : 'https://cybqa.pesapal.com/pesapalv3/api';
+  const env = (process.env.PESAPAL_ENV || 'production').toLowerCase().trim();
+  return env === 'sandbox'
+    ? 'https://cybqa.pesapal.com/pesapalv3/api'
+    : 'https://pay.pesapal.com/v3/api';
 };
 
 export const getPesapalConsumerKey = (): string => {
-  return process.env.PESAPAL_CONSUMER_KEY || DEFAULT_SANDBOX_KEY;
+  return process.env.PESAPAL_CONSUMER_KEY || DEFAULT_LIVE_KEY;
 };
 
 export const getPesapalConsumerSecret = (): string => {
-  return process.env.PESAPAL_CONSUMER_SECRET || DEFAULT_SANDBOX_SECRET;
+  return process.env.PESAPAL_CONSUMER_SECRET || DEFAULT_LIVE_SECRET;
 };
 
 // In-memory token & IPN ID caching

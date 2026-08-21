@@ -112,16 +112,47 @@ export function App() {
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentNotice, setPaymentNotice] = useState<{ status: 'success' | 'pending' | 'error'; orderId?: string; amount?: string; currency?: string } | null>(null);
+  const [paymentCallbackData, setPaymentCallbackData] = useState<{
+    orderTrackingId?: string | null;
+    merchantReference?: string | null;
+    statusParam?: 'success' | 'pending' | 'error' | 'failed' | 'cancelled' | null;
+    initialAmount?: string | null;
+    initialCurrency?: string | null;
+    statusCode?: string | null;
+    statusDesc?: string | null;
+    errorCode?: string | null;
+    errorMessage?: string | null;
+    paymentMethod?: string | null;
+  } | null>(null);
 
   // Check URL parameters for Pesapal payment callback outcomes
   useEffect(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const paymentStatus = urlParams.get('payment');
-      if (paymentStatus) {
-        const orderId = urlParams.get('orderId') || undefined;
-        const amount = urlParams.get('amount') || undefined;
-        const currency = urlParams.get('currency') || undefined;
+      const paymentStatus = urlParams.get('payment') as any;
+      const trackingId = urlParams.get('OrderTrackingId') || urlParams.get('orderTrackingId') || urlParams.get('trackingId');
+      const orderId = urlParams.get('orderId') || urlParams.get('OrderMerchantReference') || urlParams.get('orderMerchantReference') || undefined;
+      const amount = urlParams.get('amount') || undefined;
+      const currency = urlParams.get('currency') || undefined;
+      const statusCode = urlParams.get('statusCode') || undefined;
+      const statusDesc = urlParams.get('statusDesc') || undefined;
+      const errorCode = urlParams.get('errorCode') || undefined;
+      const errorMessage = urlParams.get('errorMessage') || urlParams.get('message') || undefined;
+      const paymentMethod = urlParams.get('paymentMethod') || undefined;
+
+      if (paymentStatus || trackingId || orderId) {
+        setPaymentCallbackData({
+          orderTrackingId: trackingId,
+          merchantReference: orderId,
+          statusParam: paymentStatus,
+          initialAmount: amount,
+          initialCurrency: currency,
+          statusCode,
+          statusDesc,
+          errorCode,
+          errorMessage,
+          paymentMethod,
+        });
 
         if (paymentStatus === 'success') {
           setPaymentNotice({ status: 'success', orderId, amount, currency });
@@ -132,13 +163,9 @@ export function App() {
           });
         } else if (paymentStatus === 'pending') {
           setPaymentNotice({ status: 'pending', orderId, amount, currency });
-        } else if (paymentStatus === 'error' || paymentStatus === 'failed') {
+        } else if (paymentStatus === 'error' || paymentStatus === 'failed' || paymentStatus === 'cancelled') {
           setPaymentNotice({ status: 'error', orderId });
         }
-
-        // Clean up URL query parameters without full reload
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, '', newUrl);
       }
     } catch (e) {
       console.warn('Payment callback query error:', e);
@@ -507,6 +534,16 @@ export function App() {
 
             {activeTab === 'payment-status' && (
               <PaymentStatusView
+                orderTrackingId={paymentCallbackData?.orderTrackingId}
+                merchantReference={paymentCallbackData?.merchantReference}
+                statusParam={paymentCallbackData?.statusParam}
+                initialAmount={paymentCallbackData?.initialAmount}
+                initialCurrency={paymentCallbackData?.initialCurrency}
+                statusCode={paymentCallbackData?.statusCode}
+                statusDesc={paymentCallbackData?.statusDesc}
+                errorCode={paymentCallbackData?.errorCode}
+                errorMessage={paymentCallbackData?.errorMessage}
+                paymentMethod={paymentCallbackData?.paymentMethod}
                 onNavigateHome={() => handleNavigateTab('live')}
                 onNavigateStudio={() => handleNavigateTab('creator')}
                 onNavigateLive={() => handleNavigateTab('live')}
