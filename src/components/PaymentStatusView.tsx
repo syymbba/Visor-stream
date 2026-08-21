@@ -26,6 +26,158 @@ import {
 import confetti from 'canvas-confetti';
 import { parsePesapalError, PesapalErrorBreakdown, ErrorCategory } from '../lib/pesapalErrors';
 
+export interface MobileMoneyProviderDetails {
+  id: 'MTN_MOMO' | 'AIRTEL_MONEY' | 'MPESA' | 'CARD' | 'UNKNOWN';
+  name: string;
+  shortName: string;
+  tagline: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+  ussdCode: string;
+  ussdPrompt: string;
+  accountCheckAction: string;
+  isMobileMoney: boolean;
+  networkLogoType: 'mtn' | 'airtel' | 'mpesa' | 'card' | 'generic';
+}
+
+/**
+ * Helper function to detect and parse the specific mobile money provider (MTN MoMo vs Airtel Money)
+ * from the paymentMethod string returned by the Pesapal callback or order response.
+ */
+export function detectMobileMoneyProvider(
+  paymentMethod?: string | null,
+  currency?: string | null
+): MobileMoneyProviderDetails {
+  const methodStr = (paymentMethod || '').trim().toUpperCase();
+  const curr = (currency || 'UGX').trim().toUpperCase();
+
+  // 1. Detect MTN Mobile Money (e.g., "MTN", "MTN UG", "MTN_MOMO", "UG_MTN_MOMO", "MOMO", "MTN_UGX")
+  if (
+    methodStr.includes('MTN') ||
+    methodStr.includes('MOMO') ||
+    methodStr.includes('UG_MTN') ||
+    methodStr.includes('MTN_UGX')
+  ) {
+    return {
+      id: 'MTN_MOMO',
+      name: 'MTN Mobile Money (MoMo)',
+      shortName: 'MTN MoMo',
+      tagline: 'Uganda MTN MoMo Switch',
+      badgeBg: 'bg-amber-500/15',
+      badgeText: 'text-amber-300',
+      badgeBorder: 'border-amber-500/40',
+      ussdCode: '*165#',
+      ussdPrompt: 'Dial *165# to check your MTN MoMo balance',
+      accountCheckAction: 'MTN MoMo (*165#)',
+      isMobileMoney: true,
+      networkLogoType: 'mtn',
+    };
+  }
+
+  // 2. Detect Airtel Money (e.g., "AIRTEL", "AIRTEL UG", "AIRTEL_MONEY", "UG_AIRTEL_MONEY", "AIRTEL_UGX")
+  if (
+    methodStr.includes('AIRTEL') ||
+    methodStr.includes('AIRTEL_UG') ||
+    methodStr.includes('UG_AIRTEL') ||
+    methodStr.includes('AIRTEL_UGX')
+  ) {
+    return {
+      id: 'AIRTEL_MONEY',
+      name: 'Airtel Money',
+      shortName: 'Airtel Money',
+      tagline: 'Airtel East Africa Switch',
+      badgeBg: 'bg-red-500/15',
+      badgeText: 'text-red-300',
+      badgeBorder: 'border-red-500/40',
+      ussdCode: '*185#',
+      ussdPrompt: 'Dial *185# to check your Airtel Money balance',
+      accountCheckAction: 'Airtel Money (*185#)',
+      isMobileMoney: true,
+      networkLogoType: 'airtel',
+    };
+  }
+
+  // 3. Detect Safaricom M-Pesa (e.g., "MPESA", "M-PESA", "SAFARICOM")
+  if (
+    methodStr.includes('MPESA') ||
+    methodStr.includes('M-PESA') ||
+    methodStr.includes('SAFARICOM') ||
+    curr === 'KES'
+  ) {
+    return {
+      id: 'MPESA',
+      name: 'Safaricom M-Pesa',
+      shortName: 'M-Pesa',
+      tagline: 'Safaricom Daraja Switch',
+      badgeBg: 'bg-emerald-500/15',
+      badgeText: 'text-emerald-300',
+      badgeBorder: 'border-emerald-500/40',
+      ussdCode: '*334#',
+      ussdPrompt: 'Dial *334# or check the M-Pesa App',
+      accountCheckAction: 'M-Pesa (*334#)',
+      isMobileMoney: true,
+      networkLogoType: 'mpesa',
+    };
+  }
+
+  // 4. Detect Bank Card (Visa / Mastercard)
+  if (
+    methodStr.includes('CARD') ||
+    methodStr.includes('VISA') ||
+    methodStr.includes('MASTERCARD') ||
+    methodStr.includes('CYBERSOURCE')
+  ) {
+    return {
+      id: 'CARD',
+      name: 'Visa / Mastercard',
+      shortName: 'Bank Card',
+      tagline: '3D Secure 256-Bit Gateway',
+      badgeBg: 'bg-sky-500/15',
+      badgeText: 'text-sky-300',
+      badgeBorder: 'border-sky-500/40',
+      ussdCode: '',
+      ussdPrompt: 'Check your mobile banking app or card statement',
+      accountCheckAction: 'Bank Card / App',
+      isMobileMoney: false,
+      networkLogoType: 'card',
+    };
+  }
+
+  // Fallback for Uganda Mobile Money if method string is generic
+  if (curr === 'UGX') {
+    return {
+      id: 'UNKNOWN',
+      name: 'MTN / Airtel Mobile Money',
+      shortName: 'MoMo / Airtel',
+      tagline: 'Uganda Mobile Money Switch',
+      badgeBg: 'bg-amber-500/15',
+      badgeText: 'text-amber-300',
+      badgeBorder: 'border-amber-500/30',
+      ussdCode: '*165# / *185#',
+      ussdPrompt: 'Dial *165# (MTN) or *185# (Airtel) to check balance',
+      accountCheckAction: 'Dial *165# or *185#',
+      isMobileMoney: true,
+      networkLogoType: 'generic',
+    };
+  }
+
+  return {
+    id: 'UNKNOWN',
+    name: methodStr || 'Mobile Money Gateway',
+    shortName: methodStr || 'Mobile Money',
+    tagline: 'Pesapal v3 Payment Switch',
+    badgeBg: 'bg-slate-800',
+    badgeText: 'text-slate-300',
+    badgeBorder: 'border-slate-700',
+    ussdCode: '',
+    ussdPrompt: 'Check your mobile carrier statement',
+    accountCheckAction: 'Carrier Statement',
+    isMobileMoney: true,
+    networkLogoType: 'generic',
+  };
+}
+
 interface PaymentStatusViewProps {
   orderTrackingId?: string | null;
   merchantReference?: string | null;
@@ -225,6 +377,11 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
     });
   }, [txDetails]);
 
+  // Detect specific mobile money provider (MTN MoMo vs Airtel Money vs M-Pesa vs Card)
+  const detectedProvider = useMemo(() => {
+    return detectMobileMoneyProvider(txDetails.paymentMethod, txDetails.currency);
+  }, [txDetails.paymentMethod, txDetails.currency]);
+
   const handleCopyRef = () => {
     if (merchantRef || trackingId) {
       navigator.clipboard.writeText(merchantRef || trackingId || '');
@@ -240,14 +397,16 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
       `Order Tracking ID: ${trackingId || 'N/A'}`,
       `Merchant Reference: ${merchantRef || 'N/A'}`,
       `Status: ${txDetails.status} (Code: ${txDetails.statusCode ?? 'N/A'})`,
-      `Payment Method: ${txDetails.paymentMethod || 'Mobile Money'}`,
+      `Payment Method: ${txDetails.paymentMethod || 'Mobile Money'} (${detectedProvider.name})`,
+      `Detected Provider: ${detectedProvider.name}`,
+      `Carrier USSD Code: ${detectedProvider.ussdCode || 'N/A'}`,
       `Amount: ${txDetails.currency || 'UGX'} ${txDetails.amount?.toLocaleString() || 'N/A'}`,
       `Diagnostic Code: ${errorBreakdown.code}`,
       `Category: ${errorBreakdown.categoryLabel}`,
       `Reason: ${errorBreakdown.title}`,
       `Error Details: ${errorBreakdown.description}`,
       `Raw Message: ${txDetails.errorMessage || 'N/A'}`,
-      `Carrier / Network: ${errorBreakdown.carrierName || 'Mobile Money'}`,
+      `Carrier / Network: ${errorBreakdown.carrierName || detectedProvider.name}`,
       `----------------------------------------------`,
     ].join('\n');
 
@@ -495,9 +654,29 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
             {txDetails.paymentMethod && (
               <div className="flex items-center justify-between">
                 <span className="text-slate-400 font-sans">Payment Channel</span>
-                <div className="flex items-center gap-1.5 text-slate-300">
-                  <Smartphone className="w-3.5 h-3.5 text-sky-400" />
-                  <span className="font-medium">{txDetails.paymentMethod}</span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${detectedProvider.badgeBg} ${detectedProvider.badgeText} ${detectedProvider.badgeBorder}`}
+                  >
+                    {detectedProvider.id === 'MTN_MOMO' ? (
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-sm shadow-amber-400/50" />
+                    ) : detectedProvider.id === 'AIRTEL_MONEY' ? (
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-sm shadow-red-500/50" />
+                    ) : detectedProvider.id === 'MPESA' ? (
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    ) : (
+                      <Smartphone className="w-3.5 h-3.5" />
+                    )}
+                    <span>{detectedProvider.name}</span>
+                  </span>
+                  {detectedProvider.ussdCode && (
+                    <span
+                      className="hidden sm:inline text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-900 text-slate-300 border border-slate-800"
+                      title={detectedProvider.ussdPrompt}
+                    >
+                      {detectedProvider.ussdCode}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -541,9 +720,9 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
                     </div>
                   </div>
                   <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800">
-                    <div className="text-[10px] text-slate-500 uppercase">Telecom Switch Code</div>
-                    <div className="font-bold text-slate-200 mt-0.5">
-                      {errorBreakdown.carrierName || 'Mobile Money Switch'}
+                    <div className="text-[10px] text-slate-500 uppercase">Telecom Switch & Network</div>
+                    <div className={`font-bold mt-0.5 text-xs ${detectedProvider.badgeText}`}>
+                      {detectedProvider.name} {detectedProvider.ussdCode ? `(${detectedProvider.ussdCode})` : ''}
                     </div>
                   </div>
                 </div>

@@ -44,21 +44,24 @@ export function parsePesapalError(params: {
   const method = (params.paymentMethod || '').toUpperCase();
   const currency = (params.currency || 'UGX').toUpperCase();
 
-  // Detect Carrier/Provider
+  // Detect Carrier/Provider accurately
   let carrierName = 'Mobile Money';
   let ussdCode = '*165# (MTN) or *185# (Airtel)';
-  if (method.includes('MTN') || currency === 'UGX') {
-    carrierName = 'MTN Mobile Money';
-    ussdCode = 'Dial *165# to check your MTN MoMo wallet balance';
-  } else if (method.includes('AIRTEL')) {
+  if (method.includes('AIRTEL')) {
     carrierName = 'Airtel Money';
     ussdCode = 'Dial *185# to check your Airtel Money wallet balance';
+  } else if (method.includes('MTN') || method.includes('MOMO')) {
+    carrierName = 'MTN Mobile Money';
+    ussdCode = 'Dial *165# to check your MTN MoMo wallet balance';
   } else if (method.includes('MPESA') || method.includes('M-PESA') || currency === 'KES') {
     carrierName = 'Safaricom M-Pesa';
     ussdCode = 'Dial *334# or open the M-Pesa app to check your account';
   } else if (method.includes('CARD') || method.includes('VISA') || method.includes('MASTERCARD')) {
     carrierName = 'Bank Card (Visa / Mastercard)';
     ussdCode = 'Check your mobile banking app or contact your card-issuing bank';
+  } else if (currency === 'UGX') {
+    carrierName = 'MTN / Airtel Mobile Money';
+    ussdCode = 'Dial *165# (MTN) or *185# (Airtel) to check your wallet balance';
   }
 
   // 1. INSUFFICIENT FUNDS / BALANCE LOW

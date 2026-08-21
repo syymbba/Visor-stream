@@ -126,7 +126,6 @@ export const PricingModal: React.FC<PricingModalProps> = ({
             <div>
               <h3 className="font-black text-lg text-white tracking-tight flex items-center gap-2">
                 <span>Unlock {selectedPlan.name}</span>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-mono-code font-bold">Pesapal v3</span>
               </h3>
               <p className="text-xs text-slate-400">70% revenue directly powers creator stream • 30% platform</p>
             </div>
@@ -173,7 +172,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
 
               {/* Payment Method Selector */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-300">Payment Gateway Channels (Pesapal v3)</label>
+                <label className="text-xs font-bold text-slate-300">Select Payment Method</label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
@@ -231,7 +230,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                         : 'bg-slate-950 text-slate-400 border-slate-800'
                     }`}
                   >
-                    ⚡ Pesapal Instant
+                    ⚡ Mobile Money & Wallets
                   </button>
                 </div>
               </div>
@@ -270,7 +269,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
               {/* Secure guarantee badge */}
               <div className="flex items-center gap-2 p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px] text-slate-400">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span>Pesapal v3 Bank-Grade Security (PCI-DSS Level 1). 70% paid to creator wallet.</span>
+                <span>256-Bit Bank-Grade Security • 70% Creator Revenue Share</span>
               </div>
 
               <button
@@ -281,11 +280,11 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                 {isProcessing ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-                    <span>Connecting to Pesapal Secure Gateway...</span>
+                    <span>Connecting to Secure Gateway...</span>
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    <span>Pay {symbol} {priceFormatted} with Pesapal</span>
+                    <span>PAY {symbol} {priceFormatted}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </span>
                 )}

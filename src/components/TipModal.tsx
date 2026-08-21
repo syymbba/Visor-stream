@@ -84,9 +84,6 @@ export const TipModal: React.FC<TipModalProps> = ({
             <div>
               <h3 className="font-black text-white tracking-tight flex items-center gap-2">
                 <span>Super Tip Streamer</span>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-mono-code font-bold">
-                  Pesapal v3
-                </span>
               </h3>
               <p className="text-xs text-slate-400">
                 To <span className="text-white font-bold">{streamerName}</span> • 100% direct creator tip
@@ -273,7 +270,7 @@ export const TipModal: React.FC<TipModalProps> = ({
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    <span>Proceed to Pay {amount} {currencyMap[provider]}</span>
+                    <span>PAY {amount} {currencyMap[provider]}</span>
                     <ExternalLink className="w-4 h-4" />
                   </span>
                 )}

@@ -26,6 +26,7 @@ import { PricingView } from './components/PricingView';
 import { PricingModal } from './components/PricingModal';
 import { SettingsView } from './components/SettingsView';
 import { AboutPolicyView } from './components/AboutPolicyView';
+import { FeatureInfoView, FeatureId } from './components/FeatureInfoView';
 import { PaymentStatusView } from './components/PaymentStatusView';
 import { PaymentHistory } from './components/PaymentHistory';
 import { OfflineBanner } from './components/OfflineBanner';
@@ -40,7 +41,32 @@ import confetti from 'canvas-confetti';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
-type AppTab = 'landing' | 'live' | 'reels' | 'library' | 'tutorials' | 'games' | 'esports' | 'community' | 'store' | 'creator' | 'overlay' | 'pricing' | 'settings' | 'about' | 'terms' | 'privacy' | 'support' | 'payment-status' | 'payments';
+type AppTab =
+  | 'landing'
+  | 'live'
+  | 'reels'
+  | 'library'
+  | 'tutorials'
+  | 'games'
+  | 'esports'
+  | 'community'
+  | 'store'
+  | 'creator'
+  | 'overlay'
+  | 'pricing'
+  | 'settings'
+  | 'about'
+  | 'terms'
+  | 'privacy'
+  | 'support'
+  | 'payment-status'
+  | 'payments'
+  | 'features-high-fps-streaming'
+  | 'features-game-vault-sync'
+  | 'features-vertical-feed'
+  | 'features-creator-monetization'
+  | 'features-creative-tools'
+  | 'features-ai-clips';
 
 export function App() {
   // Parse initial route from URL path or hash
@@ -60,6 +86,11 @@ export function App() {
       return 'payment-status';
     }
     if (path === '/payments' || hash === 'payments' || path === '/history') return 'payments';
+    if (path.startsWith('/features') || hash.startsWith('features-') || hash.startsWith('feature-')) {
+      const featId = (hash || path).replace(/^(\/|#)?(features-|feature-|features\/)/, '');
+      const validFeat = `features-${featId}` as AppTab;
+      return validFeat;
+    }
     if (path === '/privacy' || hash === 'privacy') return 'privacy';
     if (path === '/terms' || hash === 'terms') return 'terms';
     if (path === '/about' || hash === 'about') return 'about';
@@ -304,6 +335,12 @@ export function App() {
   // Check if current view is public legal standalone page
   const isPublicLegal = activeTab === 'privacy' || activeTab === 'terms' || activeTab === 'about';
 
+  // Check if current view is public feature deep-dive page
+  const isFeatureView = activeTab.startsWith('features-');
+  const currentFeatureId: FeatureId = isFeatureView
+    ? (activeTab.replace('features-', '') as FeatureId)
+    : 'high-fps-streaming';
+
   return (
     <div className="min-h-screen bg-[#0b0e14] text-slate-200 flex flex-col font-sans selection:bg-[#38bdf8] selection:text-[#0b0e14] steam-grid-bg">
       
@@ -322,6 +359,7 @@ export function App() {
           }}
           onNavigateLegal={(section) => handleNavigateTab(section as AppTab)}
           onNavigateTab={(tab) => handleNavigateTab(tab as AppTab)}
+          onSelectFeature={(featureId) => handleNavigateTab(`features-${featureId}` as AppTab)}
         />
       )}
 
@@ -337,8 +375,20 @@ export function App() {
         </div>
       )}
 
-      {/* 3. MAIN WEB APPLICATION DASHBOARD & FEED (Rendered for authenticated users or active app tabs) */}
-      {activeTab !== 'landing' && !isPublicLegal && (
+      {/* 3. PUBLIC FEATURE DEEP-DIVE PAGES (Architecture, Ingest Specs & Live HUD details) */}
+      {isFeatureView && (
+        <div>
+          <FeatureInfoView
+            featureId={currentFeatureId}
+            onBackToLanding={() => handleNavigateTab('landing')}
+            onSelectFeature={(id) => handleNavigateTab(`features-${id}` as AppTab)}
+            onEnterApp={() => handleNavigateTab('live')}
+          />
+        </div>
+      )}
+
+      {/* 4. MAIN WEB APPLICATION DASHBOARD & FEED (Rendered for authenticated users or active app tabs) */}
+      {activeTab !== 'landing' && !isPublicLegal && !isFeatureView && (
         <>
           {/* Sticky Top Header Navigation */}
           <Navbar
@@ -396,9 +446,9 @@ export function App() {
                     <h4 className="font-black text-sm text-white flex items-center gap-2">
                       <span>
                         {paymentNotice.status === 'success'
-                          ? 'Pesapal Payment Confirmed & Activated!'
+                          ? 'Payment Confirmed & Membership Activated!'
                           : paymentNotice.status === 'pending'
-                          ? 'Pesapal Payment Processing...'
+                          ? 'Payment Processing...'
                           : 'Payment Unsuccessful'}
                       </span>
                       <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700 font-mono-code">
@@ -407,7 +457,7 @@ export function App() {
                     </h4>
                     <p className="text-xs text-slate-300 font-mono-code mt-0.5">
                       {paymentNotice.status === 'success'
-                        ? `Transaction ${paymentNotice.orderId ? `(${paymentNotice.orderId})` : ''} settled successfully via Pesapal v3. Instant streamer allocation credited.`
+                        ? `Transaction ${paymentNotice.orderId ? `(${paymentNotice.orderId})` : ''} settled successfully. Instant streamer allocation credited.`
                         : paymentNotice.status === 'pending'
                         ? 'Your transaction is being confirmed by your mobile provider. Your balance will update automatically.'
                         : 'The payment could not be finalized. Please try again or choose another payment rail.'}

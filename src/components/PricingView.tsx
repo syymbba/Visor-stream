@@ -44,7 +44,7 @@ export const PricingView: React.FC<PricingViewProps> = ({
           Support Creators. Unlock Pro Perks. Level Up.
         </h1>
         <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-2xl mx-auto">
-          Unlike Twitch or YouTube, Visor is priced affordably with direct Mobile Money (M-Pesa, MTN, Airtel) integration. 70% of all subscription fees go directly to your favorite streamers.
+          Priced affordably for gamers across Africa and globally with direct Mobile Money (M-Pesa, MTN, Airtel) and card support. 70% of all subscription fees go directly to your favorite streamers.
         </p>
 
         {/* Currency Switcher Chips */}
@@ -164,47 +164,58 @@ export const PricingView: React.FC<PricingViewProps> = ({
         })}
       </div>
 
-      {/* Comparison with Global Platforms Table */}
+      {/* Subscription Tier Feature Breakdown Matrix */}
       <div className="max-w-4xl mx-auto bg-slate-900 rounded-[28px] sm:rounded-[32px] p-6 sm:p-8 border border-slate-800 shadow-2xl space-y-4">
         <h3 className="font-black text-lg text-white uppercase tracking-wider text-center font-rajdhani">
-          How Visor Stream Compares to Legacy Giants
+          Subscription Tier Comparison
         </h3>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-['Inter']">
             <thead>
               <tr className="border-b border-slate-800 text-slate-400 font-mono-code">
-                <th className="pb-3">Platform</th>
-                <th className="pb-3">Starting Price</th>
-                <th className="pb-3">Mobile Money (M-Pesa / MTN)</th>
-                <th className="pb-3">Gaming Tutorials & Missions</th>
-                <th className="pb-3">Streamer Revenue Share</th>
+                <th className="pb-3">Perk / Feature</th>
+                <th className="pb-3">Free Tier</th>
+                <th className="pb-3 text-sky-400">Pro Gamer ($5/mo)</th>
+                <th className="pb-3 text-amber-400">Legend Champion ($10/mo)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800 text-slate-300 font-mono-code">
-              <tr className="bg-sky-500/10 text-white font-semibold">
-                <td className="py-3.5 flex items-center gap-1.5 text-sky-400 font-bold">
-                  <Sparkles className="w-4 h-4" />
-                  <span>Visor Stream</span>
-                </td>
-                <td className="py-3.5 font-bold text-emerald-400">$2 / mo (7,500 UGX)</td>
-                <td className="py-3.5 text-emerald-400">✅ Instant STK Push</td>
-                <td className="py-3.5 text-emerald-400">✅ Dedicated Mission Hub</td>
-                <td className="py-3.5 font-bold text-emerald-400">70% to Streamer</td>
+              <tr>
+                <td className="py-3.5 font-medium text-white">Stream Playback Quality</td>
+                <td className="py-3.5 text-slate-400">720p HD (Data-Saver)</td>
+                <td className="py-3.5 text-sky-300 font-bold">1080p 60FPS</td>
+                <td className="py-3.5 text-amber-300 font-bold">4K UHD / 120 FPS Uncapped</td>
               </tr>
               <tr>
-                <td className="py-3.5 font-medium">Twitch</td>
-                <td className="py-3.5 text-slate-400">$4.99 - $24.99 / mo</td>
-                <td className="py-3.5 text-rose-400">❌ Card / PayPal Only</td>
-                <td className="py-3.5 text-slate-400">❌ Not structured</td>
-                <td className="py-3.5 text-slate-400">50% Standard</td>
+                <td className="py-3.5 font-medium text-white">Chat Emotes & Badges</td>
+                <td className="py-3.5 text-slate-400">Standard Emotes</td>
+                <td className="py-3.5 text-sky-300">Animated Pro Emotes + Sub Badge</td>
+                <td className="py-3.5 text-amber-300">Custom Streamer Emotes + VIP Gold Badge</td>
               </tr>
               <tr>
-                <td className="py-3.5 font-medium">YouTube Premium</td>
-                <td className="py-3.5 text-slate-400">~$12.00 / mo</td>
-                <td className="py-3.5 text-rose-400">❌ Expensive Cards Only</td>
-                <td className="py-3.5 text-slate-400">⚠️ Ad-supported mixes</td>
-                <td className="py-3.5 text-slate-400">55% - 70%</td>
+                <td className="py-3.5 font-medium text-white">Ad-Free Viewing</td>
+                <td className="py-3.5 text-slate-500">Standard</td>
+                <td className="py-3.5 text-emerald-400">✅ 100% Ad-Free</td>
+                <td className="py-3.5 text-emerald-400">✅ 100% Ad-Free</td>
+              </tr>
+              <tr>
+                <td className="py-3.5 font-medium text-white">VOD Access & Offline Download</td>
+                <td className="py-3.5 text-slate-500">Live Only</td>
+                <td className="py-3.5 text-emerald-400">✅ 30-Day VOD Archive</td>
+                <td className="py-3.5 text-emerald-400">✅ Unlimited VODs + Offline Downloads</td>
+              </tr>
+              <tr>
+                <td className="py-3.5 font-medium text-white">Esports Tournament Registration</td>
+                <td className="py-3.5 text-slate-400">Spectator Mode</td>
+                <td className="py-3.5 text-sky-300">Ranked Bracket Access</td>
+                <td className="py-3.5 text-amber-300">Priority Seeding & VIP Team Slots</td>
+              </tr>
+              <tr>
+                <td className="py-3.5 font-medium text-white">Streamer Revenue Share</td>
+                <td className="py-3.5 text-slate-400">—</td>
+                <td className="py-3.5 text-emerald-400 font-bold">70% to Creator</td>
+                <td className="py-3.5 text-emerald-400 font-bold">70% to Creator</td>
               </tr>
             </tbody>
           </table>

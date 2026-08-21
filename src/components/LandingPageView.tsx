@@ -33,7 +33,14 @@ import {
   Eye,
   LogIn,
   UserPlus,
-  LayoutDashboard
+  LayoutDashboard,
+  Star,
+  Sliders,
+  Award,
+  Video,
+  Share2,
+  TrendingUp,
+  Info
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -47,6 +54,7 @@ interface LandingPageViewProps {
   onSelectStream: (stream: LiveStream) => void;
   onNavigateLegal: (section: 'terms' | 'privacy' | 'about') => void;
   onNavigateTab?: (tab: string) => void;
+  onSelectFeature?: (featureId: string) => void;
 }
 
 export const LandingPageView: React.FC<LandingPageViewProps> = ({
@@ -58,7 +66,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onEnterApp,
   onSelectStream,
   onNavigateLegal,
-  onNavigateTab
+  onNavigateTab,
+  onSelectFeature,
 }) => {
   const [activeHeroTab, setActiveHeroTab] = useState<'stream' | 'chat'>('stream');
   const [isPlayingHero, setIsPlayingHero] = useState(true);
@@ -85,6 +94,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
     }
   };
 
+  const handleFeatureClick = (id: string) => {
+    if (onSelectFeature) {
+      onSelectFeature(id);
+    } else if (onNavigateTab) {
+      onNavigateTab(`features-${id}`);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 font-sans selection:bg-sky-500 selection:text-black">
       {/* GLOBAL TOP NAV BAR */}
@@ -108,6 +125,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 Features
               </button>
               <button
+                onClick={() => scrollToSection('creative-tools')}
+                className="hover:text-sky-400 transition-colors py-2"
+              >
+                Studio Tools
+              </button>
+              <button
                 onClick={() => scrollToSection('live-streams')}
                 className="hover:text-sky-400 transition-colors py-2 flex items-center gap-1.5"
               >
@@ -127,7 +150,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 Monetization
               </button>
               <button
-                onClick={() => onNavigateLegal('about')}
+                onClick={() => scrollToSection('about')}
                 className="hover:text-sky-400 transition-colors py-2"
               >
                 About
@@ -226,21 +249,45 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               {/* Trust Metrics Pill Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-slate-800/80">
-                <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800/80 text-left">
+                <div 
+                  onClick={() => handleFeatureClick('high-fps-streaming')}
+                  className="p-3 bg-slate-900/60 hover:bg-slate-900 rounded-xl border border-slate-800/80 hover:border-sky-500/40 text-left cursor-pointer transition-all"
+                >
                   <div className="text-sky-400 font-mono-code font-black text-base">&lt; 45ms</div>
-                  <div className="text-[10px] text-slate-400 uppercase font-mono-code">Ultra-Low Latency</div>
+                  <div className="text-[10px] text-slate-400 uppercase font-mono-code flex items-center justify-between">
+                    <span>Ultra-Low Latency</span>
+                    <ChevronRight className="w-3 h-3 text-sky-400/60" />
+                  </div>
                 </div>
-                <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800/80 text-left">
+                <div 
+                  onClick={() => handleFeatureClick('creator-monetization')}
+                  className="p-3 bg-slate-900/60 hover:bg-slate-900 rounded-xl border border-slate-800/80 hover:border-amber-500/40 text-left cursor-pointer transition-all"
+                >
                   <div className="text-amber-400 font-mono-code font-black text-base">70 / 30</div>
-                  <div className="text-[10px] text-slate-400 uppercase font-mono-code">Creator Split</div>
+                  <div className="text-[10px] text-slate-400 uppercase font-mono-code flex items-center justify-between">
+                    <span>Creator Split</span>
+                    <ChevronRight className="w-3 h-3 text-amber-400/60" />
+                  </div>
                 </div>
-                <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800/80 text-left">
+                <div 
+                  onClick={() => handleFeatureClick('creator-monetization')}
+                  className="p-3 bg-slate-900/60 hover:bg-slate-900 rounded-xl border border-slate-800/80 hover:border-emerald-500/40 text-left cursor-pointer transition-all"
+                >
                   <div className="text-emerald-400 font-mono-code font-black text-base">Instant</div>
-                  <div className="text-[10px] text-slate-400 uppercase font-mono-code">MTN / M-Pesa Tips</div>
+                  <div className="text-[10px] text-slate-400 uppercase font-mono-code flex items-center justify-between">
+                    <span>MTN / M-Pesa Tips</span>
+                    <ChevronRight className="w-3 h-3 text-emerald-400/60" />
+                  </div>
                 </div>
-                <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800/80 text-left">
+                <div 
+                  onClick={() => handleFeatureClick('high-fps-streaming')}
+                  className="p-3 bg-slate-900/60 hover:bg-slate-900 rounded-xl border border-slate-800/80 hover:border-purple-500/40 text-left cursor-pointer transition-all"
+                >
                   <div className="text-purple-400 font-mono-code font-black text-base">120 FPS</div>
-                  <div className="text-[10px] text-slate-400 uppercase font-mono-code">Ultra-HD Ingest</div>
+                  <div className="text-[10px] text-slate-400 uppercase font-mono-code flex items-center justify-between">
+                    <span>Ultra-HD Ingest</span>
+                    <ChevronRight className="w-3 h-3 text-purple-400/60" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -361,7 +408,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </div>
       </section>
 
-      {/* SECTION B: PLATFORM HIGHLIGHTS GRID (CORE FEATURES) */}
+      {/* SECTION B: PLATFORM HIGHLIGHTS GRID (CORE FEATURES - INTERACTIVE DEDICATED PAGES) */}
       <section id="features" className="py-20 bg-[#07090e] border-b border-slate-800/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           
@@ -373,85 +420,191 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               All-In-One Continental Gaming Infrastructure
             </h2>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Every tool creators and competitive gamers need — from low-latency broadcasting to multi-currency mobile money payouts.
+              Click any feature below to inspect detailed architecture specs, encoding benchmarks, and live integration capabilities.
             </p>
           </div>
 
-          {/* 4-Card Highlight Grid */}
+          {/* 4-Card Highlight Grid with Dedicated Info Page Links */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             
             {/* Card 1: Low-Latency Ingest & Studio */}
-            <div className="p-7 rounded-[28px] bg-slate-900/70 border border-slate-800 hover:border-sky-500/50 transition-all hover:-translate-y-1.5 shadow-xl group space-y-4 flex flex-col justify-between">
+            <div 
+              onClick={() => handleFeatureClick('high-fps-streaming')}
+              className="p-7 rounded-[28px] bg-slate-900/70 border border-slate-800 hover:border-sky-500/60 hover:bg-slate-900 transition-all hover:-translate-y-1.5 shadow-xl group space-y-4 flex flex-col justify-between cursor-pointer"
+            >
               <div className="space-y-4">
                 <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:scale-110 transition-transform">
                   <Radio className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold text-white font-rajdhani uppercase">
+                <h3 className="text-xl font-bold text-white font-rajdhani uppercase group-hover:text-sky-300 transition-colors">
                   1. Low-Latency Ingest & Studio
                 </h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  High-bitrate streaming with built-in OBS stream keys, RTMP ingest, instant clip generation, and real-time network telemetry.
+                  High-bitrate streaming with built-in OBS stream keys, RTMP/SRT ingest, and sub-45ms continental edge relays.
                 </p>
               </div>
-              <div className="pt-4 border-t border-slate-800/80 text-[11px] font-mono-code text-sky-400 font-bold flex items-center gap-1">
+              <div className="pt-4 border-t border-slate-800/80 text-[11px] font-mono-code text-sky-400 font-bold flex items-center justify-between">
                 <span>1080p60 & 120 FPS Ready</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
 
             {/* Card 2: Integrated Game Store & Library */}
-            <div className="p-7 rounded-[28px] bg-slate-900/70 border border-slate-800 hover:border-purple-500/50 transition-all hover:-translate-y-1.5 shadow-xl group space-y-4 flex flex-col justify-between">
+            <div 
+              onClick={() => handleFeatureClick('game-vault-sync')}
+              className="p-7 rounded-[28px] bg-slate-900/70 border border-slate-800 hover:border-purple-500/60 hover:bg-slate-900 transition-all hover:-translate-y-1.5 shadow-xl group space-y-4 flex flex-col justify-between cursor-pointer"
+            >
               <div className="space-y-4">
                 <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
                   <ShoppingBag className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold text-white font-rajdhani uppercase">
+                <h3 className="text-xl font-bold text-white font-rajdhani uppercase group-hover:text-purple-300 transition-colors">
                   2. Game Store & Library
                 </h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Seamless game launching, cross-platform account linkings (Steam, Epic, Xbox, PlayStation, YouTube, Twitch, Discord), and offline media downloads.
+                  Seamless game launching, cross-platform account linking (Steam, Epic, Xbox, PlayStation, Discord), and offline media downloads.
                 </p>
               </div>
-              <div className="pt-4 border-t border-slate-800/80 text-[11px] font-mono-code text-purple-400 font-bold flex items-center gap-1">
+              <div className="pt-4 border-t border-slate-800/80 text-[11px] font-mono-code text-purple-400 font-bold flex items-center justify-between">
                 <span>Instant Game Vault Sync</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
 
             {/* Card 3: Community Hubs & Short-Form Reels */}
-            <div className="p-7 rounded-[28px] bg-slate-900/70 border border-slate-800 hover:border-pink-500/50 transition-all hover:-translate-y-1.5 shadow-xl group space-y-4 flex flex-col justify-between">
+            <div 
+              onClick={() => handleFeatureClick('vertical-feed')}
+              className="p-7 rounded-[28px] bg-slate-900/70 border border-slate-800 hover:border-pink-500/60 hover:bg-slate-900 transition-all hover:-translate-y-1.5 shadow-xl group space-y-4 flex flex-col justify-between cursor-pointer"
+            >
               <div className="space-y-4">
                 <div className="w-12 h-12 rounded-2xl bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform">
                   <Film className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold text-white font-rajdhani uppercase">
+                <h3 className="text-xl font-bold text-white font-rajdhani uppercase group-hover:text-pink-300 transition-colors">
                   3. Community Hubs & Reels
                 </h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Dedicated creator channels, vertical short-form video feed ("Reels"), active friend search, tournament ladders, and custom gamer badges.
+                  Dedicated creator channels, vertical short-form video feed ("Reels"), tournament brackets, and live squad voice chats.
                 </p>
               </div>
-              <div className="pt-4 border-t border-slate-800/80 text-[11px] font-mono-code text-pink-400 font-bold flex items-center gap-1">
+              <div className="pt-4 border-t border-slate-800/80 text-[11px] font-mono-code text-pink-400 font-bold flex items-center justify-between">
                 <span>Vertical Viral Gaming Feed</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
 
             {/* Card 4: Creator Payouts & Monetization */}
-            <div className="p-7 rounded-[28px] bg-slate-900/70 border border-slate-800 hover:border-amber-500/50 transition-all hover:-translate-y-1.5 shadow-xl group space-y-4 flex flex-col justify-between">
+            <div 
+              onClick={() => handleFeatureClick('creator-monetization')}
+              className="p-7 rounded-[28px] bg-slate-900/70 border border-slate-800 hover:border-amber-500/60 hover:bg-slate-900 transition-all hover:-translate-y-1.5 shadow-xl group space-y-4 flex flex-col justify-between cursor-pointer"
+            >
               <div className="space-y-4">
                 <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
                   <Coins className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold text-white font-rajdhani uppercase">
+                <h3 className="text-xl font-bold text-white font-rajdhani uppercase group-hover:text-amber-300 transition-colors">
                   4. Creator Monetization
                 </h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Multi-currency support (including local Mobile Money MTN, Airtel, M-Pesa and Visa/Mastercard options) with real-time balance tracking.
+                  Multi-currency support with direct Mobile Money (MTN MoMo, Airtel Money, M-Pesa) and Visa/Mastercard instant creator payouts.
                 </p>
               </div>
-              <div className="pt-4 border-t border-slate-800/80 text-[11px] font-mono-code text-amber-400 font-bold flex items-center gap-1">
+              <div className="pt-4 border-t border-slate-800/80 text-[11px] font-mono-code text-amber-400 font-bold flex items-center justify-between">
                 <span>70% Direct Creator Split</span>
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION B2: CREATIVE STUDIO TOOLS & AI SUITE */}
+      <section id="creative-tools" className="py-20 bg-[#090c13] border-b border-slate-800/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <span className="text-xs font-mono-code font-bold uppercase text-sky-400 tracking-widest px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30">
+                CREATOR STUDIO TOOLS
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-white font-rajdhani uppercase tracking-tight">
+                Built-in Broadcast Automation & Smart Overlays
+              </h2>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Streamline your production workflow with AI highlight generation, interactive transparent browser widgets, and live prediction engines.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                onClick={() => handleFeatureClick('creative-tools')}
+                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 font-mono-code font-bold text-xs uppercase border border-slate-700 flex items-center gap-2"
+              >
+                <span>Explore Studio Specs</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            {/* Tool 1: AI Clip & Highlight Generation */}
+            <div 
+              onClick={() => handleFeatureClick('ai-clips')}
+              className="p-7 rounded-[28px] bg-slate-900/80 border border-slate-800 hover:border-sky-500/50 transition-all space-y-4 group cursor-pointer shadow-xl"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:scale-110 transition-transform">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-bold text-white font-rajdhani uppercase">
+                AI Auto-Clip Highlight Engine
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Automatically isolates victory moments, high-decibel audio spikes, and chat burst events to render 9:16 vertical shorts in under 90 seconds.
+              </p>
+              <div className="pt-3 border-t border-slate-800 text-[11px] font-mono-code text-sky-400 font-bold flex items-center justify-between">
+                <span>View AI Pipeline</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </div>
+            </div>
+
+            {/* Tool 2: Interactive Transparent Overlay Widgets */}
+            <div 
+              onClick={() => handleFeatureClick('creative-tools')}
+              className="p-7 rounded-[28px] bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 transition-all space-y-4 group cursor-pointer shadow-xl"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
+                <Sliders className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-bold text-white font-rajdhani uppercase">
+                HTML5 Transparent HUD Widgets
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Drop high-performance 60 FPS browser sources directly into OBS Studio for live subscriber alert popups, donation goal bars, and animated tip jars.
+              </p>
+              <div className="pt-3 border-t border-slate-800 text-[11px] font-mono-code text-indigo-400 font-bold flex items-center justify-between">
+                <span>Widget Documentation</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </div>
+            </div>
+
+            {/* Tool 3: Stream Alert & Hype Train Builder */}
+            <div 
+              onClick={() => handleFeatureClick('creative-tools')}
+              className="p-7 rounded-[28px] bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 transition-all space-y-4 group cursor-pointer shadow-xl"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+                <Flame className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-bold text-white font-rajdhani uppercase">
+                Hype Train & Gamified Alerts
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Trigger community hype milestones, sound effects, custom channel emote unlocks, and prediction wagers to boost audience engagement.
+              </p>
+              <div className="pt-3 border-t border-slate-800 text-[11px] font-mono-code text-purple-400 font-bold flex items-center justify-between">
+                <span>Alert Customizer</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </div>
             </div>
@@ -555,45 +708,48 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </div>
       </section>
 
-      {/* SECTION D: CROSS-PLATFORM INTEGRATION BANNER */}
-      <section id="integrations" className="py-16 bg-[#07090e] border-b border-slate-800/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+      {/* SECTION D: CROSS-PLATFORM & BROADCAST SOFTWARE INTEGRATIONS */}
+      <section id="integrations" className="py-20 bg-[#07090e] border-b border-slate-800/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           
-          <div className="text-center space-y-2">
-            <span className="text-xs font-mono-code font-bold uppercase text-indigo-400 tracking-widest">
-              UNIFIED ECOSYSTEM
+          <div className="text-center space-y-2 max-w-2xl mx-auto">
+            <span className="text-xs font-mono-code font-bold uppercase text-indigo-400 tracking-widest px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30">
+              UNIFIED BROADCAST & GAMING ECOSYSTEM
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-white font-rajdhani uppercase tracking-tight">
-              Seamless Cross-Platform Account Linking
+              Supported Streaming Software & Platforms
             </h2>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
-              Sync your friend lists, game libraries, and achievements across all your favorite gaming services.
+            <p className="text-xs sm:text-sm text-slate-400">
+              Seamlessly link your favorite broadcasting apps, gaming libraries, and social networks with zero configuration hassle.
             </p>
           </div>
 
-          {/* Integration Badges Carousel */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          {/* Integration Badges Grid with Software and Gaming Networks */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
             {[
-              { name: 'Steam', label: 'Valve Steam Sync', color: 'from-blue-600 to-indigo-900', status: 'API Active' },
-              { name: 'Discord', label: 'Rich Presence & Bot', color: 'from-indigo-600 to-purple-900', status: 'Linked' },
-              { name: 'Twitch', label: 'Restream Ingest', color: 'from-purple-600 to-pink-900', status: 'Dual Stream' },
-              { name: 'YouTube', label: 'VOD & Clips Sync', color: 'from-red-600 to-rose-900', status: 'Automated' },
-              { name: 'Epic Games', label: 'Launcher Link', color: 'from-slate-700 to-slate-900', status: 'Connected' },
-              { name: 'Xbox', label: 'Live Network', color: 'from-emerald-600 to-green-900', status: 'Cloud Play' },
-              { name: 'PlayStation', label: 'PSN Network', color: 'from-blue-700 to-sky-900', status: 'Console Feed' },
+              { name: 'OBS Studio', label: 'Direct RTMP & SRT Keys', tag: 'Verified Ingest', badgeColor: 'text-emerald-400 bg-emerald-500/10' },
+              { name: 'Streamlabs', label: 'Alert & Overlay Widgets', tag: 'Full Support', badgeColor: 'text-emerald-400 bg-emerald-500/10' },
+              { name: 'Twitch Cross-Sync', label: 'Dual Stream Restream', tag: 'Multi-Cast', badgeColor: 'text-purple-400 bg-purple-500/10' },
+              { name: 'YouTube Gaming', label: 'VOD & Archive Export', tag: 'Automated', badgeColor: 'text-red-400 bg-red-500/10' },
+              { name: 'TikTok Live', label: '9:16 Short Clip Push', tag: 'Reels Sync', badgeColor: 'text-pink-400 bg-pink-500/10' },
+              { name: 'Discord', label: 'Rich Presence & Bot', tag: 'Active Link', badgeColor: 'text-indigo-400 bg-indigo-500/10' },
+              { name: 'Steam', label: 'Game Vault & Badges', tag: 'OpenID Sync', badgeColor: 'text-blue-400 bg-blue-500/10' },
+              { name: 'Epic Games', label: 'Store & Launcher Link', tag: 'Connected', badgeColor: 'text-slate-300 bg-slate-800' },
+              { name: 'Xbox Live', label: 'Console Stream Mirror', tag: 'Cloud Ready', badgeColor: 'text-green-400 bg-green-500/10' },
+              { name: 'PlayStation Network', label: 'PSN Trophies & Feed', tag: 'Broadcast Feed', badgeColor: 'text-sky-400 bg-sky-500/10' },
             ].map((item, idx) => (
               <div
                 key={idx}
-                className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-sky-500/40 text-center space-y-2 transition-all hover:scale-105 shadow-md"
+                className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-sky-500/40 text-center space-y-2 transition-all hover:scale-105 shadow-md group"
               >
-                <div className="text-sm font-black text-white font-rajdhani uppercase">
+                <div className="text-sm font-black text-white font-rajdhani uppercase group-hover:text-sky-300 transition-colors">
                   {item.name}
                 </div>
                 <div className="text-[10px] text-slate-400 leading-tight">
                   {item.label}
                 </div>
-                <div className="inline-block px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-mono-code text-[9px] font-bold border border-emerald-500/20">
-                  {item.status}
+                <div className={`inline-block px-2 py-0.5 rounded-full font-mono-code text-[9px] font-bold border border-current/20 ${item.badgeColor}`}>
+                  {item.tag}
                 </div>
               </div>
             ))}
@@ -602,79 +758,118 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </div>
       </section>
 
-      {/* SECTION E: TESTIMONIALS & CREATOR BENCHMARKS */}
+      {/* SECTION E: USER REVIEWS & CREATOR TESTIMONIALS */}
       <section id="creators" className="py-20 bg-[#0a0d14] border-b border-slate-800/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <span className="text-xs font-mono-code font-bold uppercase text-amber-400 tracking-widest px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30">
-              CREATOR SUCCESS STORIES
+              COMMUNITY TESTIMONIALS & TRUST
             </span>
             <h2 className="text-3xl font-black text-white font-rajdhani uppercase tracking-tight">
-              Trusted by Top Pro Gaming Creators
+              Loved by Creators & Esports Enthusiasts
             </h2>
+            <div className="flex items-center justify-center gap-1 text-amber-400 pt-1">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star key={s} className="w-4 h-4 fill-amber-400" />
+              ))}
+              <span className="text-xs font-mono-code text-slate-300 font-bold ml-2">4.9 / 5.0 (2,400+ Gamer Reviews)</span>
+            </div>
           </div>
 
-          {/* Testimonial Cards */}
+          {/* Testimonial & Review Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            <div className="p-7 rounded-[28px] bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl">
-              <div className="flex items-center gap-3">
+            <div className="p-7 rounded-[28px] bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1 text-amber-400">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} className="w-3.5 h-3.5 fill-amber-400" />
+                    ))}
+                  </div>
+                  <span className="text-[10px] font-mono-code text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30">
+                    VERIFIED CREATOR
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed italic">
+                  "Visor Stream completely revolutionized my stream monetization. Viewers tip directly via M-Pesa and Tigo Pesa, and the money arrives in my mobile wallet in seconds. The 70/30 split is the most creator-friendly in the industry."
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex items-center gap-3">
                 <img
                   src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
                   alt="Amina"
-                  className="w-12 h-12 rounded-2xl object-cover border-2 border-amber-400"
+                  className="w-11 h-11 rounded-xl object-cover border border-amber-400"
                 />
                 <div>
-                  <h4 className="font-bold text-white text-sm">Amina "Viper" K.</h4>
-                  <p className="text-[11px] text-slate-400 font-mono-code">eFootball Pro • Dar es Salaam 🇹🇿</p>
+                  <h4 className="font-bold text-white text-xs">Amina "Viper" K.</h4>
+                  <p className="text-[10px] text-slate-400 font-mono-code">eFootball Champion • Dar es Salaam 🇹🇿</p>
+                  <p className="text-[10px] text-amber-400 font-bold">45,000+ Subs</p>
                 </div>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed italic">
-                "Visor Stream completely solved monetization for me. My viewers tip in M-Pesa and Tigo Pesa, and the funds land in my mobile wallet immediately. The 70/30 model is revolutionary."
-              </p>
-              <div className="pt-3 border-t border-slate-800 text-[10px] font-mono-code text-amber-400 font-bold">
-                ★ 45,000+ Subscribers
               </div>
             </div>
 
-            <div className="p-7 rounded-[28px] bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl">
-              <div className="flex items-center gap-3">
+            <div className="p-7 rounded-[28px] bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1 text-amber-400">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} className="w-3.5 h-3.5 fill-amber-400" />
+                    ))}
+                  </div>
+                  <span className="text-[10px] font-mono-code text-sky-400 font-bold px-2 py-0.5 rounded bg-sky-500/10 border border-sky-500/30">
+                    PRO BROADCASTER
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed italic">
+                  "The Nairobi edge relay brought my ingest latency down from 180ms on Twitch to just 24ms. Chat reacts to my clutch sniper shots instantly, and the 120 FPS frame pacing makes high-speed action look razor sharp."
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex items-center gap-3">
                 <img
                   src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80"
                   alt="Kigozi"
-                  className="w-12 h-12 rounded-2xl object-cover border-2 border-sky-400"
+                  className="w-11 h-11 rounded-xl object-cover border border-sky-400"
                 />
                 <div>
-                  <h4 className="font-bold text-white text-sm">Kigozi "Apex" Brian</h4>
-                  <p className="text-[11px] text-slate-400 font-mono-code">Warzone Streamer • Kampala 🇺🇬</p>
+                  <h4 className="font-bold text-white text-xs">Kigozi "Apex" Brian</h4>
+                  <p className="text-[10px] text-slate-400 font-mono-code">Warzone Streamer • Kampala 🇺🇬</p>
+                  <p className="text-[10px] text-sky-400 font-bold">120 FPS Pro Ingest</p>
                 </div>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed italic">
-                "The Nairobi edge relay reduced my broadcast latency from 180ms on Western platforms to 24ms. Chat reacts to my snipes with zero delay."
-              </p>
-              <div className="pt-3 border-t border-slate-800 text-[10px] font-mono-code text-sky-400 font-bold">
-                ★ 120 FPS Sub-second Ingest
               </div>
             </div>
 
-            <div className="p-7 rounded-[28px] bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl">
-              <div className="flex items-center gap-3">
+            <div className="p-7 rounded-[28px] bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1 text-amber-400">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} className="w-3.5 h-3.5 fill-amber-400" />
+                    ))}
+                  </div>
+                  <span className="text-[10px] font-mono-code text-purple-400 font-bold px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/30">
+                    COMMUNITY LEADER
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed italic">
+                  "Having our tournament brackets, game store, tutorials, and short-form Reels inside one app allows our esports squad to grow 3x faster. The offline video cache is a lifesaver on metered connections."
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex items-center gap-3">
                 <img
                   src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80"
                   alt="Tunde"
-                  className="w-12 h-12 rounded-2xl object-cover border-2 border-purple-400"
+                  className="w-11 h-11 rounded-xl object-cover border border-purple-400"
                 />
                 <div>
-                  <h4 className="font-bold text-white text-sm">Tunde "Ghost" Adeleke</h4>
-                  <p className="text-[11px] text-slate-400 font-mono-code">GTA RP Creator • Lagos 🇳🇬</p>
+                  <h4 className="font-bold text-white text-xs">Tunde "Ghost" Adeleke</h4>
+                  <p className="text-[10px] text-slate-400 font-mono-code">Esports Org Captain • Lagos 🇳🇬</p>
+                  <p className="text-[10px] text-purple-400 font-bold">85,000+ Community</p>
                 </div>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed italic">
-                "Having the game store, tutorials, and short-form Reels inside one app allows me to grow my audience twice as fast as anywhere else."
-              </p>
-              <div className="pt-3 border-t border-slate-800 text-[10px] font-mono-code text-purple-400 font-bold">
-                ★ 85,000+ Community Members
               </div>
             </div>
 
@@ -682,7 +877,82 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         </div>
       </section>
 
-      {/* SECTION F: FOOTER & LEGAL NAVIGATION */}
+      {/* SECTION F: ABOUT VISOR STREAM (INLINE CONTINUATION & ABOUT SECTION) */}
+      <section id="about" className="py-20 bg-[#07090e] border-b border-slate-800/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          
+          <div className="text-center max-w-3xl mx-auto space-y-3">
+            <span className="text-xs font-mono-code font-bold uppercase text-sky-400 tracking-widest px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30">
+              ABOUT VISOR STREAM
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-white font-rajdhani uppercase tracking-tight">
+              Democratizing Gaming, Esports & Creator Empowerment
+            </h2>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Visor is a high-performance video streaming and social platform designed specifically for competitive gamers, streamers, and viewers who want more than entertainment. We provide a home to stream gameplay, master mission guides, connect with squads, and earn direct mobile money revenue.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="p-8 rounded-[32px] bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl">
+              <div className="flex items-center gap-3 text-sky-400">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center">
+                  <Award className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-bold text-white font-rajdhani uppercase">
+                  Our Mission & Payout Commitment
+                </h3>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                To break the barriers of monetization for creators across the continent. By offering affordable subscriptions ($2–$10/month), direct Mobile Money (M-Pesa, MTN MoMo, Airtel) integration, and a 70% revenue share, we empower creators to build sustainable full-time careers.
+              </p>
+              <div className="pt-2 text-[11px] font-mono-code text-slate-400 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>Instant Mobile Money Payouts • 0% Hidden Surcharges</span>
+              </div>
+            </div>
+
+            <div className="p-8 rounded-[32px] bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl">
+              <div className="flex items-center gap-3 text-indigo-400">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-bold text-white font-rajdhani uppercase">
+                  Continental Edge Relay Footprint
+                </h3>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                We operate distributed edge PoPs peering with local internet exchanges across Kampala, Nairobi, Lagos, and Johannesburg. This delivers under 45ms latency and eliminates buffering on metered networks.
+              </p>
+              <div className="pt-2 text-[11px] font-mono-code text-slate-400 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>100% Edge Node Uptime • AV1 & LL-HLS Chunked Streaming</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Legal and Company Stats */}
+          <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono-code text-slate-400">
+            <div>Developer & Platform Contact: <a href="mailto:syymbba@gmail.com" className="text-sky-400 underline">syymbba@gmail.com</a></div>
+            <div className="flex items-center gap-3">
+              <button onClick={() => onNavigateLegal('terms')} className="text-sky-400 hover:underline">
+                Terms of Service
+              </button>
+              <span>•</span>
+              <button onClick={() => onNavigateLegal('privacy')} className="text-sky-400 hover:underline">
+                Privacy Policy
+              </button>
+              <span>•</span>
+              <button onClick={() => onNavigateLegal('about')} className="text-sky-400 hover:underline">
+                Detailed About Page
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* SECTION G: FOOTER & LEGAL NAVIGATION */}
       <footer id="legal" className="bg-[#05070a] border-t border-slate-800 text-xs text-slate-400 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           
@@ -744,7 +1014,46 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               </ul>
             </div>
 
-            {/* Legal & Compliance (Public Links) */}
+            {/* Dedicated Feature Pages */}
+            <div className="space-y-3">
+              <h4 className="font-bold text-white font-mono-code uppercase tracking-wider text-xs">
+                Feature Deep Dives
+              </h4>
+              <ul className="space-y-2 text-slate-400">
+                <li>
+                  <button onClick={() => handleFeatureClick('high-fps-streaming')} className="hover:text-sky-400 transition-colors text-left">
+                    120 FPS High-Framerate
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => handleFeatureClick('game-vault-sync')} className="hover:text-sky-400 transition-colors text-left">
+                    Game Vault & Multi-Account
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => handleFeatureClick('vertical-feed')} className="hover:text-sky-400 transition-colors text-left">
+                    Vertical Reels Feed
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => handleFeatureClick('creator-monetization')} className="hover:text-sky-400 transition-colors text-left">
+                    70/30 Monetization
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => handleFeatureClick('creative-tools')} className="hover:text-sky-400 transition-colors text-left">
+                    OBS Studio Overlay Widgets
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => handleFeatureClick('ai-clips')} className="hover:text-sky-400 transition-colors text-left">
+                    AI Auto-Clip Generator
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal & Compliance (Public Standalone Links) */}
             <div className="space-y-3">
               <h4 className="font-bold text-white font-mono-code uppercase tracking-wider text-xs">
                 Legal & Compliance
@@ -786,34 +1095,6 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     <span>Google API Limited Use</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Support & Developer Contact */}
-            <div className="space-y-3">
-              <h4 className="font-bold text-white font-mono-code uppercase tracking-wider text-xs">
-                Support & Contact
-              </h4>
-              <ul className="space-y-2 text-slate-400">
-                <li>
-                  <div className="text-slate-300 font-bold">Developer Contact:</div>
-                  <a
-                    href="mailto:syymbba@gmail.com"
-                    className="text-sky-400 font-mono-code underline hover:text-sky-300 break-all"
-                  >
-                    syymbba@gmail.com
-                  </a>
-                </li>
-                <li className="pt-1">
-                  <span className="text-slate-300 font-bold">Edge CDN Status:</span>
-                  <div className="flex items-center gap-1.5 text-emerald-400 font-mono-code text-[11px] mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>All Relay Nodes 100% Operational</span>
-                  </div>
-                </li>
-                <li className="text-[11px] text-slate-500 font-mono-code pt-1">
-                  Kampala • Nairobi • Lagos • Johannesburg
                 </li>
               </ul>
             </div>
