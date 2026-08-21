@@ -47,7 +47,7 @@ export function useWalletBalance(optionsOrUserId?: string | UseWalletBalanceOpti
       setError(null);
       const res = await fetch(`/api/wallet/balance?userId=${encodeURIComponent(userId)}`);
       const contentType = res.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
+      if (res.ok && contentType.includes('application/json')) {
         const json = await res.json();
         if (json.success) {
           setData({
@@ -66,8 +66,7 @@ export function useWalletBalance(optionsOrUserId?: string | UseWalletBalanceOpti
         }
       }
     } catch (err: any) {
-      console.warn('Wallet balance fetch note:', err);
-      setError(err.message || 'Error fetching balance');
+      setError(err?.message || 'Error fetching balance');
     } finally {
       setLoading(false);
     }

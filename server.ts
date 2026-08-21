@@ -52,6 +52,11 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Vercel Analytics / Speed Insights stub for container & preview environments
+  app.all("/_vercel/*", (_req, res) => {
+    res.status(200).json({ ok: true });
+  });
+
   // Health check endpoint
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", service: "visor-stream", db: "cloud-sql", pesapal: "v3" });

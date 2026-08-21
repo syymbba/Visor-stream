@@ -100,7 +100,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'store', label: t('nav.store'), icon: ShoppingBag },
     { id: 'pricing', label: t('nav.pricing'), icon: CreditCard },
     { id: 'about', label: 'About', icon: Info },
-    { id: 'settings', label: t('nav.settings'), icon: Settings },
   ];
 
   const rate = CURRENCY_RATES[currentCurrency]?.rate || 1;

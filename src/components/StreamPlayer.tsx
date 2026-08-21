@@ -10,16 +10,23 @@ import {
   Eye, 
   Cpu, 
   Wifi, 
-  Activity,
-  Zap,
-  Flame,
-  Shield,
-  Gauge
+  Activity, 
+  Zap, 
+  Flame, 
+  Shield, 
+  Gauge,
+  Lock,
+  Sparkles,
+  CheckCircle2,
+  ChevronDown,
+  X
 } from 'lucide-react';
 import { LiveStream } from '../types';
+import { canAccessStreamQuality, getTierConfig, ProTier } from '../services/subscriptionService';
 
 interface StreamPlayerProps {
   stream: LiveStream;
+  userTier?: ProTier;
   onOpenSubscribe?: () => void;
   onOpenTip?: () => void;
   isDataSaverGlobal?: boolean;
@@ -27,6 +34,7 @@ interface StreamPlayerProps {
 
 export const StreamPlayer: React.FC<StreamPlayerProps> = ({
   stream,
+  userTier = 'free',
   onOpenSubscribe,
   onOpenTip,
   isDataSaverGlobal = false
@@ -41,12 +49,35 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
   const [dataSaverMode, setDataSaverMode] = useState(isDataSaverGlobal);
   const [isAudioOnlyMode, setIsAudioOnlyMode] = useState(false);
   const [dataSavedMB, setDataSavedMB] = useState(0);
-  const [selectedQuality, setSelectedQuality] = useState<'4K' | '1080p' | '720p' | '480p' | 'Audio-Only' | 'Auto'>('1080p');
+  const [selectedQuality, setSelectedQuality] = useState<'4K' | '1080p' | '720p' | '480p' | 'Audio-Only' | 'Auto'>(
+    userTier === 'free' ? '720p' : '1080p'
+  );
+  const [qualityMenuOpen, setQualityMenuOpen] = useState(false);
+  const [qualityUpgradePrompt, setQualityUpgradePrompt] = useState<string | null>(null);
+
+  // Preroll Ad state for Free Tier (Bypassed completely for subscribers)
+  const isSubscriber = userTier !== 'free';
+  const [showPrerollAd, setShowPrerollAd] = useState(!isSubscriber);
+  const [adCountdown, setAdCountdown] = useState(4);
+
   const [latencyMs, setLatencyMs] = useState(14);
   const [currentBitrate, setCurrentBitrate] = useState('4.8 Mbps');
   const [droppedFrames, setDroppedFrames] = useState(0);
 
-  // Real-time data savings accumulator when in Audio-Only Mode (~550 KB saved every second vs 1080p)
+  // Preroll Ad countdown for free users
+  useEffect(() => {
+    if (!showPrerollAd) return;
+    if (adCountdown <= 0) {
+      setShowPrerollAd(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setAdCountdown(prev => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [showPrerollAd, adCountdown]);
+
+  // Real-time data savings accumulator when in Audio-Only Mode
   useEffect(() => {
     if (!isAudioOnlyMode) return;
     const interval = setInterval(() => {
@@ -54,6 +85,39 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
     }, 1000);
     return () => clearInterval(interval);
   }, [isAudioOnlyMode]);
+
+  // Quality selection handler with Feature Gating
+  const handleSelectQuality = (quality: '4K' | '1080p' | '720p' | '480p' | 'Audio-Only' | 'Auto') => {
+    setQualityMenuOpen(false);
+
+    if (quality === 'Audio-Only') {
+      setIsAudioOnlyMode(true);
+      setSelectedQuality('Audio-Only');
+      setCurrentBitrate('0.06 Mbps (Audio Shoutcast)');
+      return;
+    }
+
+    if (isAudioOnlyMode) {
+      setIsAudioOnlyMode(false);
+    }
+
+    const hasAccess = canAccessStreamQuality(userTier, quality);
+    if (!hasAccess) {
+      setQualityUpgradePrompt(
+        quality === '4K' 
+          ? '4K UHD / 120 FPS streaming is exclusive to VIP Champion subscribers ($10/mo).'
+          : '1080p60 High-Definition streaming is unlocked for Gamer Pass ($2/mo) and Pro ($5/mo) members.'
+      );
+      return;
+    }
+
+    setSelectedQuality(quality);
+    if (quality === '4K') setCurrentBitrate('14.2 Mbps (4K UHD)');
+    else if (quality === '1080p') setCurrentBitrate('6.2 Mbps (1080p60)');
+    else if (quality === '720p') setCurrentBitrate('2.8 Mbps (720p HD)');
+    else if (quality === '480p') setCurrentBitrate('1.1 Mbps (480p SD)');
+    else setCurrentBitrate('4.8 Mbps (Adaptive Auto)');
+  };
 
   // Handle data-saver quality switches
   const handleToggleAudioOnly = () => {
@@ -63,8 +127,8 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
       setSelectedQuality('Audio-Only');
       setCurrentBitrate('0.06 Mbps (Audio Shoutcast)');
     } else {
-      setSelectedQuality('1080p');
-      setCurrentBitrate('4.8 Mbps');
+      setSelectedQuality(userTier === 'free' ? '720p' : '1080p');
+      setCurrentBitrate(userTier === 'free' ? '2.8 Mbps' : '4.8 Mbps');
     }
   };
 
@@ -73,7 +137,6 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
-    // Check if HLS source or MP4
     const src = stream.videoPreviewUrl;
     const isHlsStream = src.endsWith('.m3u8');
 
@@ -110,11 +173,11 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
     const nextState = !dataSaverMode;
     setDataSaverMode(nextState);
     if (nextState) {
-      setSelectedQuality('Data-Saver');
+      setSelectedQuality('480p');
       setCurrentBitrate('0.6 Mbps');
     } else {
-      setSelectedQuality('1080p');
-      setCurrentBitrate('4.8 Mbps');
+      setSelectedQuality(userTier === 'free' ? '720p' : '1080p');
+      setCurrentBitrate(userTier === 'free' ? '2.8 Mbps' : '4.8 Mbps');
     }
   };
 
@@ -132,7 +195,7 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
       ref={containerRef}
       className="bg-slate-900 rounded-[28px] sm:rounded-[32px] border border-slate-800 relative overflow-hidden group shadow-2xl shadow-black/60 aspect-video flex flex-col justify-between select-none"
     >
-      {/* Live Video Media Layer or Audio-Only Shoutcast Canvas */}
+      {/* 1. Live Video Media Layer or Audio-Only Shoutcast Canvas */}
       {isAudioOnlyMode ? (
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-6 text-center z-10 animate-fadeIn">
           {/* Animated Audio Equalizer Bars */}
@@ -172,9 +235,9 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
             <span className="text-emerald-400">92% Bandwidth Reduced</span>
             <button
               onClick={handleToggleAudioOnly}
-              className="ml-2 px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-[10px] transition-colors"
+              className="ml-2 px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-slate-950 font-bold text-[10px] transition-colors"
             >
-              Resume HD Video
+              Resume Video
             </button>
           </div>
         </div>
@@ -194,6 +257,74 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
       {/* Video Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/40 pointer-events-none"></div>
 
+      {/* 2. Preroll Ad Overlay for Free Tier Users (Auto-bypassed for Subscribers) */}
+      {showPrerollAd && !isSubscriber && (
+        <div className="absolute top-4 right-4 z-40 max-w-sm bg-slate-950/95 backdrop-blur-xl border border-sky-500/40 rounded-2xl p-3.5 shadow-2xl animate-fadeIn space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-sky-300 font-mono-code">
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span>Sponsor Message ({adCountdown}s)</span>
+            </div>
+            <button
+              onClick={() => setShowPrerollAd(false)}
+              className="text-[10px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-mono-code font-bold transition-colors"
+            >
+              {adCountdown > 0 ? `Skip in ${adCountdown}s` : 'Skip Ad ✕'}
+            </button>
+          </div>
+          <p className="text-[11px] text-slate-300 leading-snug">
+            Stream supported by regional sponsors. <strong>Gamer Pass ($2/mo)</strong> unlocks 100% ad-free viewing.
+          </p>
+          {onOpenSubscribe && (
+            <button
+              onClick={onOpenSubscribe}
+              className="w-full py-1.5 px-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md shadow-sky-500/20"
+            >
+              <Sparkles className="w-3 h-3 text-slate-950" />
+              <span>Bypass Ads with Gamer Pass ($2)</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* 3. Subscription Quality Gate Modal / Banner */}
+      {qualityUpgradePrompt && (
+        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-slate-900 border border-sky-500/40 rounded-3xl p-6 max-w-md w-full text-center space-y-4 shadow-2xl animate-scaleUp">
+            <div className="w-12 h-12 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center mx-auto border border-sky-500/30">
+              <Lock className="w-6 h-6" />
+            </div>
+            <div className="space-y-1.5">
+              <h4 className="text-lg font-black text-white font-rajdhani uppercase tracking-wide">
+                Unlock Ultra HD Streaming
+              </h4>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {qualityUpgradePrompt}
+              </p>
+            </div>
+            <div className="pt-2 flex items-center gap-2.5">
+              <button
+                onClick={() => setQualityUpgradePrompt(null)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono-code font-bold text-xs"
+              >
+                Keep 720p Free
+              </button>
+              {onOpenSubscribe && (
+                <button
+                  onClick={() => {
+                    setQualityUpgradePrompt(null);
+                    onOpenSubscribe();
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-sky-500/20"
+                >
+                  Unlock ($2/mo)
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Low-Bandwidth Data-Saver Indicator Badge */}
       {dataSaverMode && (
         <div className="absolute top-16 left-6 z-20 px-3 py-1.5 rounded-xl bg-amber-500/90 text-slate-950 font-mono-code font-black text-[10px] uppercase tracking-wider shadow-lg flex items-center gap-1.5 animate-pulse">
@@ -201,13 +332,6 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
           <span>DATA SAVER ACTIVE (&lt;1MB/MIN AUDIO-OPTIMIZED)</span>
         </div>
       )}
-
-      {/* Tactical HUD Annotations (Stream Tracking Overlay) */}
-      <div className="absolute top-20 right-28 w-32 sm:w-40 h-28 sm:h-36 border border-sky-400/60 rounded-lg pointer-events-none hidden sm:block">
-        <span className="absolute -top-4 left-0 bg-sky-500 text-[9px] text-slate-950 px-1.5 py-0.2 font-black rounded uppercase">
-          AI TRACKER [0.98]
-        </span>
-      </div>
 
       {/* Top Video Status Telemetry */}
       <div className="relative z-20 flex items-center justify-between p-4 sm:p-6">
@@ -224,11 +348,17 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
             <span>{latencyMs}ms • NAIROBI EDGE</span>
           </span>
+          {isSubscriber && (
+            <span className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono-code font-bold">
+              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+              <span>100% AD-FREE</span>
+            </span>
+          )}
         </div>
 
         {/* Quality & Data Saver Action Controls */}
         <div className="flex items-center gap-2">
-          {/* Audio-Only Shoutcast Mode (Optional User Toggle) */}
+          {/* Audio-Only Shoutcast Mode */}
           <button
             type="button"
             onClick={handleToggleAudioOnly}
@@ -258,9 +388,48 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
             <span className="hidden sm:inline">Data Saver</span>
           </button>
 
-          <span className="px-2.5 py-1 rounded-xl bg-[#0284c7]/15 backdrop-blur-md text-sky-300 border border-[#0369a1]/30 text-xs font-mono-code font-bold">
-            {selectedQuality}
-          </span>
+          {/* Dynamic Quality Selector Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setQualityMenuOpen(!qualityMenuOpen)}
+              className="px-2.5 py-1 rounded-xl bg-[#0284c7]/20 hover:bg-[#0284c7]/30 backdrop-blur-md text-sky-300 border border-[#0369a1]/40 text-xs font-mono-code font-bold flex items-center gap-1 transition-all"
+            >
+              <span>{selectedQuality}</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+
+            {qualityMenuOpen && (
+              <div className="absolute right-0 mt-1.5 w-44 bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl py-1 z-50 font-mono-code text-xs">
+                <div className="px-3 py-1 text-[9px] uppercase font-bold text-slate-500 border-b border-slate-800">
+                  Video Resolution
+                </div>
+                
+                {[
+                  { q: '4K', label: '4K UHD 120fps', tier: 'VIP Only', locked: !canAccessStreamQuality(userTier, '4K') },
+                  { q: '1080p', label: '1080p60 HD', tier: 'Pass / Pro', locked: !canAccessStreamQuality(userTier, '1080p') },
+                  { q: '720p', label: '720p HD', tier: 'Free Access', locked: false },
+                  { q: '480p', label: '480p SD', tier: 'Free Access', locked: false },
+                  { q: 'Audio-Only', label: 'Audio Shoutcast', tier: 'Data Saver', locked: false },
+                ].map((item) => (
+                  <button
+                    key={item.q}
+                    onClick={() => handleSelectQuality(item.q as any)}
+                    className={`w-full px-3 py-2 text-left flex items-center justify-between hover:bg-slate-900 transition-colors ${
+                      selectedQuality === item.q ? 'text-sky-400 font-bold bg-sky-500/10' : 'text-slate-300'
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {item.locked && <Lock className="w-3 h-3 text-amber-400" />}
+                      <span>{item.label}</span>
+                    </span>
+                    <span className={`text-[9px] font-bold ${item.locked ? 'text-amber-400' : 'text-slate-500'}`}>
+                      {item.tier}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

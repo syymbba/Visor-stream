@@ -155,15 +155,14 @@ export async function syncAuthUserWithFirestore(user: User, additionalData?: Par
             displayName: newProfile.displayName,
             photoUrl: newProfile.photoURL,
           }),
-        }).catch((err) => console.warn('Cloud SQL auth sync background notice:', err));
+        }).catch(() => {});
       }
     } catch {
       // Ignore background sync errors
     }
 
     return newProfile;
-  } catch (error) {
-    console.warn('Sync profile fallback:', error);
+  } catch {
     const fallbackProfile: UserProfile = {
       ...DEFAULT_USER_PROFILE,
       uid: user.uid,

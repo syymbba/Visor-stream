@@ -69,7 +69,12 @@ export const StreamOverlayWidget: React.FC<StreamOverlayWidgetProps> = ({
   const playAlertChime = (type: string) => {
     if (soundVolume <= 0) return;
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtxClass) return;
+      const audioCtx = new AudioCtxClass();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
       const now = audioCtx.currentTime;
 
       if (type === 'tip') {
@@ -101,6 +106,10 @@ export const StreamOverlayWidget: React.FC<StreamOverlayWidgetProps> = ({
           osc.stop(now + index * 0.1 + 0.4);
         });
       }
+
+      setTimeout(() => {
+        audioCtx.close().catch(() => {});
+      }, 1000);
     } catch (e) {
       // Audio context restricted before user interaction
     }

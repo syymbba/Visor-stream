@@ -370,6 +370,7 @@ export function App() {
             initialSection={activeTab as any}
             isStandalone={true}
             onBackToLanding={() => handleNavigateTab('landing')}
+            onBackToApp={currentUser ? () => handleNavigateTab('live') : undefined}
             onEnterApp={() => handleNavigateTab('live')}
           />
         </div>
@@ -479,6 +480,7 @@ export function App() {
                 allStreams={liveStreams}
                 onSelectStream={setSelectedStream}
                 currentCurrency={currentCurrency}
+                userTier={(userProfile?.proGamerTier as any) || 'free'}
                 onOpenSubscribe={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
                 isOfflineMode={offlineManager.isOfflineMode}
                 onNavigateToLibrary={() => handleNavigateTab('library')}

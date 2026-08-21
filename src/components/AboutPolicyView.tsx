@@ -24,6 +24,7 @@ import { PLATFORM_FAQS } from '../data/mockData';
 interface AboutPolicyViewProps {
   initialSection?: 'about' | 'terms' | 'privacy' | 'guidelines' | 'payouts' | 'careers' | 'contact';
   onBackToLanding?: () => void;
+  onBackToApp?: () => void;
   onEnterApp?: () => void;
   isStandalone?: boolean;
 }
@@ -31,6 +32,7 @@ interface AboutPolicyViewProps {
 export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
   initialSection = 'about',
   onBackToLanding,
+  onBackToApp,
   onEnterApp,
   isStandalone = false
 }) => {
@@ -44,33 +46,39 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
 
   return (
     <div className={`space-y-8 animate-fadeIn pb-16 ${isStandalone ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6' : ''}`}>
-      {/* Standalone Top Bar if viewing in standalone legal route */}
-      {isStandalone && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-slate-900/90 backdrop-blur-md rounded-[24px] border border-slate-800 shadow-xl">
-          <div className="flex items-center gap-3">
-            {onBackToLanding && (
-              <button
-                onClick={onBackToLanding}
-                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 font-mono-code font-bold text-xs flex items-center gap-2 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Landing Page</span>
-              </button>
-            )}
-            <VisorLogo size="sm" glow={false} />
-          </div>
-
-          {onEnterApp && (
+      {/* Top Bar for In-App Back Navigation or Standalone Legal Route */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-slate-900/90 backdrop-blur-md rounded-[24px] border border-slate-800 shadow-xl">
+        <div className="flex items-center gap-3">
+          {onBackToApp ? (
             <button
-              onClick={onEnterApp}
-              className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md shadow-sky-500/20"
+              onClick={onBackToApp}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 font-mono-code font-bold text-xs flex items-center gap-2 transition-colors"
             >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>Launch Live Feed</span>
+              <ArrowLeft className="w-4 h-4 text-sky-400" />
+              <span>Back to Stream Feed</span>
             </button>
-          )}
+          ) : onBackToLanding ? (
+            <button
+              onClick={onBackToLanding}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 font-mono-code font-bold text-xs flex items-center gap-2 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Landing Page</span>
+            </button>
+          ) : null}
+          <VisorLogo size="sm" glow={false} />
         </div>
-      )}
+
+        {onEnterApp && (
+          <button
+            onClick={onEnterApp}
+            className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md shadow-sky-500/20"
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            <span>Launch Live Feed</span>
+          </button>
+        )}
+      </div>
 
       {/* Navigation Header for Legal / Info Pages */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar p-2 bg-slate-900 rounded-[24px] border border-slate-800 text-xs font-mono-code">

@@ -53,10 +53,17 @@ interface LivePlayerViewProps {
   onSelectCategory?: (categoryId: string) => void;
   isOfflineMode?: boolean;
   onNavigateToLibrary?: () => void;
+  userTier?: 'free' | 'fan' | 'pro' | 'legend';
 }
 
-// Quick reaction hype chips
-const QUICK_EMOTES = ['🔥', '👑', '🎮', 'GG', 'W', 'LFG', '⚡', '🚀', '💥'];
+// Quick reaction hype chips (standard free emotes + subscriber badges)
+const STANDARD_EMOTES = ['🔥', '🎮', 'GG', 'W', 'LFG', '⚡', '🚀'];
+const SUBSCRIBER_EXCLUSIVE_EMOTES = [
+  { emote: '👑', label: 'VIP Crown', minTier: 'fan' as const },
+  { emote: '💎', label: 'Diamond Clutcher', minTier: 'fan' as const },
+  { emote: '🦁', label: 'Kampala Pride', minTier: 'pro' as const },
+  { emote: '🏆', label: 'Champion', minTier: 'pro' as const },
+];
 
 export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
   currentStream,
@@ -68,6 +75,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
   onSelectCategory,
   isOfflineMode = false,
   onNavigateToLibrary,
+  userTier = 'free',
 }) => {
   const displayStreams = allStreams || propStreams || [];
   const [isFollowing, setIsFollowing] = useState(false);
@@ -123,26 +131,33 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
   const playChatChime = (isSuperTip = false) => {
     if (!soundEnabled) return;
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtxClass) return;
+      const audioCtx = new AudioCtxClass();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.connect(gain);
       gain.connect(audioCtx.destination);
 
+      const duration = isSuperTip ? 0.4 : 0.15;
       if (isSuperTip) {
         osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
         osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
         gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
       } else {
         osc.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
         gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
       }
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+      setTimeout(() => {
+        audioCtx.close().catch(() => {});
+      }, (duration + 0.1) * 1000);
     } catch (e) {
       // Audio context may be restricted before user gesture
     }
@@ -390,6 +405,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
           {/* HLS Adaptive Stream Player */}
           <StreamPlayer
             stream={currentStream}
+            userTier={userTier}
             onOpenSubscribe={() => onOpenSubscribe(currentStream.streamer.name)}
             onOpenTip={() => setTipModalOpen(true)}
           />
@@ -712,13 +728,13 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
             <div ref={chatEndRef} />
           </div>
 
-          {/* Quick Hype Emotes Bar */}
+          {/* Quick Hype Emotes Bar with Subscriber Perks */}
           <div className="px-3.5 py-2 bg-slate-950/70 border-t border-slate-800 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             <span className="text-[10px] font-mono-code text-slate-400 uppercase font-bold shrink-0 flex items-center gap-1 mr-1">
               <Flame className="w-3 h-3 text-orange-400" />
               <span>Hype:</span>
             </span>
-            {QUICK_EMOTES.map((emote, idx) => (
+            {STANDARD_EMOTES.map((emote, idx) => (
               <button
                 key={idx}
                 type="button"
@@ -729,6 +745,32 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                 {emote}
               </button>
             ))}
+            <span className="h-4 w-px bg-slate-800 shrink-0 mx-0.5" />
+            {SUBSCRIBER_EXCLUSIVE_EMOTES.map((sub, idx) => {
+              const isLocked = userTier === 'free' || (sub.minTier === 'pro' && userTier === 'fan');
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    if (isLocked) {
+                      onOpenSubscribe(currentStream.streamer.name);
+                    } else {
+                      handleSendMessage(undefined, `${sub.emote} [Sub Perk]`);
+                    }
+                  }}
+                  className={`px-2 py-1 border text-xs rounded-lg transition-all shrink-0 flex items-center gap-1 ${
+                    isLocked 
+                      ? 'bg-slate-900/60 text-slate-500 border-slate-800 hover:border-amber-500/40' 
+                      : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
+                  }`}
+                  title={isLocked ? `${sub.label} (Subscriber Perk - Click to unlock)` : `Send ${sub.label}`}
+                >
+                  <span>{sub.emote}</span>
+                  {isLocked && <Lock className="w-2.5 h-2.5 text-amber-400" />}
+                </button>
+              );
+            })}
           </div>
 
           {/* Chat Form & Actions */}

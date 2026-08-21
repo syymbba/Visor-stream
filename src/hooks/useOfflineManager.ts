@@ -39,9 +39,7 @@ export function useOfflineManager(): OfflineStatus {
       setIsOfflineMode(true);
       try {
         localStorage.setItem('visor_offline_mode', 'true');
-      } catch (e) {
-        console.warn('Storage write error:', e);
-      }
+      } catch {}
     };
 
     window.addEventListener('online', handleOnline);
@@ -58,9 +56,7 @@ export function useOfflineManager(): OfflineStatus {
       const next = override !== undefined ? override : !prev;
       try {
         localStorage.setItem('visor_offline_mode', String(next));
-      } catch (e) {
-        console.warn('Storage write error:', e);
-      }
+      } catch {}
       return next;
     });
   };
