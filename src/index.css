@@ -116,3 +116,66 @@ input[type="radio"] {
   animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* =========================================================================
+   AUTH MODAL & ORGANIC EXPAND/REVEAL THEME VARIABLES & ANIMATIONS
+   ========================================================================= */
+:root {
+  --auth-bg-overlay: rgba(4, 7, 13, 0.88);
+  --auth-card-bg: #0d121f;
+  --auth-card-surface: #111726;
+  --auth-card-border: rgba(56, 189, 248, 0.22);
+  --auth-input-bg: #070b13;
+  --auth-input-border: rgba(42, 71, 94, 0.55);
+  --auth-input-focus: #38bdf8;
+  --auth-accent: #38bdf8;
+  --auth-accent-gradient: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+  --auth-accent-glow: rgba(56, 189, 248, 0.35);
+  --auth-accent-hover: #0284c7;
+  --auth-text-primary: #f8fafc;
+  --auth-text-secondary: #94a3b8;
+  --auth-text-muted: #64748b;
+  --auth-radius: 28px;
+}
+
+@keyframes auth-clip-reveal {
+  0% {
+    clip-path: inset(18% 8% 18% 8% round 32px);
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  60% {
+    clip-path: inset(2% 1% 2% 1% round 29px);
+    opacity: 0.95;
+    transform: scale(1.01) translateY(-2px);
+  }
+  100% {
+    clip-path: inset(0% 0% 0% 0% round var(--auth-radius));
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes auth-tab-slide {
+  from {
+    transform: translateX(var(--tab-offset, 0%));
+  }
+  to {
+    transform: translateX(var(--tab-target, 0%));
+  }
+}
+
+.auth-modal-reveal {
+  animation: auth-clip-reveal 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, clip-path, opacity;
+}
+
+.auth-glow-border {
+  box-shadow: 0 0 35px -5px var(--auth-accent-glow), 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+}
+
+.auth-input-highlight:focus-within {
+  border-color: var(--auth-input-focus);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15), 0 0 16px rgba(56, 189, 248, 0.12);
+}
+
+
