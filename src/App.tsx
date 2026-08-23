@@ -26,6 +26,8 @@ import { PricingView } from './components/PricingView';
 import { PricingModal } from './components/PricingModal';
 import { SettingsView } from './components/SettingsView';
 import { AboutPolicyView } from './components/AboutPolicyView';
+import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
+import { TermsOfServicePage } from './components/TermsOfServicePage';
 import { FeatureInfoView, FeatureId } from './components/FeatureInfoView';
 import { PaymentStatusView } from './components/PaymentStatusView';
 import { PaymentHistory } from './components/PaymentHistory';
@@ -364,7 +366,9 @@ export function App() {
       )}
 
       {/* 2. PUBLIC LEGAL PAGES (Directly accessible without forcing login) */}
-      {isPublicLegal && (
+      {activeTab === 'privacy' && <PrivacyPolicyPage />}
+      {activeTab === 'terms' && <TermsOfServicePage />}
+      {activeTab === 'about' && (
         <div>
           <AboutPolicyView
             initialSection={activeTab as any}

@@ -219,12 +219,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
               {/* Headline */}
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight font-rajdhani uppercase leading-[1.08]">
-                Stream. Play. Connect. Built for creators and competitive gamers.
+                Visor Stream
               </h1>
 
               {/* Subheadline */}
               <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto lg:mx-0 font-normal">
-                Next-gen low-latency live streaming, creator tools, community hubs, and game store integrations all in one unified platform.
+                Visor Stream is a next-generation live streaming and gaming platform where creators broadcast gameplay, engage with fans, and monetize through subscriptions and tipping.
               </p>
 
               {/* Primary Action Buttons */}
@@ -1060,22 +1060,22 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               </h4>
               <ul className="space-y-2 text-slate-400">
                 <li>
-                  <button
-                    onClick={() => onNavigateLegal('privacy')}
+                  <a
+                    href="/privacy"
                     className="hover:text-sky-400 transition-colors font-semibold text-slate-300 flex items-center gap-1 text-left"
                   >
                     <Lock className="w-3.5 h-3.5 text-sky-400" />
                     <span>Privacy Policy</span>
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button
-                    onClick={() => onNavigateLegal('terms')}
+                  <a
+                    href="/terms"
                     className="hover:text-sky-400 transition-colors font-semibold text-slate-300 flex items-center gap-1 text-left"
                   >
                     <FileText className="w-3.5 h-3.5 text-sky-400" />
                     <span>Terms of Service</span>
-                  </button>
+                  </a>
                 </li>
                 <li>
                   <button
@@ -1107,13 +1107,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               © 2026 VISOR STREAM Technologies. All rights reserved.
             </div>
             <div className="flex items-center gap-4">
-              <button onClick={() => onNavigateLegal('privacy')} className="hover:text-slate-300">
+              <a href="/privacy" className="hover:text-slate-300">
                 Privacy Policy
-              </button>
+              </a>
               <span>•</span>
-              <button onClick={() => onNavigateLegal('terms')} className="hover:text-slate-300">
+              <a href="/terms" className="hover:text-slate-300">
                 Terms of Service
-              </button>
+              </a>
               <span>•</span>
               <a href="mailto:syymbba@gmail.com" className="hover:text-slate-300">
                 syymbba@gmail.com

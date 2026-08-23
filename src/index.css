@@ -45,6 +45,30 @@
   font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
 }
 
+.policy-page h2 {
+  color: #f8fafc;
+  font-family: 'Rajdhani', 'Motiva Sans', system-ui, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.policy-page ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  color: #cbd5e1;
+}
+
+.policy-page li {
+  margin-top: 0.5rem;
+  padding-left: 0.25rem;
+}
+
+.policy-page a:not(header a) {
+  color: #38bdf8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* Steam/Prime Slate Glow & Shadow effects */
 .glow-sky {
   box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
