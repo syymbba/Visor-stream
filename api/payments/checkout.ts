@@ -41,7 +41,6 @@ export default async function handler(req: any, res: any) {
       type = 'subscription',
       planId,
       description,
-      userId: user.uid,
       firstName = 'Visor',
       lastName = 'User',
     } = body || {};
