@@ -7,6 +7,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   signOut,
+  sendPasswordResetEmail,
   onAuthStateChanged, 
   User 
 } from 'firebase/auth';
@@ -115,6 +116,7 @@ export {
   createUserWithEmailAndPassword,
   updateProfile,
   signOut,
+  sendPasswordResetEmail,
   onAuthStateChanged
 };
 
