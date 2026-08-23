@@ -20,6 +20,8 @@ import {
   LayoutDashboard
 } from 'lucide-react';
 import { PLATFORM_FAQS } from '../data/mockData';
+import { PrivacyPolicyPage } from './PrivacyPolicyPage';
+import { TermsOfServicePage } from './TermsOfServicePage';
 
 interface AboutPolicyViewProps {
   initialSection?: 'about' | 'terms' | 'privacy' | 'guidelines' | 'payouts' | 'careers' | 'contact';
@@ -219,7 +221,8 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
       )}
 
       {/* SECTION 3: TERMS OF SERVICE */}
-      {activeSection === 'terms' && (
+      {activeSection === 'terms' && <TermsOfServicePage />}
+      {false && activeSection === 'terms' && (
         <div className="bg-slate-900 p-7 sm:p-9 rounded-[28px] sm:rounded-[32px] border border-slate-800 shadow-2xl max-w-4xl mx-auto space-y-6 text-xs text-slate-300 leading-relaxed animate-fadeIn font-sans">
           <div className="border-b border-slate-800 pb-4">
             <h2 className="text-2xl font-black text-white tracking-tight font-rajdhani uppercase">
@@ -269,7 +272,8 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
       )}
 
       {/* SECTION 4: PRIVACY POLICY */}
-      {activeSection === 'privacy' && (
+      {activeSection === 'privacy' && <PrivacyPolicyPage />}
+      {false && activeSection === 'privacy' && (
         <div className="bg-[#0b0e14] p-7 sm:p-9 rounded-[28px] sm:rounded-[32px] border border-[#2a475e] shadow-2xl max-w-4xl mx-auto space-y-6 text-xs text-slate-300 leading-relaxed animate-fadeIn font-sans">
           <div className="border-b border-[#2a475e]/80 pb-4">
             <div className="flex items-center gap-2 text-[#38bdf8] mb-1">
