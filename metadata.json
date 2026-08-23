@@ -1,0 +1,6 @@
+{
+  "name": "Visor Stream - Gaming Video & Community Platform",
+  "description": "Africa-first gaming video streaming, tutorial learning hub, creator monetization and esports community platform.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

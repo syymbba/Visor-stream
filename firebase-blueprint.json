@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VisorStreamFirestoreBlueprint",
+  "description": "Firestore data model blueprint for VISOR Stream gaming platform",
+  "entities": {
+    "users": {
+      "collection": "users",
+      "description": "User profiles, gamer tags, mobile money payout configs, and app settings",
+      "fields": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string", "description": "Gamer tag / display name" },
+        "email": { "type": "string", "description": "User email address" },
+        "photoURL": { "type": "string", "description": "Avatar image URL" },
+        "bio": { "type": "string", "description": "Gamer bio" },
+        "networkProvider": { "type": "string", "description": "Default payment provider (mtn, airtel, mpesa)" },
+        "mobileNumber": { "type": "string", "description": "MoMo phone number for payouts/tips" },
+        "lowDataMode": { "type": "boolean", "description": "Bandwidth data-saver preference" },
+        "notificationsEnabled": { "type": "boolean", "description": "Push/email notification preference" },
+        "createdAt": { "type": "timestamp", "description": "Account creation timestamp" },
+        "updatedAt": { "type": "timestamp", "description": "Profile last update timestamp" }
+      }
+    },
+    "streams": {
+      "collection": "streams",
+      "description": "Live broadcast state, metadata, and live upvote counters",
+      "fields": {
+        "title": { "type": "string", "description": "Broadcast title" },
+        "streamerName": { "type": "string", "description": "Streamer display name" },
+        "game": { "type": "string", "description": "Gaming category" },
+        "viewersCount": { "type": "number", "description": "Current active viewers" },
+        "likesCount": { "type": "number", "description": "Live audience likes/upvotes" },
+        "isLive": { "type": "boolean", "description": "Live broadcast status" },
+        "updatedAt": { "type": "timestamp", "description": "Stream last heartbeat" }
+      }
+    },
+    "chat_messages": {
+      "collection": "chat_messages",
+      "description": "Live stream chat messages, reaction pins, and super tip shouts",
+      "fields": {
+        "streamId": { "type": "string", "description": "ID of the target live stream" },
+        "sender": { "type": "string", "description": "Display sender name" },
+        "senderUid": { "type": "string", "description": "Sender user ID or guest ID" },
+        "avatar": { "type": "string", "description": "Sender avatar" },
+        "badge": { "type": "string", "description": "Badge tier (VIP, PRO, CREATOR, FAN)" },
+        "text": { "type": "string", "description": "Message content" },
+        "timestamp": { "type": "string", "description": "Formatted time string" },
+        "isDonation": { "type": "boolean", "description": "Whether message is a super tip" },
+        "donationAmount": { "type": "string", "description": "Tip amount" },
+        "donationCurrency": { "type": "string", "description": "Currency code" },
+        "donationMessage": { "type": "string", "description": "Tip shoutout note" },
+        "createdAt": { "type": "timestamp", "description": "Creation timestamp" }
+      }
+    },
+    "tips": {
+      "collection": "tips",
+      "description": "Mobile money super chat tips and donations",
+      "fields": {
+        "streamId": { "type": "string", "description": "Target stream" },
+        "streamerName": { "type": "string", "description": "Recipient streamer" },
+        "senderName": { "type": "string", "description": "Sender gamer tag" },
+        "senderPhone": { "type": "string", "description": "Masked mobile money number" },
+        "amount": { "type": "number", "description": "Monetary amount" },
+        "currency": { "type": "string", "description": "KES, UGX, TZS, USD" },
+        "network": { "type": "string", "description": "MTN MoMo, Airtel Money, M-Pesa" },
+        "status": { "type": "string", "description": "completed, pending" },
+        "message": { "type": "string", "description": "Custom shoutout message" },
+        "createdAt": { "type": "timestamp", "description": "Timestamp of payment" }
+      }
+    }
+  }
+}
