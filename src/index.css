@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #0b0e14;
+    color: #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Motiva Sans', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  * {
+    border-color: rgba(42, 71, 94, 0.45);
+  }
+}
+
+/* Custom Steam/Prime Video Dark Slate Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b0e14;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1b2838;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
+}
+
+/* Scroll containment utility to isolate section scrolls */
+.scroll-contained {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Typography styles */
+.font-rajdhani {
+  font-family: 'Rajdhani', 'Motiva Sans', system-ui, sans-serif;
+}
+
+.font-mono-code {
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+}
+
+/* Steam/Prime Slate Glow & Shadow effects */
+.glow-sky {
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
+}
+
+.glow-blue {
+  box-shadow: 0 0 20px rgba(102, 192, 244, 0.25);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+}
+
+/* Steam/Prime Video Slate Card & Container System */
+.steam-card {
+  background-color: #171a21;
+  border: 1px solid rgba(42, 71, 94, 0.6);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.steam-card:hover, .steam-card:focus-visible {
+  border-color: rgba(56, 189, 248, 0.45);
+  background-color: #1b2838;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.15);
+}
+
+/* Uniform Mobile/Tablet Touch & Active State with Darker, More Transparent Blue */
+.touch-active-state {
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-active-state:active,
+.touch-active-state:hover {
+  background-color: rgba(2, 132, 199, 0.09);
+  border-color: rgba(3, 105, 161, 0.3);
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.1);
+}
+
+/* Global native toggle & checkbox accent color - Darker, more transparent tone */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #0284c7;
+}
+
+/* Custom interactive toggle switches */
+.toggle-active-blue {
+  background-color: rgba(2, 132, 199, 0.10) !important;
+  border-color: rgba(3, 105, 161, 0.35) !important;
+  color: #7dd3fc !important;
+  box-shadow: 0 0 12px rgba(2, 132, 199, 0.12) !important;
+}
+
+/* Grid subtle texture */
+.steam-grid-bg {
+  background-color: #0b0e14;
+  background-image: 
+    linear-gradient(to right, rgba(42, 71, 94, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(42, 71, 94, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+

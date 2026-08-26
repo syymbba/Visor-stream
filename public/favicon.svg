@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="favBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22397e" />
+      <stop offset="50%" stop-color="#2c4c9b" />
+      <stop offset="100%" stop-color="#467bbd" />
+    </linearGradient>
+    <linearGradient id="favPink" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#ff529f" />
+    </linearGradient>
+  </defs>
+  <rect x="12" y="12" width="488" height="488" rx="116" fill="url(#favBg)" stroke="#ff3388" stroke-width="3" stroke-opacity="0.6"/>
+  <path d="M 54 71 L 133 44 L 234 345 L 297 230 L 321 260 L 235 410 L 182 410 Z" fill="#13a7e8" stroke="#000000" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M 330 276 L 349 294 L 280 410 L 254 410 Z" fill="#0a0a0a" stroke="#000000" stroke-width="4"/>
+  <line x1="254" y1="410" x2="280" y2="410" stroke="url(#favPink)" stroke-width="4"/>
+  <path d="M 356 303 L 372 318 L 318 410 L 296 410 Z" fill="#0a0a0a" stroke="#000000" stroke-width="4"/>
+  <line x1="296" y1="410" x2="318" y2="410" stroke="url(#favPink)" stroke-width="4"/>
+  <path d="M 380 329 L 394 342 L 353 410 L 334 410 Z" fill="#0a0a0a" stroke="#000000" stroke-width="4"/>
+  <line x1="334" y1="410" x2="353" y2="410" stroke="url(#favPink)" stroke-width="4"/>
+  <path d="M 402 351 L 414 362 L 385 410 L 368 410 Z" fill="#0a0a0a" stroke="#000000" stroke-width="4"/>
+  <line x1="368" y1="410" x2="385" y2="410" stroke="url(#favPink)" stroke-width="4"/>
+</svg>
