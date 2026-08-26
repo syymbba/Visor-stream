@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { LiveStream } from '../types';
 import { canAccessStreamQuality, getTierConfig, ProTier } from '../services/subscriptionService';
+import { useClickOutside } from '../hooks/useClickOutside';
 
 interface StreamPlayerProps {
   stream: LiveStream;
@@ -54,6 +55,16 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
   );
   const [qualityMenuOpen, setQualityMenuOpen] = useState(false);
   const [qualityUpgradePrompt, setQualityUpgradePrompt] = useState<string | null>(null);
+  const qualitySelectorRef = useRef<HTMLDivElement>(null);
+  const statsTriggerRef = useRef<HTMLButtonElement>(null);
+  const statsPanelRef = useRef<HTMLDivElement>(null);
+
+  useClickOutside(qualitySelectorRef, () => setQualityMenuOpen(false), qualityMenuOpen);
+  useClickOutside(
+    [statsTriggerRef, statsPanelRef],
+    () => setShowStatsHUD(false),
+    showStatsHUD,
+  );
 
   // Preroll Ad state for Free Tier (Bypassed completely for subscribers)
   const isSubscriber = userTier !== 'free';
@@ -389,7 +400,7 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
           </button>
 
           {/* Dynamic Quality Selector Dropdown */}
-          <div className="relative">
+          <div ref={qualitySelectorRef} className="relative">
             <button
               onClick={() => setQualityMenuOpen(!qualityMenuOpen)}
               className="px-2.5 py-1 rounded-xl bg-[#0284c7]/20 hover:bg-[#0284c7]/30 backdrop-blur-md text-sky-300 border border-[#0369a1]/40 text-xs font-mono-code font-bold flex items-center gap-1 transition-all"
@@ -435,7 +446,7 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
 
       {/* Diagnostics HUD (Top Left Floating Diagnostics Panel) */}
       {showStatsHUD && (
-        <div className="absolute top-16 left-6 z-30 bg-slate-950/95 backdrop-blur-xl p-4 rounded-2xl border border-[#0369a1]/40 text-[11px] font-mono-code text-slate-200 space-y-2 max-w-xs shadow-2xl">
+        <div ref={statsPanelRef} className="absolute top-16 left-6 z-30 bg-slate-950/95 backdrop-blur-xl p-4 rounded-2xl border border-[#0369a1]/40 text-[11px] font-mono-code text-slate-200 space-y-2 max-w-xs shadow-2xl">
           <div className="flex items-center justify-between text-sky-400 font-bold border-b border-slate-800 pb-1.5">
             <span>REAL-TIME STREAM DIAGNOSTICS</span>
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
@@ -504,6 +515,7 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
               {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </button>
             <button
+              ref={statsTriggerRef}
               onClick={() => setShowStatsHUD(!showStatsHUD)}
               className={`p-2 rounded-xl border transition-colors ${
                 showStatsHUD

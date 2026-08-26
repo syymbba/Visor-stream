@@ -12,6 +12,7 @@ import {
   getPesapalTransactionStatus,
   getNotificationId,
   normalizePesapalStatus,
+  getAppUrl,
 } from "./src/lib/pesapal.ts";
 
 // In-memory buffer of recent IPN notifications for real-time audit & debugging
@@ -76,10 +77,17 @@ async function startServer() {
 
   app.use(express.json({ limit: "100kb" }));
   app.disable("x-powered-by");
-  app.use((_req, res, next) => {
+  app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    if (process.env.NODE_ENV === "production") {
+      res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
+    if (req.path.startsWith("/api/")) {
+      res.setHeader("Cache-Control", "no-store");
+    }
     next();
   });
 
@@ -119,11 +127,21 @@ async function startServer() {
       if (!Number.isFinite(numAmount) || numAmount <= 0 || numAmount > 100000000) {
         return res.status(400).json({ error: "Invalid payment amount" });
       }
-      if (!['UGX', 'KES', 'TZS', 'USD'].includes(String(currency).toUpperCase())) {
+      const normalizedCurrency = String(currency).toUpperCase();
+      if (!['UGX', 'KES', 'TZS', 'USD'].includes(normalizedCurrency)) {
         return res.status(400).json({ error: "Unsupported currency" });
       }
       if (!['subscription', 'tip', 'topup'].includes(type)) {
         return res.status(400).json({ error: "Unsupported payment type" });
+      }
+      if (type === 'subscription') {
+        const planPricesUSD: Record<string, number> = { fan: 2, pro: 5, legend: 10 };
+        const currencyRates: Record<string, number> = { UGX: 3750, KES: 130, TZS: 2600, USD: 1 };
+        const expectedUSD = planId ? planPricesUSD[String(planId)] : undefined;
+        const expectedAmount = expectedUSD === undefined ? undefined : Math.round(expectedUSD * currencyRates[normalizedCurrency]);
+        if (expectedAmount === undefined || numAmount !== expectedAmount) {
+          return res.status(400).json({ error: "Invalid subscription plan or price" });
+        }
       }
 
       const authenticatedUserId = req.user!.uid;
@@ -132,14 +150,7 @@ async function startServer() {
       const merchantReference = `VSR-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
       // Derive app URL for callbacks
-      const origin = req.get("origin") || req.get("host") || "";
-      const protocol = req.secure || req.get("x-forwarded-proto") === "https" ? "https" : "http";
-      const appUrl = (
-        process.env.NEXT_PUBLIC_APP_URL ||
-        process.env.APP_URL ||
-        (origin.startsWith("http") ? origin : `${protocol}://${origin}`) ||
-        "https://visor-stream.vercel.app"
-      ).replace(/\/$/, "");
+      const appUrl = getAppUrl();
 
       const callbackUrl = `${appUrl}/api/payments/callback`;
       const notificationId = await getNotificationId(appUrl);
@@ -148,7 +159,7 @@ async function startServer() {
       const pesapalRes = await submitPesapalOrder({
         merchantReference,
         amount: numAmount,
-        currency,
+        currency: normalizedCurrency,
         description: description || `Visor Stream ${type === "tip" ? "Live Stream Tip" : "Subscription"}`,
         callbackUrl,
         notificationId,
@@ -447,7 +458,7 @@ async function startServer() {
       if (!trackingId) {
         return res.status(400).json({ error: "No Pesapal tracking ID associated with this reference" });
       }
-      if (!orderRecord || (orderRecord.userId && orderRecord.userId !== req.user?.uid) && (orderRecord.creatorId && orderRecord.creatorId !== req.user?.uid)) {
+      if (!orderRecord || (orderRecord.userId !== req.user?.uid && orderRecord.creatorId !== req.user?.uid)) {
         return res.status(404).json({ error: "Payment order not found" });
       }
 
@@ -593,12 +604,27 @@ async function startServer() {
 
         if (isSuccess && orderMerchantReference) {
           const orderRows = await db
-            .select({ amount: pesapalOrders.amount, currency: pesapalOrders.currency })
+            .select()
             .from(pesapalOrders)
             .where(eq(pesapalOrders.merchantReference, orderMerchantReference))
             .limit(1);
           const storedOrder = orderRows[0];
-          const totalAmount = Number(statusData.amount) || Number(storedOrder?.amount) || 0;
+          const returnedReference = statusData.merchant_reference || statusData.merchantReference;
+          const returnedCurrency = String(statusData.currency || '').toUpperCase();
+          const storedCurrency = String(storedOrder?.currency || '').toUpperCase();
+          const returnedAmount = Number(statusData.amount);
+          const storedAmount = Number(storedOrder?.amount);
+          if (
+            !storedOrder ||
+            storedOrder.orderTrackingId !== orderTrackingId ||
+            (returnedReference && returnedReference !== storedOrder.merchantReference) ||
+            !Number.isFinite(returnedAmount) ||
+            returnedAmount !== storedAmount ||
+            returnedCurrency !== storedCurrency
+          ) {
+            throw new Error('Payment callback does not match the stored order');
+          }
+          const totalAmount = returnedAmount;
           const creatorShare = (totalAmount * 0.7).toFixed(2);
           const platformShare = (totalAmount * 0.3).toFixed(2);
 
@@ -613,7 +639,7 @@ async function startServer() {
               pesapalConfirmationCode: statusData.confirmation_code || null,
               updatedAt: new Date(),
             })
-            .where(eq(pesapalOrders.merchantReference, orderMerchantReference));
+            .where(eq(pesapalOrders.id, storedOrder.id));
         }
       } catch (checkErr) {
         console.warn("Status check during callback warning:", checkErr);
@@ -660,7 +686,7 @@ async function startServer() {
       } catch (dbErr) {
         console.warn("DB lookup error for status check:", dbErr);
       }
-      if (!dbOrder || (dbOrder.userId && dbOrder.userId !== req.user?.uid) && (dbOrder.creatorId && dbOrder.creatorId !== req.user?.uid)) {
+      if (!dbOrder || (dbOrder.userId !== req.user?.uid && dbOrder.creatorId !== req.user?.uid)) {
         return res.status(404).json({ error: "Payment order not found" });
       }
 

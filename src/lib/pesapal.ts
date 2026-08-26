@@ -18,6 +18,12 @@ export const getPesapalConsumerSecret = (): string => {
   return process.env.PESAPAL_CONSUMER_SECRET || '';
 };
 
+export const getAppUrl = (): string => {
+  const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) return 'https://visor-stream.vercel.app';
+  return appUrl.replace(/\/$/, '');
+};
+
 // In-memory token & IPN ID caching
 let cachedToken: { token: string; expiresAt: number } | null = null;
 let cachedIpnId: string | null = null;
@@ -84,9 +90,7 @@ export async function getNotificationId(customAppUrl?: string): Promise<string> 
   
   const appUrl = (
     customAppUrl ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.APP_URL ||
-    'https://visor-stream.vercel.app'
+    getAppUrl()
   ).replace(/\/$/, '');
 
   const ipnUrl = `${appUrl}/api/payments/ipn`;

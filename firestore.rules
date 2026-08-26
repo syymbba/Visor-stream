@@ -4,11 +4,24 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'uid', 'displayName', 'email', 'photoURL', 'bio', 'networkProvider',
+          'mobileNumber', 'lowDataMode', 'notificationsEnabled',
+          'privacyProfileVisibility', 'privacyDirectMessages', 'blockedUsers',
+          'chatFlair', 'createdAt', 'updatedAt'
+        ]);
       allow update: if request.auth != null
         && request.auth.uid == userId
         && request.resource.data.uid == userId
-        && request.resource.data.streamKey == resource.data.streamKey;
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName', 'email', 'photoURL', 'bio', 'networkProvider',
+          'mobileNumber', 'lowDataMode', 'notificationsEnabled',
+          'privacyProfileVisibility', 'privacyDirectMessages', 'blockedUsers',
+          'chatFlair', 'updatedAt'
+        ]);
       allow delete: if false;
     }
 
@@ -21,7 +34,15 @@ service cloud.firestore {
     }
 
     match /chat_messages/{messageId} {
-      allow read, create: if request.auth != null;
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'streamId', 'userId', 'sender', 'message', 'timestamp', 'badge',
+          'isDonation', 'donationAmount', 'donationCurrency', 'donationMessage'
+        ])
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 1000;
       allow update, delete: if request.auth != null
         && resource.data.userId == request.auth.uid;
     }

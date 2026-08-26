@@ -94,8 +94,6 @@ export async function saveUserProfile(profile: UserProfile): Promise<boolean> {
     };
     await setDoc(docRef, dataToSave, { merge: true });
     
-    // Also save in local storage as quick-load cache
-    localStorage.setItem(`visor_profile_${profile.uid}`, JSON.stringify(profile));
     return true;
   } catch (error) {
     handleFirestoreError(error, {
@@ -104,8 +102,6 @@ export async function saveUserProfile(profile: UserProfile): Promise<boolean> {
       authUid: profile.uid,
       timestamp: new Date().toISOString()
     });
-    // Fallback to local storage
-    localStorage.setItem(`visor_profile_${profile.uid}`, JSON.stringify(profile));
     return true;
   }
 }
@@ -170,7 +166,6 @@ export async function syncAuthUserWithFirestore(user: User, additionalData?: Par
       email: user.email || '',
       photoURL: user.photoURL || DEFAULT_USER_PROFILE.photoURL
     };
-    localStorage.setItem(`visor_profile_${user.uid}`, JSON.stringify(fallbackProfile));
     return fallbackProfile;
   }
 }

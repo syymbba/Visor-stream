@@ -1,4 +1,4 @@
-import { getPesapalBaseUrl, getPesapalConsumerKey, getPesapalConsumerSecret, getNotificationId, submitPesapalOrder } from '../../../../lib/pesapal';
+import { getPesapalBaseUrl, getPesapalConsumerKey, getPesapalConsumerSecret, getNotificationId, submitPesapalOrder, getAppUrl } from '../../../../lib/pesapal';
 import { adminAuth } from '../../../../lib/firebase-admin';
 
 // Explicit JSON Response Helper
@@ -68,6 +68,24 @@ export async function POST(req: Request) {
       return jsonResponse({ error: 'Customer email is required' }, 400);
     }
 
+    const normalizedCurrency = String(currency).toUpperCase();
+    if (!['UGX', 'KES', 'TZS', 'USD'].includes(normalizedCurrency)) {
+      return jsonResponse({ error: 'Unsupported currency' }, 400);
+    }
+    if (!['subscription', 'tip', 'topup'].includes(type)) {
+      return jsonResponse({ error: 'Unsupported payment type' }, 400);
+    }
+    if (type === 'subscription') {
+      const planPricesUSD: Record<string, number> = { fan: 2, pro: 5, legend: 10 };
+      const currencyRates: Record<string, number> = { UGX: 3750, KES: 130, TZS: 2600, USD: 1 };
+      const expectedAmount = planPricesUSD[String(planId)] === undefined
+        ? undefined
+        : Math.round(planPricesUSD[String(planId)] * currencyRates[normalizedCurrency]);
+      if (expectedAmount === undefined || numAmount !== expectedAmount) {
+        return jsonResponse({ error: 'Invalid subscription plan or price' }, 400);
+      }
+    }
+
     const key = getPesapalConsumerKey();
     const secret = getPesapalConsumerSecret();
     const baseUrl = getPesapalBaseUrl();
@@ -80,14 +98,7 @@ export async function POST(req: Request) {
     }
 
     // Determine host URL for callbacks
-    const urlObj = new URL(req.url);
-    const hostHeader = req.headers.get('host') || urlObj.host;
-    const protoHeader = req.headers.get('x-forwarded-proto') || urlObj.protocol.replace(':', '') || 'https';
-    const appUrl = (
-      process.env.NEXT_PUBLIC_APP_URL ||
-      process.env.APP_URL ||
-      `${protoHeader}://${hostHeader}`
-    ).replace(/\/$/, '');
+    const appUrl = getAppUrl();
 
     const callbackUrl = `${appUrl}/api/payments/callback`;
     const merchantReference = `VSR-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
@@ -106,7 +117,7 @@ export async function POST(req: Request) {
     const pesapalRes = await submitPesapalOrder({
       merchantReference,
       amount: numAmount,
-      currency,
+      currency: normalizedCurrency,
       description: description || `Visor Stream ${type === 'tip' ? 'Live Tip' : 'Subscription'}`,
       callbackUrl,
       notificationId,

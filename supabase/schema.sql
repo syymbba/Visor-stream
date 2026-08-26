@@ -117,3 +117,36 @@ create table if not exists public.live_predictions (
 create index if not exists pesapal_orders_user_id_idx on public.pesapal_orders (user_id);
 create index if not exists pesapal_orders_creator_id_idx on public.pesapal_orders (creator_id);
 create index if not exists payout_requests_creator_id_idx on public.payout_requests (creator_id);
+
+-- Keep direct Supabase API access isolated to the authenticated owner.
+alter table public.users enable row level security;
+alter table public.tips enable row level security;
+alter table public.creator_stats enable row level security;
+alter table public.pesapal_orders enable row level security;
+alter table public.payout_requests enable row level security;
+alter table public.scrim_lobbies enable row level security;
+alter table public.live_predictions enable row level security;
+
+create policy users_owner_select on public.users
+  for select using (uid = auth.uid()::text);
+create policy users_owner_insert on public.users
+  for insert with check (uid = auth.uid()::text);
+create policy users_owner_update on public.users
+  for update using (uid = auth.uid()::text) with check (uid = auth.uid()::text);
+
+create policy tips_authenticated_read on public.tips
+  for select to authenticated using (true);
+create policy tips_owner_insert on public.tips
+  for insert to authenticated with check (sender_uid = auth.uid()::text);
+
+create policy creator_stats_owner_read on public.creator_stats
+  for select using (user_id = auth.uid()::text);
+create policy payment_orders_owner_read on public.pesapal_orders
+  for select using (user_id = auth.uid()::text or creator_id = auth.uid()::text);
+create policy payouts_owner_read on public.payout_requests
+  for select using (user_id = auth.uid()::text or creator_id = auth.uid()::text);
+
+create policy scrim_lobbies_authenticated_read on public.scrim_lobbies
+  for select to authenticated using (true);
+create policy live_predictions_authenticated_read on public.live_predictions
+  for select to authenticated using (true);

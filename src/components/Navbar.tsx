@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { VisorLogo } from './VisorLogo';
 import { Currency } from '../types';
 import { CURRENCY_RATES, REGIONAL_SERVER_NODES } from '../data/mockData';
 import { auth, onAuthStateChanged, type User as FirebaseUser } from '../firebase';
 import { useLanguage } from '../lib/i18n';
+import { useClickOutside } from '../hooks/useClickOutside';
 import {
   Radio,
   Gamepad2,
@@ -77,6 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const [activeServer] = useState(REGIONAL_SERVER_NODES[0]);
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const currencySwitcherRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -86,6 +88,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   const { t } = useLanguage();
+
+  useClickOutside(currencySwitcherRef, () => setCurrencyDropdownOpen(false), currencyDropdownOpen);
 
   const navItems = [
     { id: 'live', label: t('nav.live'), icon: Radio, badge: 'LIVE' },
@@ -200,7 +204,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             {/* Currency Switcher */}
-            <div className="relative">
+            <div ref={currencySwitcherRef} className="relative">
               <button
                 onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
                 className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 bg-[#1b2838] border border-[#2a475e] rounded-xl text-xs font-mono-code text-slate-200 hover:border-[#38bdf8]/50 transition-all touch-active-state"
