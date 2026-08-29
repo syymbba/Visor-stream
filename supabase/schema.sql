@@ -67,6 +67,7 @@ create table if not exists public.creator_stats (
   total_tips_count integer not null default 0,
   total_subscriptions_count integer not null default 0,
   completed_orders_count integer not null default 0,
+  total_reserved_payout_usd_cents integer not null default 0,
   stats_backfilled_at timestamp,
   updated_at timestamp default now()
 );
@@ -148,7 +149,13 @@ create table if not exists public.live_predictions (
 
 create index if not exists pesapal_orders_user_id_idx on public.pesapal_orders (user_id);
 create index if not exists pesapal_orders_creator_id_idx on public.pesapal_orders (creator_id);
+create index if not exists pesapal_orders_user_created_idx on public.pesapal_orders (user_id, created_at);
+create index if not exists pesapal_orders_creator_status_idx on public.pesapal_orders (creator_id, status);
+create index if not exists pesapal_orders_tracking_idx on public.pesapal_orders (order_tracking_id);
 create index if not exists payout_requests_creator_id_idx on public.payout_requests (creator_id);
+create index if not exists payout_requests_creator_status_idx on public.payout_requests (creator_id, status);
+create index if not exists payout_requests_user_created_idx on public.payout_requests (user_id, created_at);
+create index if not exists tips_stream_created_idx on public.tips (stream_id, created_at);
 
 -- Keep direct Supabase API access isolated to the authenticated owner.
 alter table public.users enable row level security;

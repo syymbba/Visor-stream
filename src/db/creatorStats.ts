@@ -2,6 +2,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { db } from './index.ts';
 import { creatorStats, pesapalOrders } from './schema.ts';
 import { toUSD, usdToCents, CREATOR_SHARE_RATE, PLATFORM_FEE_RATE } from '../lib/pricing.ts';
+import { sumReservedPayoutUsdCents } from './payouts.ts';
 
 interface CompletedOrderLike {
   creatorId: string | null;
@@ -77,6 +78,7 @@ export interface CreatorStatsSnapshot {
   totalTipsCount: number;
   totalSubscriptionsCount: number;
   completedOrdersCount: number;
+  totalReservedPayoutUsdCents: number;
 }
 
 /**
@@ -93,7 +95,22 @@ export async function getOrBackfillCreatorStats(userId: string): Promise<Creator
     .from(creatorStats)
     .where(eq(creatorStats.userId, userId))
     .limit(1);
-  if (existing[0]) return existing[0];
+  if (existing[0]) {
+    // Schema just gained `totalReservedPayoutUsdCents`. Heal existing rows
+    // that still show 0 reserved while historical payouts exist, so those
+    // withdrawals cannot be requested a second time.
+    if ((existing[0].totalReservedPayoutUsdCents || 0) === 0) {
+      const reserved = await sumReservedPayoutUsdCents(userId);
+      if (reserved > 0) {
+        await db
+          .update(creatorStats)
+          .set({ totalReservedPayoutUsdCents: reserved, updatedAt: new Date() })
+          .where(eq(creatorStats.userId, userId));
+        return { ...existing[0], totalReservedPayoutUsdCents: reserved };
+      }
+    }
+    return existing[0];
+  }
 
   const completedOrders = await db
     .select()
@@ -117,6 +134,8 @@ export async function getOrBackfillCreatorStats(userId: string): Promise<Creator
     if (order.type === 'subscription') totalSubscriptionsCount += 1;
   }
 
+  const totalReservedPayoutUsdCents = await sumReservedPayoutUsdCents(userId);
+
   const backfilled = {
     userId,
     totalGrossUsdCents,
@@ -125,6 +144,7 @@ export async function getOrBackfillCreatorStats(userId: string): Promise<Creator
     totalTipsCount,
     totalSubscriptionsCount,
     completedOrdersCount: completedOrders.length,
+    totalReservedPayoutUsdCents,
     statsBackfilledAt: new Date(),
   };
 

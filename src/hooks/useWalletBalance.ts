@@ -18,6 +18,8 @@ export interface WalletBalanceData {
 
 export interface UseWalletBalanceOptions {
   userId?: string;
+  /** When false, SWR does not fetch or poll. Defaults to true if a userId is set. */
+  enabled?: boolean;
   pollIntervalMs?: number;
   currentCurrency?: Currency;
 }
@@ -52,11 +54,13 @@ const EMPTY_BALANCE: WalletBalanceData = {
  *    balance immediately rather than waiting for the next poll tick.
  */
 export function useWalletBalance(optionsOrUserId?: string | UseWalletBalanceOptions) {
-  const pollInterval = typeof optionsOrUserId === 'object' && optionsOrUserId?.pollIntervalMs ? optionsOrUserId.pollIntervalMs : 20000;
-  const activeCurrency = typeof optionsOrUserId === 'object' && optionsOrUserId?.currentCurrency ? optionsOrUserId.currentCurrency : undefined;
+  const opts = typeof optionsOrUserId === 'object' ? optionsOrUserId : { userId: optionsOrUserId };
+  const pollInterval = opts.pollIntervalMs ?? 20000;
+  const activeCurrency = opts.currentCurrency;
+  const enabled = opts.enabled === true || (opts.enabled !== false && Boolean(opts.userId));
 
   const { data, error, isLoading, mutate } = useSWR<{ success: boolean } & WalletBalanceData>(
-    '/api/wallet/balance',
+    enabled ? '/api/wallet/balance' : null,
     authedGetFetcher,
     {
       refreshInterval: pollInterval,

@@ -117,7 +117,7 @@ export function App() {
   const [authChecked, setAuthChecked] = useState(false);
 
   // Real-Time Dynamic Wallet Balance Hook
-  const wallet = useWalletBalance(currentUser?.uid || 'me');
+  const wallet = useWalletBalance({ userId: currentUser?.uid, enabled: Boolean(currentUser) });
 
   // Offline Mode Manager Hook
   const offlineManager = useOfflineManager();

@@ -67,7 +67,21 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [reconcilingId, setReconcilingId] = useState<string | null>(null);
   const [simulatingIpn, setSimulatingIpn] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/payments/ipn-logs', { headers: await getAuthHeaders() });
+        if (!cancelled) setIsAdmin(res.ok);
+      } catch {
+        if (!cancelled) setIsAdmin(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleReconcile = async (merchantRef: string, trackingId?: string) => {
     try {
@@ -261,6 +275,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+          {isAdmin && (
           <button
             onClick={handleSimulateIpn}
             disabled={simulatingIpn}
@@ -270,6 +285,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
             <Sparkles className={`w-3.5 h-3.5 ${simulatingIpn ? 'animate-spin' : ''}`} />
             <span>Test IPN Webhook</span>
           </button>
+          )}
 
           <button
             onClick={fetchHistory}
