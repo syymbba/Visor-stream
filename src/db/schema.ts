@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, integer, boolean } from 'drizzle-orm/pg-core';
 
 // Users table (maps Firebase Auth UID)
 export const users = pgTable('users', {
@@ -13,6 +13,12 @@ export const users = pgTable('users', {
   momoPhone: text('momo_phone'),
   momoProvider: text('momo_provider'),
   dataSaver: text('data_saver').default('auto'),
+  // Server-authoritative TOTP-based two-factor auth. Never exposed to or
+  // writable by the client directly - only via the /api/auth/2fa/* endpoints.
+  twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
+  twoFactorSecret: text('two_factor_secret'),
+  twoFactorPendingSecret: text('two_factor_pending_secret'),
+  twoFactorEnabledAt: timestamp('two_factor_enabled_at'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -30,14 +36,27 @@ export const tips = pgTable('tips', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-// Creator stream dashboard stats & telemetry
+// Creator stream dashboard stats & telemetry.
+//
+// This also doubles as an incremental earnings ledger for /api/wallet/balance:
+// rather than re-scanning every pesapal_orders row on every balance check
+// (O(all orders) per request), completed orders increment these counters once,
+// at the moment they transition to COMPLETED, so reads are O(1). All monetary
+// aggregates are stored in integer USD cents to avoid floating point drift.
 export const creatorStats = pgTable('creator_stats', {
   id: serial('id').primaryKey(),
-  userId: text('user_id').notNull(),
+  userId: text('user_id').notNull().unique(),
   streamTitle: text('stream_title'),
   streamKey: text('stream_key'),
   revenueThisMonthUsd: integer('revenue_this_month_usd').default(0),
   subscribersCount: integer('subscribers_count').default(0),
+  totalGrossUsdCents: integer('total_gross_usd_cents').notNull().default(0),
+  totalCreatorEarningsUsdCents: integer('total_creator_earnings_usd_cents').notNull().default(0),
+  totalPlatformFeesUsdCents: integer('total_platform_fees_usd_cents').notNull().default(0),
+  totalTipsCount: integer('total_tips_count').notNull().default(0),
+  totalSubscriptionsCount: integer('total_subscriptions_count').notNull().default(0),
+  completedOrdersCount: integer('completed_orders_count').notNull().default(0),
+  statsBackfilledAt: timestamp('stats_backfilled_at'),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
