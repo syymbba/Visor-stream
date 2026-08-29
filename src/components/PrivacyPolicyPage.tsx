@@ -37,7 +37,7 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBackToAp
       </header>
 
       <p className="leading-7 text-slate-300">
-        This Privacy Policy explains how Visor Stream collects, uses, shares, and protects information when you use our live streaming and gaming platform, including our website and any related applications (collectively, the "Service"). By using Visor Stream, you acknowledge this policy. If you do not agree with this policy, please do not use the Service.
+        This Privacy Policy explains how Visor Stream collects, uses, shares, and protects information when you use our live streaming and gaming platform, including our website and any related applications (collectively). By using Visor Stream, you acknowledge this policy. If you do not agree with this policy, please do not use the Service.
       </p>
 
       <section className="space-y-3">
