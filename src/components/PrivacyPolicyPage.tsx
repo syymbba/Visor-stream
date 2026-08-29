@@ -10,66 +10,95 @@ export const PrivacyPolicyPage: React.FC = () => (
           <Lock className="h-6 w-6 text-sky-400" aria-hidden="true" />
           <h1 className="text-3xl font-black text-white sm:text-4xl">Privacy Policy</h1>
         </div>
-        <p className="text-sm text-slate-400">Effective date: August 23, 2026</p>
+        <p className="text-sm text-slate-400">Effective date: August 29, 2026</p>
       </header>
 
       <p className="leading-7 text-slate-300">
-        This Privacy Policy explains how Visor Stream collects, uses, shares, and protects information when you use our live streaming and gaming platform. By using Visor Stream, you acknowledge this policy.
+        This Privacy Policy explains how Visor Stream ("Visor Stream", "we", "us", or "our") collects, uses, shares, and protects information when you use our live streaming and gaming platform, including our website and any related applications (collectively, the "Service"). By using Visor Stream, you acknowledge this policy. If you do not agree with this policy, please do not use the Service.
       </p>
 
       <section className="space-y-3">
         <h2>1. Information We Collect</h2>
-        <p>We may collect information you provide, including your email address, display name, gamer tag, profile photo, account preferences, creator profile, messages, stream information, and support requests.</p>
-        <p>When you use payments or monetization, we may process transaction references, payment status, currency, amount, mobile-money or payment-account details, and payout information. We do not store payment PINs or full card numbers.</p>
-        <p>We also collect technical information such as IP address, device and browser information, diagnostic logs, approximate region, and activity needed to operate, secure, and improve the service.</p>
+        <p>We may collect information you provide directly, including your email address, display name, gamer tag, profile photo, account preferences, creator profile, chat messages, stream metadata, and support requests.</p>
+        <p>When you use payments or monetization features, we may process transaction references, payment status, currency, amount, mobile-money or payment-account details, and payout information. We do not store payment PINs or full card numbers - those are handled directly by our payment processor.</p>
+        <p>We also collect technical information such as IP address, device and browser information, diagnostic logs, approximate region (derived from IP address), and activity needed to operate, secure, and improve the Service.</p>
+        <p>If you sign in with Google, we receive the basic profile information (name, email address, profile photo) associated with your Google account. If you separately connect Gmail features, see Section 3 below for what additional information that involves.</p>
       </section>
 
       <section className="space-y-3">
-        <h2>2. How We Use Information</h2>
+        <h2>2. Cookies and Similar Technologies</h2>
+        <p>We use essential cookies and browser storage to keep you signed in and remember basic preferences (such as your selected currency or low-data mode). We do not use cookies for third-party advertising.</p>
+        <p>We use privacy-conscious analytics and performance monitoring (Vercel Analytics and Vercel Speed Insights) to understand aggregate usage patterns and page performance. These tools are configured to avoid collecting personally identifying information such as full IP addresses, and we do not use them to build advertising profiles. You can control cookies through your browser settings, though disabling essential cookies may prevent you from staying signed in.</p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>3. How We Use Information</h2>
         <ul>
           <li>Provide accounts, live streams, chat, creator tools, subscriptions, tips, and payouts.</li>
-          <li>Authenticate users, prevent fraud and abuse, and protect platform security.</li>
+          <li>Authenticate users, prevent fraud and abuse, and protect platform security (including two-factor authentication for creators who enable it).</li>
           <li>Process payments, reconcile transactions, maintain records, and provide support.</li>
           <li>Communicate service updates, security notices, and responses to requests.</li>
           <li>Analyze reliability and improve features, performance, and accessibility.</li>
+          <li>Comply with legal obligations, including tax, anti-fraud, and financial recordkeeping requirements tied to payouts.</li>
         </ul>
       </section>
 
       <section className="space-y-3">
-        <h2>3. Google OAuth and Gmail</h2>
-        <p>If you choose Google sign-in or Gmail features, we receive the Google account information and permissions you authorize. Gmail data is used only to provide the requested email features inside Visor Stream. We do not sell Google user data or use it for advertising.</p>
-        <p>Our use and transfer of information received from Google APIs complies with the Google API Services User Data Policy, including its Limited Use requirements. You can revoke access from your Google Account security settings.</p>
+        <h2>4. Google OAuth and Gmail - Scopes and Limited Use</h2>
+        <p>Visor Stream offers two distinct, separately-authorized ways to use your Google account:</p>
+        <ul>
+          <li><strong className="text-white">Basic sign-in ("Continue with Google").</strong> This only requests your basic Google profile and email address, used solely to create and authenticate your Visor Stream account. We do not request any other Google permissions for ordinary sign-in.</li>
+          <li><strong className="text-white">Optional Gmail connection.</strong> If, and only if, you separately and explicitly choose to connect Gmail from within the Gmail feature, we request additional scopes (<code className="text-sky-300">gmail.readonly</code>, <code className="text-sky-300">gmail.modify</code>, <code className="text-sky-300">gmail.labels</code>, <code className="text-sky-300">gmail.send</code>) so that feature can display, organize, and send email on your behalf inside Visor Stream. This data is used only to power that in-app feature and is never used for advertising, and is never sold or shared with data brokers or used to train AI/ML models.</li>
+        </ul>
+        <p>Our use and transfer of information received from Google APIs complies with the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer">Google API Services User Data Policy</a>, including its Limited Use requirements. You can review or revoke Visor Stream's access at any time from your <a href="https://myaccount.google.com/permissions" target="_blank" rel="noreferrer">Google Account security settings</a>, and you can disconnect the Gmail feature specifically from Visor Stream Settings.</p>
       </section>
 
       <section className="space-y-3">
-        <h2>4. Payment Providers and Other Services</h2>
-        <p>Payments may be processed by Pesapal and other providers shown at checkout. These providers receive the information necessary to authorize and settle a transaction under their own privacy policies. Visor Stream receives payment status and transaction references, not payment PINs or full card credentials.</p>
-        <p>We use Firebase for authentication and database services, Google APIs for optional integrations, and hosting, analytics, security, and infrastructure providers as needed to operate the platform.</p>
+        <h2>5. Payment Providers and Other Services</h2>
+        <p>Payments and payouts are processed by Pesapal, which supports mobile money (M-Pesa, MTN MoMo, Airtel Money) and card payments. Pesapal receives the information necessary to authorize and settle a transaction under its own privacy policy. Visor Stream receives payment status and transaction references, not payment PINs or full card credentials.</p>
+        <p>We use Firebase (Google) for authentication and database services, Postgres-compatible database hosting for financial records, Google APIs for optional integrations, and hosting, analytics, security, and infrastructure providers as needed to operate the platform.</p>
       </section>
 
       <section className="space-y-3">
-        <h2>5. Sharing and Disclosure</h2>
-        <p>We share information with service providers acting on our instructions, when required to complete a payment or payout, when necessary to protect users and the service, or when required by law. We do not sell personal information.</p>
+        <h2>6. Sharing and Disclosure</h2>
+        <p>We share information with service providers acting on our instructions (such as Pesapal, Firebase, and our hosting provider), when required to complete a payment or payout, when necessary to protect users and the Service, or when required by law or valid legal process. We do not sell personal information, and we do not share Google user data with third parties for advertising purposes.</p>
       </section>
 
       <section className="space-y-3">
-        <h2>6. Retention and Security</h2>
-        <p>We retain information for as long as needed to provide the service, meet legal and financial obligations, resolve disputes, prevent abuse, and enforce agreements. We use access controls, authentication, encryption in transit, and security monitoring, but no online service can guarantee absolute security.</p>
+        <h2>7. Retention and Security</h2>
+        <p>We retain information for as long as needed to provide the Service, meet legal and financial obligations (including transaction and payout recordkeeping), resolve disputes, prevent abuse, and enforce agreements. When information is no longer needed for these purposes, we take reasonable steps to delete or anonymize it.</p>
+        <p>We use access controls, authentication (including optional TOTP-based two-factor authentication for creators), encryption in transit, and security monitoring. No online service can guarantee absolute security. If we become aware of a security incident that affects your personal information, we will notify affected users and relevant authorities as required by applicable law.</p>
       </section>
 
       <section className="space-y-3">
-        <h2>7. Your Choices and Rights</h2>
-        <p>You may review or update account information, disconnect Google integrations, and request access, correction, or deletion of personal information, subject to legal and transaction-record requirements. Contact us at <a href="mailto:syymbba@gmail.com">syymbba@gmail.com</a>.</p>
+        <h2>8. Your Choices and Rights</h2>
+        <p>You may review or update account information, disconnect Google integrations, enable or disable two-factor authentication, and request access, correction, or deletion of personal information, subject to legal and transaction-record requirements. You can request deletion of your account and associated personal data by going to Settings, or by contacting us using the details in Section 11.</p>
+        <p>Depending on where you live, you may have additional rights, including to:</p>
+        <ul>
+          <li>Access a copy of the personal information we hold about you, and receive it in a portable format.</li>
+          <li>Correct inaccurate or incomplete personal information.</li>
+          <li>Request erasure of your personal information, subject to legal retention requirements (e.g. completed transaction records).</li>
+          <li>Object to or request restriction of certain processing.</li>
+          <li>Withdraw consent where processing is based on consent (such as the optional Gmail connection).</li>
+          <li>If you are a California resident, know what personal information is collected and request that it not be "sold" - we do not sell personal information, so there is nothing to opt out of in this regard.</li>
+        </ul>
+        <p>We will respond to verified requests within the timeframe required by applicable law.</p>
       </section>
 
       <section className="space-y-3">
-        <h2>8. Children and International Users</h2>
-        <p>Visor Stream is not intended for children under 13. If we learn that we collected information from a child under 13, we will take reasonable steps to delete it. Information may be processed in countries where our providers operate.</p>
+        <h2>9. Children and International Users</h2>
+        <p>Visor Stream is not intended for children under 13, and creators who monetize content must be old enough to lawfully receive payments in their jurisdiction. If we learn that we collected personal information from a child under 13 without appropriate consent, we will take reasonable steps to delete it.</p>
+        <p>Visor Stream is operated from Uganda and may use service providers located in other countries. By using the Service, you understand that your information may be processed in countries other than your own, which may have different data protection laws than your home country. Where required, we rely on appropriate safeguards for such transfers.</p>
       </section>
 
       <section className="space-y-3">
-        <h2>9. Changes and Contact</h2>
-        <p>We may update this policy when our services or legal obligations change. We will post the revised policy with a new effective date. Questions and privacy requests can be sent to <a href="mailto:syymbba@gmail.com">syymbba@gmail.com</a>.</p>
+        <h2>10. Changes to This Policy</h2>
+        <p>We may update this policy when our services or legal obligations change. We will post the revised policy with a new effective date, and where changes are material, we will provide additional notice (such as an in-app or email notification).</p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>11. Contact Us</h2>
+        <p>Questions, privacy requests, and data deletion requests can be sent to <a href="mailto:syymbba@gmail.com">syymbba@gmail.com</a>. We aim to respond to all legitimate requests within 30 days.</p>
       </section>
 
       <footer className="border-t border-slate-800 pt-6 text-sm text-slate-400">
