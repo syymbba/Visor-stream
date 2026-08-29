@@ -64,6 +64,33 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
   chatFlair: '🔥 PRO CLUTCH',
 };
 
+/**
+ * Fields the client is allowed to write directly to Firestore (must stay in sync
+ * with the `hasOnly([...])` allow-lists in firestore.rules). `balanceUSD` and
+ * `proGamerTier` are deliberately excluded here even though they exist on
+ * UserProfile: they represent real money / paid-tier entitlements and are only
+ * ever set by the trusted backend. `twoFactorEnabled` is also excluded because
+ * it is now backend-authoritative (see /api/auth/2fa/*) rather than a client
+ * boolean, so it must never be written from the browser.
+ */
+const CLIENT_WRITABLE_PROFILE_FIELDS: readonly (keyof UserProfile)[] = [
+  'uid', 'displayName', 'email', 'photoURL', 'bio', 'networkProvider',
+  'mobileNumber', 'lowDataMode', 'notificationsEnabled',
+  'privacyProfileVisibility', 'privacyDirectMessages', 'blockedUsers',
+  'chatFlair', 'streamKey', 'rtmpServer', 'bitrateCapKbps',
+  'lowLatencyMode', 'showBalanceInHeader', 'userLevel', 'userXp',
+];
+
+function pickClientWritableFields(profile: Partial<UserProfile>): Partial<UserProfile> {
+  const result: Partial<UserProfile> = {};
+  for (const key of CLIENT_WRITABLE_PROFILE_FIELDS) {
+    if (key in profile) {
+      (result as any)[key] = (profile as any)[key];
+    }
+  }
+  return result;
+}
+
 export async function fetchUserProfile(uid: string): Promise<UserProfile | null> {
   try {
     const docRef = doc(db, 'users', uid);
@@ -89,11 +116,16 @@ export async function saveUserProfile(profile: UserProfile): Promise<boolean> {
   try {
     const docRef = doc(db, 'users', profile.uid);
     const dataToSave = {
-      ...profile,
+      // Only send fields the client is actually permitted to write. Sending
+      // server-authoritative fields (balanceUSD, proGamerTier, twoFactorEnabled)
+      // used to cause Firestore to silently reject the *entire* write because
+      // firestore.rules rejects any update that touches a disallowed key.
+      ...pickClientWritableFields(profile),
+      uid: profile.uid,
       updatedAt: serverTimestamp()
     };
     await setDoc(docRef, dataToSave, { merge: true });
-    
+
     return true;
   } catch (error) {
     handleFirestoreError(error, {
@@ -102,7 +134,10 @@ export async function saveUserProfile(profile: UserProfile): Promise<boolean> {
       authUid: profile.uid,
       timestamp: new Date().toISOString()
     });
-    return true;
+    // Previously this returned `true` even on failure, so the UI would show a
+    // "saved!" toast when the write had actually been rejected. Callers must
+    // now check the return value and surface a real error to the user.
+    return false;
   }
 }
 

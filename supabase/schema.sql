@@ -1,5 +1,22 @@
 -- Visor Stream PostgreSQL schema for Supabase.
 -- Run this once in Supabase Dashboard > SQL Editor.
+--
+-- SOURCE OF TRUTH: src/db/schema.ts (Drizzle) is what the running server
+-- actually uses (via `npm run db:push`). This file is a hand-maintained
+-- mirror for provisioning a fresh Supabase Postgres instance / documenting
+-- the RLS policies; whenever a column is added to schema.ts, mirror it here
+-- too so the two don't drift apart.
+--
+-- NOTE: the running server (src/db/index.ts) connects with a direct `pg`
+-- connection string (SQL_HOST/SQL_USER/SQL_PASSWORD), not the Supabase
+-- client/PostgREST, so the RLS policies below are not currently in the
+-- request path. If Supabase's client/PostgREST access to `public.users` is
+-- ever enabled, the `two_factor_secret` / `two_factor_pending_secret`
+-- columns MUST be excluded from whatever the client can select/update
+-- (e.g. via column-level REVOKE or a restricted view) - they are meant to be
+-- readable/writable only by the trusted backend via /api/auth/2fa/*, never
+-- directly by the row's own owner, or a compromised session could read its
+-- own TOTP secret and bypass 2FA verification entirely.
 
 create table if not exists public.users (
   id serial primary key,
@@ -13,6 +30,10 @@ create table if not exists public.users (
   momo_phone text,
   momo_provider text,
   data_saver text default 'auto',
+  two_factor_enabled boolean not null default false,
+  two_factor_secret text,
+  two_factor_pending_secret text,
+  two_factor_enabled_at timestamp,
   created_at timestamp default now(),
   updated_at timestamp default now()
 );
@@ -29,13 +50,24 @@ create table if not exists public.tips (
   created_at timestamp default now()
 );
 
+-- Also doubles as an incremental per-creator earnings ledger (see
+-- src/db/creatorStats.ts) so /api/wallet/balance reads are O(1) instead of
+-- scanning every completed order on the platform. Monetary aggregates are
+-- stored in integer USD cents to avoid floating point drift.
 create table if not exists public.creator_stats (
   id serial primary key,
-  user_id text not null,
+  user_id text not null unique,
   stream_title text,
   stream_key text,
   revenue_this_month_usd integer default 0,
   subscribers_count integer default 0,
+  total_gross_usd_cents integer not null default 0,
+  total_creator_earnings_usd_cents integer not null default 0,
+  total_platform_fees_usd_cents integer not null default 0,
+  total_tips_count integer not null default 0,
+  total_subscriptions_count integer not null default 0,
+  completed_orders_count integer not null default 0,
+  stats_backfilled_at timestamp,
   updated_at timestamp default now()
 );
 

@@ -32,7 +32,7 @@ import {
 import { User } from 'firebase/auth';
 import {
   initAuth,
-  googleSignIn,
+  connectGmailAccount,
   logoutGoogle,
   getAccessToken,
 } from '../services/googleAuth';
@@ -225,7 +225,7 @@ export const GmailView: React.FC<GmailViewProps> = ({ onNavigateToLive }) => {
     setIsAuthenticating(true);
     setAuthError(null);
     try {
-      const res = await googleSignIn();
+      const res = await connectGmailAccount();
       if (res) {
         setCurrentUser(res.user);
         setHasToken(true);

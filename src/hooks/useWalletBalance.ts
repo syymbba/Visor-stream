@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import useSWR from 'swr';
 import { Currency } from '../types';
-import { getAuthHeaders } from '../firebase';
+import { authedGetFetcher } from '../lib/apiClient';
 
 export interface WalletBalanceData {
   balanceUSD: number;
@@ -22,88 +22,87 @@ export interface UseWalletBalanceOptions {
   currentCurrency?: Currency;
 }
 
+const EMPTY_BALANCE: WalletBalanceData = {
+  balanceUSD: 0,
+  balanceUGX: 0,
+  balanceKES: 0,
+  balanceTZS: 0,
+  totalRevenueUSD: 0,
+  creatorEarningsUSD: 0,
+  platformFeesUSD: 0,
+  totalSubscribers: 0,
+  totalTipsCount: 0,
+  completedOrdersCount: 0,
+};
+
+/**
+ * Wallet balance, backed by SWR instead of a hand-rolled setInterval poll.
+ * This gets us three things the old implementation didn't have for free:
+ *
+ * 1. Request de-duplication + a shared cache: the backend always resolves
+ *    the balance from the authenticated caller's own uid, never from a
+ *    userId in the request, so every caller of this hook is really asking
+ *    for the same resource. Multiple components mounting this hook at once
+ *    (e.g. Navbar + Settings, previously polling independently every 15-20s
+ *    each) now share one cached result and one in-flight request.
+ * 2. Pause polling when the tab is hidden (SWR's `refreshWhenHidden`
+ *    defaults to false), instead of continuing to poll a backgrounded tab
+ *    forever.
+ * 3. Revalidate on window focus, so switching back to the tab gets a fresh
+ *    balance immediately rather than waiting for the next poll tick.
+ */
 export function useWalletBalance(optionsOrUserId?: string | UseWalletBalanceOptions) {
-  const userId = typeof optionsOrUserId === 'string' ? optionsOrUserId : optionsOrUserId?.userId || 'me';
   const pollInterval = typeof optionsOrUserId === 'object' && optionsOrUserId?.pollIntervalMs ? optionsOrUserId.pollIntervalMs : 20000;
   const activeCurrency = typeof optionsOrUserId === 'object' && optionsOrUserId?.currentCurrency ? optionsOrUserId.currentCurrency : undefined;
 
-  const [data, setData] = useState<WalletBalanceData>({
-    balanceUSD: 0,
-    balanceUGX: 0,
-    balanceKES: 0,
-    balanceTZS: 0,
-    totalRevenueUSD: 0,
-    creatorEarningsUSD: 0,
-    platformFeesUSD: 0,
-    totalSubscribers: 0,
-    totalTipsCount: 0,
-    completedOrdersCount: 0,
-  });
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchBalance = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await fetch('/api/wallet/balance', {
-        headers: await getAuthHeaders(),
-      });
-      const contentType = res.headers.get('content-type') || '';
-      if (res.ok && contentType.includes('application/json')) {
-        const json = await res.json();
-        if (json.success) {
-          setData({
-            balanceUSD: json.balanceUSD || 0,
-            balanceUGX: json.balanceUGX || 0,
-            balanceKES: json.balanceKES || 0,
-            balanceTZS: json.balanceTZS || 0,
-            totalRevenueUSD: json.totalRevenueUSD || 0,
-            creatorEarningsUSD: json.creatorEarningsUSD || 0,
-            platformFeesUSD: json.platformFeesUSD || 0,
-            totalSubscribers: json.totalSubscribers || 0,
-            totalTipsCount: json.totalTipsCount || 0,
-            completedOrdersCount: json.completedOrdersCount || 0,
-            currencyRates: json.currencyRates,
-          });
-        }
-      }
-    } catch (err: any) {
-      setError(err?.message || 'Error fetching balance');
-    } finally {
-      setLoading(false);
+  const { data, error, isLoading, mutate } = useSWR<{ success: boolean } & WalletBalanceData>(
+    '/api/wallet/balance',
+    authedGetFetcher,
+    {
+      refreshInterval: pollInterval,
+      revalidateOnFocus: true,
+      dedupingInterval: 5000,
     }
-  }, [userId]);
+  );
 
-  useEffect(() => {
-    fetchBalance();
-    // Poll balance periodically
-    const interval = setInterval(fetchBalance, pollInterval);
-    return () => clearInterval(interval);
-  }, [fetchBalance, pollInterval]);
+  const balance: WalletBalanceData = data
+    ? {
+        balanceUSD: data.balanceUSD || 0,
+        balanceUGX: data.balanceUGX || 0,
+        balanceKES: data.balanceKES || 0,
+        balanceTZS: data.balanceTZS || 0,
+        totalRevenueUSD: data.totalRevenueUSD || 0,
+        creatorEarningsUSD: data.creatorEarningsUSD || 0,
+        platformFeesUSD: data.platformFeesUSD || 0,
+        totalSubscribers: data.totalSubscribers || 0,
+        totalTipsCount: data.totalTipsCount || 0,
+        completedOrdersCount: data.completedOrdersCount || 0,
+        currencyRates: data.currencyRates,
+      }
+    : EMPTY_BALANCE;
 
   const getBalanceInCurrency = (curr: Currency): number => {
     switch (curr) {
       case 'UGX':
-        return data.balanceUGX;
+        return balance.balanceUGX;
       case 'KES':
-        return data.balanceKES;
+        return balance.balanceKES;
       case 'TZS':
-        return data.balanceTZS;
+        return balance.balanceTZS;
       case 'USD':
       default:
-        return data.balanceUSD;
+        return balance.balanceUSD;
     }
   };
 
   const formattedBalance = activeCurrency ? getBalanceInCurrency(activeCurrency).toLocaleString() : undefined;
 
   return {
-    ...data,
-    loading,
-    error,
+    ...balance,
+    loading: isLoading,
+    error: error?.message || null,
     formattedBalance,
-    refreshBalance: fetchBalance,
+    refreshBalance: () => mutate(),
     getBalanceInCurrency,
   };
 }

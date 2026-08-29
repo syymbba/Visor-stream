@@ -193,8 +193,12 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           `Instant payout of $${cashoutAmountUSD} USD dispatched to ${cashoutPhone} via ${cashoutMethod}! Receipt: ${data.receiptNumber || data.reference}`
         );
 
-        // Reload payout ledger & balance
-        wallet.refetch();
+        // Reload payout ledger & balance. (This used to call the
+        // non-existent `wallet.refetch()`, which threw and was caught by the
+        // outer catch below - reopening this modal with a confusing error
+        // alert immediately after a successful payout, and skipping the
+        // fetchPayoutHistory() call entirely.)
+        wallet.refreshBalance();
         fetchPayoutHistory();
 
         setTimeout(() => setCashoutSuccessAlert(null), 9000);

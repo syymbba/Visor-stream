@@ -4,6 +4,11 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
+
+      // IMPORTANT: `balanceUSD` and `proGamerTier` are intentionally NEVER included
+      // in the allow-lists below. Those fields gate real money and paid-tier access
+      // and must only ever be written by the trusted backend via the Admin SDK
+      // (which bypasses these rules), never directly by an end-user's client.
       allow create: if request.auth != null
         && request.auth.uid == userId
         && request.resource.data.uid == userId
@@ -11,7 +16,9 @@ service cloud.firestore {
           'uid', 'displayName', 'email', 'photoURL', 'bio', 'networkProvider',
           'mobileNumber', 'lowDataMode', 'notificationsEnabled',
           'privacyProfileVisibility', 'privacyDirectMessages', 'blockedUsers',
-          'chatFlair', 'createdAt', 'updatedAt'
+          'chatFlair', 'streamKey', 'rtmpServer', 'bitrateCapKbps',
+          'lowLatencyMode', 'showBalanceInHeader', 'userLevel', 'userXp',
+          'createdAt', 'updatedAt'
         ]);
       allow update: if request.auth != null
         && request.auth.uid == userId
@@ -20,7 +27,9 @@ service cloud.firestore {
           'displayName', 'email', 'photoURL', 'bio', 'networkProvider',
           'mobileNumber', 'lowDataMode', 'notificationsEnabled',
           'privacyProfileVisibility', 'privacyDirectMessages', 'blockedUsers',
-          'chatFlair', 'updatedAt'
+          'chatFlair', 'streamKey', 'rtmpServer', 'bitrateCapKbps',
+          'lowLatencyMode', 'showBalanceInHeader', 'userLevel', 'userXp',
+          'updatedAt'
         ]);
       allow delete: if false;
     }
@@ -47,12 +56,14 @@ service cloud.firestore {
         && resource.data.userId == request.auth.uid;
     }
 
-    match /tips/{tipId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && request.resource.data.senderUid == request.auth.uid;
-      allow update, delete: if false;
-    }
+    // NOTE: there is intentionally no `tips` collection rule here. The
+    // authoritative tip/earnings ledger lives in Postgres (`tips` table),
+    // written only by the trusted backend once a Pesapal payment actually
+    // completes (see server.ts). A Firestore-side `tips` collection used to
+    // be written to independently by dead client code (see chatService.ts),
+    // which risked a split-brain ledger where viewer-facing tip totals could
+    // disagree with a creator's real payout balance. Do not reintroduce
+    // client-writable access to a `tips` collection here.
 
     match /{document=**} {
       allow read, write: if false;

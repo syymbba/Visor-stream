@@ -7,6 +7,7 @@ import {
   auth,
   signOut,
   onAuthStateChanged,
+  getAuthHeaders,
   type User as FirebaseUser
 } from '../firebase';
 import { 
@@ -109,7 +110,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   // Privacy Fields
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'friends' | 'private'>(DEFAULT_USER_PROFILE.privacyProfileVisibility || 'public');
   const [directMessages, setDirectMessages] = useState<'everyone' | 'subs' | 'nobody'>(DEFAULT_USER_PROFILE.privacyDirectMessages || 'everyone');
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(DEFAULT_USER_PROFILE.twoFactorEnabled || false);
+  // Two-factor auth state is now backend-authoritative (real TOTP, verified
+  // server-side on every payout request) rather than a client-only boolean -
+  // see /api/auth/2fa/* in server.ts. `twoFactorEnabled` here mirrors the
+  // backend's current status; `twoFactorSetup` holds the in-progress
+  // enrollment (secret + otpauth URI) between /2fa/setup and /2fa/verify.
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [twoFactorSetup, setTwoFactorSetup] = useState<{ secret: string; otpauthUrl: string } | null>(null);
+  const [twoFactorCodeInput, setTwoFactorCodeInput] = useState('');
+  const [twoFactorDisableCodeInput, setTwoFactorDisableCodeInput] = useState('');
+  const [twoFactorBusy, setTwoFactorBusy] = useState(false);
+  const [twoFactorError, setTwoFactorError] = useState<string | null>(null);
   const [blockedUsers, setBlockedUsers] = useState<string[]>(DEFAULT_USER_PROFILE.blockedUsers || ['toxic_troll99', 'spambot_ke']);
   const [newBlockedUser, setNewBlockedUser] = useState('');
 
@@ -161,7 +172,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           setNotificationsEnabled(fetched.notificationsEnabled ?? true);
           setProfileVisibility(fetched.privacyProfileVisibility || 'public');
           setDirectMessages(fetched.privacyDirectMessages || 'everyone');
-          setTwoFactorEnabled(fetched.twoFactorEnabled || false);
           setBlockedUsers(fetched.blockedUsers || ['toxic_troll99', 'spambot_ke']);
           setStreamKey(fetched.streamKey || '');
           setRtmpServer(fetched.rtmpServer || 'rtmp://nbo-ingest.visorstream.com/live');
@@ -180,6 +190,100 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
     return () => unsub();
   }, []);
+
+  // Load the real, backend-authoritative 2FA status whenever the signed-in
+  // user changes (separate from the Firestore profile fetch above, since 2FA
+  // state now lives in Postgres and is never exposed via Firestore).
+  useEffect(() => {
+    if (!currentUser) {
+      setTwoFactorEnabled(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/2fa/status', { headers: await getAuthHeaders() });
+        const data = await res.json();
+        if (!cancelled && data?.success) {
+          setTwoFactorEnabled(Boolean(data.enabled));
+        }
+      } catch (err) {
+        console.warn('Could not load 2FA status:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [currentUser]);
+
+  const handleStartTwoFactorSetup = async () => {
+    setTwoFactorError(null);
+    setTwoFactorBusy(true);
+    try {
+      const res = await fetch('/api/auth/2fa/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Could not start 2FA setup');
+      }
+      setTwoFactorSetup({ secret: data.secret, otpauthUrl: data.otpauthUrl });
+      setTwoFactorCodeInput('');
+    } catch (err: any) {
+      setTwoFactorError(err.message || 'Could not start 2FA setup');
+    } finally {
+      setTwoFactorBusy(false);
+    }
+  };
+
+  const handleConfirmTwoFactorSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTwoFactorError(null);
+    setTwoFactorBusy(true);
+    try {
+      const res = await fetch('/api/auth/2fa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        body: JSON.stringify({ token: twoFactorCodeInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Invalid verification code');
+      }
+      setTwoFactorEnabled(true);
+      setTwoFactorSetup(null);
+      setTwoFactorCodeInput('');
+      confetti({ particleCount: 40, spread: 55 });
+      showToast('Two-factor authentication enabled! Payouts now require a code from your authenticator app.');
+    } catch (err: any) {
+      setTwoFactorError(err.message || 'Invalid verification code');
+    } finally {
+      setTwoFactorBusy(false);
+    }
+  };
+
+  const handleDisableTwoFactor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTwoFactorError(null);
+    setTwoFactorBusy(true);
+    try {
+      const res = await fetch('/api/auth/2fa/disable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        body: JSON.stringify({ token: twoFactorDisableCodeInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Could not disable 2FA');
+      }
+      setTwoFactorEnabled(false);
+      setTwoFactorDisableCodeInput('');
+      showToast('Two-factor authentication disabled.');
+    } catch (err: any) {
+      setTwoFactorError(err.message || 'Could not disable 2FA');
+    } finally {
+      setTwoFactorBusy(false);
+    }
+  };
 
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -200,10 +304,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           photoURL: result,
           uid: currentUser ? currentUser.uid : 'guest'
         };
-        await saveUserProfile(updated);
-        setProfile(updated);
-        confetti({ particleCount: 30, spread: 50 });
-        showToast('Profile photo updated and synced!');
+        const saved = await saveUserProfile(updated);
+        if (saved) {
+          setProfile(updated);
+          confetti({ particleCount: 30, spread: 50 });
+          showToast('Profile photo updated and synced!');
+        } else {
+          showToast('Could not save your photo right now. Please try again.');
+        }
       }
     };
     reader.readAsDataURL(file);
@@ -226,7 +334,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       notificationsEnabled,
       privacyProfileVisibility: profileVisibility,
       privacyDirectMessages: directMessages,
-      twoFactorEnabled,
       blockedUsers,
       streamKey,
       rtmpServer,
@@ -235,13 +342,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       showBalanceInHeader
     };
 
-    await saveUserProfile(updated);
-    setProfile(updated);
+    const saved = await saveUserProfile(updated);
     setIsLoading(false);
-    setSaveSuccess(true);
-    confetti({ particleCount: 35, spread: 50 });
-    showToast('Settings saved and synchronized with Cloud database!');
-    setTimeout(() => setSaveSuccess(false), 3500);
+    if (saved) {
+      setProfile(updated);
+      setSaveSuccess(true);
+      confetti({ particleCount: 35, spread: 50 });
+      showToast('Settings saved and synchronized with Cloud database!');
+      setTimeout(() => setSaveSuccess(false), 3500);
+    } else {
+      showToast('Failed to save settings. Please check your connection and try again.');
+    }
   };
 
   const handleSignOut = async () => {
@@ -1074,24 +1185,114 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
 
               <div className="space-y-4">
-                {/* 2FA Toggle */}
-                <div className="p-4 bg-[#0b0e14] rounded-2xl border border-[#2a475e] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-[#0284c7]/10 text-sky-400 border border-[#0369a1]/30">
-                      <Lock className="w-5 h-5" />
+                {/* 2FA - real backend-verified TOTP, not a cosmetic toggle */}
+                <div className="p-4 bg-[#0b0e14] rounded-2xl border border-[#2a475e] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-[#0284c7]/10 text-sky-400 border border-[#0369a1]/30">
+                        <Lock className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-white">Two-Factor Authentication (2FA)</h4>
+                        <p className="text-[11px] text-slate-400">
+                          {twoFactorEnabled
+                            ? 'Enabled - a verification code is required to request payouts'
+                            : 'Protect your creator channel and payouts with authenticator codes'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-white">Two-Factor Authentication (2FA)</h4>
-                      <p className="text-[11px] text-slate-400">Protect your creator channel with authenticator codes</p>
-                    </div>
+                    <ToggleSwitch
+                      checked={twoFactorEnabled}
+                      onChange={(checked) => {
+                        setTwoFactorError(null);
+                        if (checked) {
+                          handleStartTwoFactorSetup();
+                        } else {
+                          setTwoFactorSetup(null);
+                          setTwoFactorDisableCodeInput('__pending__'); // opens the disable confirmation panel below
+                        }
+                      }}
+                    />
                   </div>
-                  <ToggleSwitch
-                    checked={twoFactorEnabled}
-                    onChange={(checked) => {
-                      setTwoFactorEnabled(checked);
-                      showToast(`2FA ${checked ? 'Enabled' : 'Disabled'}`);
-                    }}
-                  />
+
+                  {twoFactorError && (
+                    <p className="text-[11px] text-rose-400 font-mono-code">{twoFactorError}</p>
+                  )}
+
+                  {/* Enrollment panel: shown after starting setup, until confirmed */}
+                  {twoFactorSetup && (
+                    <form onSubmit={handleConfirmTwoFactorSetup} className="pt-3 border-t border-[#2a475e]/60 space-y-3 animate-fadeIn">
+                      <p className="text-[11px] text-slate-300">
+                        Scan this in your authenticator app (Google Authenticator, Authy, 1Password, etc.),
+                        or enter the code manually, then confirm with a 6-digit code to finish enabling 2FA.
+                      </p>
+                      <div className="p-2.5 bg-[#171a21] border border-[#2a475e] rounded-xl font-mono-code text-[11px] text-sky-300 break-all">
+                        {twoFactorSetup.secret}
+                      </div>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        placeholder="6-digit code"
+                        value={twoFactorCodeInput}
+                        onChange={(e) => setTwoFactorCodeInput(e.target.value.replace(/\D/g, ''))}
+                        className="w-full px-3 py-2 bg-[#171a21] border border-[#2a475e] rounded-xl text-xs text-white font-mono-code focus:outline-none focus:border-[#38bdf8]"
+                        required
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => { setTwoFactorSetup(null); setTwoFactorError(null); }}
+                          className="px-3 py-1.5 bg-[#1b2838] text-slate-300 rounded-xl hover:bg-slate-700 text-xs"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={twoFactorBusy || twoFactorCodeInput.length !== 6}
+                          className="px-3 py-1.5 bg-sky-500 text-slate-950 font-bold rounded-xl hover:bg-sky-400 text-xs disabled:opacity-50"
+                        >
+                          {twoFactorBusy ? 'Verifying...' : 'Confirm & Enable'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {/* Disable confirmation panel */}
+                  {twoFactorEnabled && twoFactorDisableCodeInput !== '' && (
+                    <form onSubmit={handleDisableTwoFactor} className="pt-3 border-t border-[#2a475e]/60 space-y-3 animate-fadeIn">
+                      <p className="text-[11px] text-slate-300">
+                        Enter a current 6-digit code from your authenticator app to disable 2FA.
+                      </p>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        placeholder="6-digit code"
+                        value={twoFactorDisableCodeInput === '__pending__' ? '' : twoFactorDisableCodeInput}
+                        onChange={(e) => setTwoFactorDisableCodeInput(e.target.value.replace(/\D/g, ''))}
+                        className="w-full px-3 py-2 bg-[#171a21] border border-[#2a475e] rounded-xl text-xs text-white font-mono-code focus:outline-none focus:border-[#38bdf8]"
+                        autoFocus
+                        required
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => { setTwoFactorDisableCodeInput(''); setTwoFactorError(null); }}
+                          className="px-3 py-1.5 bg-[#1b2838] text-slate-300 rounded-xl hover:bg-slate-700 text-xs"
+                        >
+                          Keep 2FA On
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={twoFactorBusy || twoFactorDisableCodeInput.length !== 6}
+                          className="px-3 py-1.5 bg-rose-500 text-slate-950 font-bold rounded-xl hover:bg-rose-400 text-xs disabled:opacity-50"
+                        >
+                          {twoFactorBusy ? 'Disabling...' : 'Disable 2FA'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
 
                 {/* Profile Visibility */}
