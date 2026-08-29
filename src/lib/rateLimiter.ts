@@ -18,6 +18,12 @@ export interface RateLimitOptions {
   /** Function to derive the bucket key for a request (defaults to client IP). */
   keyFn?: (req: Request) => string;
   message?: string;
+  /**
+   * When true, a store failure returns 503 instead of letting the request
+   * through. Use on auth / payment / payout routes so a Redis outage cannot
+   * silently disable brute-force and spam protection.
+   */
+  failClosed?: boolean;
 }
 
 interface RateLimitStore {
@@ -94,8 +100,10 @@ export function createRateLimiter(options: RateLimitOptions) {
       }
       next();
     } catch (err) {
-      // Never let a rate-limiter failure take down the whole API.
-      console.error('[rate-limiter] Unexpected error, allowing request through:', err);
+      console.error('[rate-limiter] Unexpected error:', err);
+      if (options.failClosed) {
+        return res.status(503).json({ error: 'Service temporarily unavailable' });
+      }
       next();
     }
   };

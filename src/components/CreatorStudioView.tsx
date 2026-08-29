@@ -70,7 +70,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
   const [activeTab, setActiveTab] = useState<'overview' | 'split' | 'payouts' | 'payments' | 'overlay'>('overview');
 
   // Live Wallet Balance Hook
-  const wallet = useWalletBalance('me');
+  const wallet = useWalletBalance({ enabled: true });
 
   // Payout Requests State
   const [payoutList, setPayoutList] = useState<any[]>([]);
@@ -85,6 +85,8 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
   const [cashoutPhone, setCashoutPhone] = useState('0780123456');
   const [cashoutAmountUSD, setCashoutAmountUSD] = useState(wallet.balanceUSD || 0);
   const [cashoutSuccessAlert, setCashoutSuccessAlert] = useState<string | null>(null);
+  const [cashoutTwoFactorRequired, setCashoutTwoFactorRequired] = useState(false);
+  const [cashoutTwoFactorToken, setCashoutTwoFactorToken] = useState('');
 
   const fetchPayoutHistory = async () => {
     setLoadingPayouts(true);
@@ -110,6 +112,21 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
       setCashoutAmountUSD(wallet.balanceUSD);
     }
   }, [wallet.balanceUSD]);
+
+  useEffect(() => {
+    if (!cashoutModalOpen) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/2fa/status', { headers: await getAuthHeaders() });
+        const data = await res.json();
+        if (!cancelled) setCashoutTwoFactorRequired(Boolean(data.enabled));
+      } catch {
+        if (!cancelled) setCashoutTwoFactorRequired(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [cashoutModalOpen]);
 
   useEffect(() => {
     if (propsStats || initialStats) {
@@ -176,6 +193,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           phone: cashoutPhone,
           currency: currentCurrency,
           recipientName: 'Visor Broadcaster',
+          twoFactorToken: cashoutTwoFactorToken || undefined,
         }),
       });
 
@@ -907,6 +925,23 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
                   Equivalent to approx. {symbol} {(cashoutAmountUSD * rate).toLocaleString()} (Zero forex fee)
                 </p>
               </div>
+
+              {cashoutTwoFactorRequired && (
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-300">Authenticator code</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={cashoutTwoFactorToken}
+                    onChange={(e) => setCashoutTwoFactorToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="6-digit code"
+                    className="w-full px-3 py-2 bg-[#171e2b] border border-white/[0.1] rounded-lg text-sm text-white font-mono-code tracking-widest focus:outline-none focus:border-emerald-500"
+                    required
+                  />
+                </div>
+              )}
 
               {/* Mobile phone number */}
               <div className="space-y-1">

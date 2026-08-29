@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { REGIONAL_SERVER_NODES, PLATFORM_FAQS, MOCK_CONNECTED_ACCOUNTS, MOCK_USER_BADGES, MOCK_ACHIEVEMENTS, MOCK_CARDS, CURRENCY_RATES } from '../data/mockData';
-import { Currency, ConnectedThirdPartyAccount, UserBadge, Achievement, CardPaymentMethod } from '../types';
+import { REGIONAL_SERVER_NODES, PLATFORM_FAQS, MOCK_CONNECTED_ACCOUNTS, MOCK_USER_BADGES, MOCK_ACHIEVEMENTS, CURRENCY_RATES } from '../data/mockData';
+import { Currency, ConnectedThirdPartyAccount, UserBadge, Achievement } from '../types';
 import { ToggleSwitch } from './ToggleSwitch';
 import { useLanguage, SUPPORTED_LANGUAGES, Language } from '../lib/i18n';
 import {
@@ -43,8 +43,6 @@ import {
   EyeOff,
   Copy,
   RefreshCw,
-  Plus,
-  Trash2,
   Lock,
   Download,
   FileText,
@@ -133,14 +131,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [copiedStreamKey, setCopiedStreamKey] = useState(false);
   const [copiedRtmp, setCopiedRtmp] = useState(false);
 
-  // Payment Cards & Third-party accounts
-  const [cards, setCards] = useState<CardPaymentMethod[]>(MOCK_CARDS);
-  const [showAddCardModal, setShowAddCardModal] = useState(false);
-  const [newCardNumber, setNewCardNumber] = useState('');
-  const [newCardHolder, setNewCardHolder] = useState('');
-  const [newCardExpMonth, setNewCardExpMonth] = useState('12');
-  const [newCardExpYear, setNewCardExpYear] = useState('28');
-  const [newCardCvv, setNewCardCvv] = useState('');
+  // Payment methods: cards are collected only on Pesapal's hosted checkout.
+  // Never capture PAN/CVV in this SPA.
 
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedThirdPartyAccount[]>(MOCK_CONNECTED_ACCOUNTS);
   const [userBadges] = useState<UserBadge[]>(MOCK_USER_BADGES);
@@ -396,44 +388,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }));
   };
 
-  const handleAddCard = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCardNumber || !newCardHolder) return;
-    const last4 = newCardNumber.replace(/\s+/g, '').slice(-4) || '4242';
-    const brand = newCardNumber.startsWith('5') ? 'mastercard' : 'visa';
-
-    const newCard: CardPaymentMethod = {
-      id: `card_${Date.now()}`,
-      cardHolder: newCardHolder,
-      last4,
-      expMonth: newCardExpMonth,
-      expYear: newCardExpYear,
-      brand,
-      isDefault: cards.length === 0,
-    };
-
-    setCards(prev => [...prev, newCard]);
-    setShowAddCardModal(false);
-    setNewCardNumber('');
-    setNewCardHolder('');
-    setNewCardCvv('');
-    confetti({ particleCount: 40, spread: 60 });
-    showToast('New payment card added successfully!');
-  };
-
-  const handleDeleteCard = (cardId: string) => {
-    setCards(prev => prev.filter(c => c.id !== cardId));
-    showToast('Card removed');
-  };
-
-  const handleSetDefaultCard = (cardId: string) => {
-    setCards(prev => prev.map(c => ({
-      ...c,
-      isDefault: c.id === cardId
-    })));
-    showToast('Default card updated');
-  };
-
   const handleAddBlockedUser = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBlockedUser.trim()) return;
@@ -452,6 +406,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   const { balanceUSD: liveBalanceUSD, formattedBalance: liveFormattedBalance } = useWalletBalance({
+    userId: currentUser?.uid,
+    enabled: Boolean(currentUser),
     pollIntervalMs: 15000,
     currentCurrency,
   });
@@ -886,11 +842,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <p className="text-xs text-slate-400">Manage payment methods, display currency and balances</p>
                 </div>
                 <button
-                  onClick={() => setShowAddCardModal(true)}
+                  onClick={onOpenSubscribe}
                   className="px-3.5 py-2 rounded-xl bg-[#38bdf8] text-[#0b0e14] font-bold text-xs flex items-center gap-1.5 hover:bg-[#66c0f4]"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>Add New Card</span>
+                  <CreditCard className="w-4 h-4" />
+                  <span>Pay with Pesapal</span>
                 </button>
               </div>
 
@@ -945,49 +901,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               </div>
 
-              {/* Saved Cards List */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold text-slate-300 uppercase font-mono-code">Saved Credit & Debit Cards</h4>
-                <div className="space-y-2">
-                  {cards.map(card => (
-                    <div
-                      key={card.id}
-                      className="p-3.5 bg-[#0b0e14] border border-[#2a475e] rounded-2xl flex items-center justify-between gap-3 text-xs"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="px-2.5 py-1 bg-[#171a21] border border-[#2a475e] rounded-lg text-[10px] font-mono-code font-bold uppercase text-[#38bdf8]">
-                          {card.brand}
-                        </div>
-                        <div>
-                          <div className="font-bold text-white font-mono-code">•••• •••• •••• {card.last4}</div>
-                          <div className="text-[11px] text-slate-400 font-mono-code">{card.cardHolder} • Exp {card.expMonth}/{card.expYear}</div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {card.isDefault ? (
-                          <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono-code font-bold">
-                            DEFAULT
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleSetDefaultCard(card.id)}
-                            className="text-[11px] text-[#38bdf8] hover:underline"
-                          >
-                            Set Default
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDeleteCard(card.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-[#1b2838]"
-                          title="Delete card"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="p-4 bg-[#0b0e14] rounded-2xl border border-[#2a475e] space-y-2">
+                <h4 className="text-xs font-bold text-slate-300 uppercase font-mono-code">Card Payments</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Card numbers and CVV are never collected or stored in Visor Stream. When you subscribe or send a tip, Pesapal&apos;s hosted checkout collects those details directly so the platform stays out of PCI cardholder-data scope.
+                </p>
               </div>
 
               {/* Mobile Money Settings Form */}
@@ -1584,106 +1502,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* Add Card Modal */}
-      {showAddCardModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#171a21] border border-[#2a475e] rounded-3xl p-6 shadow-2xl space-y-4 animate-scaleUp">
-            <div className="flex items-center justify-between border-b border-[#2a475e] pb-3">
-              <h3 className="font-bold text-base text-white flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-[#38bdf8]" />
-                <span>Add Credit or Debit Card</span>
-              </h3>
-              <button
-                onClick={() => setShowAddCardModal(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleAddCard} className="space-y-4 font-mono-code text-xs">
-              <div className="space-y-1">
-                <label className="text-slate-300 font-bold">Card Number</label>
-                <input
-                  type="text"
-                  placeholder="4242 •••• •••• 4242"
-                  value={newCardNumber}
-                  onChange={(e) => setNewCardNumber(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#0b0e14] border border-[#2a475e] rounded-xl text-white focus:outline-none focus:border-[#38bdf8]"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-slate-300 font-bold">Cardholder Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Brian Kigozi"
-                  value={newCardHolder}
-                  onChange={(e) => setNewCardHolder(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#0b0e14] border border-[#2a475e] rounded-xl text-white focus:outline-none focus:border-[#38bdf8]"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1">
-                  <label className="text-slate-300 font-bold">Exp Month</label>
-                  <input
-                    type="text"
-                    placeholder="MM"
-                    maxLength={2}
-                    value={newCardExpMonth}
-                    onChange={(e) => setNewCardExpMonth(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#0b0e14] border border-[#2a475e] rounded-xl text-white text-center focus:outline-none focus:border-[#38bdf8]"
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-slate-300 font-bold">Exp Year</label>
-                  <input
-                    type="text"
-                    placeholder="YY"
-                    maxLength={2}
-                    value={newCardExpYear}
-                    onChange={(e) => setNewCardExpYear(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#0b0e14] border border-[#2a475e] rounded-xl text-white text-center focus:outline-none focus:border-[#38bdf8]"
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-slate-300 font-bold">CVV</label>
-                  <input
-                    type="password"
-                    placeholder="•••"
-                    maxLength={4}
-                    value={newCardCvv}
-                    onChange={(e) => setNewCardCvv(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#0b0e14] border border-[#2a475e] rounded-xl text-white text-center focus:outline-none focus:border-[#38bdf8]"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddCardModal(false)}
-                  className="px-4 py-2 bg-[#1b2838] text-slate-300 rounded-xl hover:bg-slate-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-[#38bdf8] text-[#0b0e14] font-bold rounded-xl hover:bg-[#66c0f4]"
-                >
-                  Save Card
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

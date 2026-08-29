@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, integer, boolean, index } from 'drizzle-orm/pg-core';
 
 // Users table (maps Firebase Auth UID)
 export const users = pgTable('users', {
@@ -34,7 +34,9 @@ export const tips = pgTable('tips', {
   message: text('message'),
   provider: text('provider'),
   createdAt: timestamp('created_at').defaultNow(),
-});
+}, (table) => [
+  index('tips_stream_created_idx').on(table.streamId, table.createdAt),
+]);
 
 // Creator stream dashboard stats & telemetry.
 //
@@ -56,6 +58,10 @@ export const creatorStats = pgTable('creator_stats', {
   totalTipsCount: integer('total_tips_count').notNull().default(0),
   totalSubscriptionsCount: integer('total_subscriptions_count').notNull().default(0),
   completedOrdersCount: integer('completed_orders_count').notNull().default(0),
+  // Reserved as soon as a payout is requested (PENDING/PROCESSING) and kept
+  // reserved after COMPLETED so those earnings can never be withdrawn again.
+  // FAILED/CANCELLED payouts must decrement this (see reservePayoutAndInsert).
+  totalReservedPayoutUsdCents: integer('total_reserved_payout_usd_cents').notNull().default(0),
   statsBackfilledAt: timestamp('stats_backfilled_at'),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -82,7 +88,11 @@ export const pesapalOrders = pgTable('pesapal_orders', {
   pesapalConfirmationCode: text('pesapal_confirmation_code'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => [
+  index('pesapal_orders_user_created_idx').on(table.userId, table.createdAt),
+  index('pesapal_orders_creator_status_idx').on(table.creatorId, table.status),
+  index('pesapal_orders_tracking_idx').on(table.orderTrackingId),
+]);
 
 // Creator Payout & Mobile Money Withdrawal Requests
 export const payoutRequests = pgTable('payout_requests', {
@@ -104,7 +114,10 @@ export const payoutRequests = pgTable('payout_requests', {
   notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => [
+  index('payout_requests_creator_status_idx').on(table.creatorId, table.status),
+  index('payout_requests_user_created_idx').on(table.userId, table.createdAt),
+]);
 
 // Community Scrim Lobbies & Custom Matches
 export const scrimLobbies = pgTable('scrim_lobbies', {

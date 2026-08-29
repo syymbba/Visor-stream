@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Currency } from '../types';
 import { CURRENCY_RATES } from '../data/mockData';
 import { getAuthHeaders } from '../firebase';
@@ -48,6 +48,23 @@ export const CreatorPayoutModal: React.FC<CreatorPayoutModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completedReceipt, setCompletedReceipt] = useState<any | null>(null);
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false);
+  const [twoFactorToken, setTwoFactorToken] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/2fa/status', { headers: await getAuthHeaders() });
+        const data = await res.json();
+        if (!cancelled) setTwoFactorRequired(Boolean(data.enabled));
+      } catch {
+        if (!cancelled) setTwoFactorRequired(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -101,6 +118,7 @@ export const CreatorPayoutModal: React.FC<CreatorPayoutModalProps> = ({
           recipientName,
           feeUSD,
           netPayoutUSD,
+          twoFactorToken: twoFactorToken || undefined,
           notes: provider === 'Bank Transfer' ? `${bankDetails.bankName} - ${bankDetails.swiftCode}` : 'Instant Mobile Money Disbursal'
         }),
       });
@@ -382,6 +400,23 @@ Status: COMPLETED (Dispatched via Instant Switch)
                     />
                   </div>
                 </div>
+              </div>
+            )}
+
+            {twoFactorRequired && (
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-300">Authenticator code</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={twoFactorToken}
+                  onChange={(e) => setTwoFactorToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="6-digit code"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-mono-code tracking-widest focus:outline-none focus:border-purple-500"
+                  required
+                />
               </div>
             )}
 

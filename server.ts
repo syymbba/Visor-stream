@@ -16,7 +16,9 @@ import {
 import { db } from "./src/db/index.ts";
 import { tips, creatorStats, pesapalOrders, payoutRequests } from "./src/db/schema.ts";
 import { applyCompletedOrderToCreatorStats, getOrBackfillCreatorStats } from "./src/db/creatorStats.ts";
-import { desc, eq, or } from "drizzle-orm";
+import { markOrderCompletedAndCredit } from "./src/db/completeOrder.ts";
+import { availableBalanceUsd, reservePayoutAndInsert } from "./src/db/payouts.ts";
+import { and, desc, eq, or } from "drizzle-orm";
 import {
   submitPesapalOrder,
   getPesapalTransactionStatus,
@@ -84,6 +86,10 @@ async function startServer() {
   // limit is enforced correctly across multiple server instances, instead of
   // multiplying per-instance the way a plain in-memory Map would.
   app.use("/api", createRateLimiter({ windowMs: 60_000, max: 120 }));
+  const sensitiveLimiter = createRateLimiter({ windowMs: 60_000, max: 40, failClosed: true });
+  app.use("/api/payments/checkout", sensitiveLimiter);
+  app.use("/api/payouts", sensitiveLimiter);
+  app.use("/api/auth", sensitiveLimiter);
   app.use("/api", createCorsMiddleware());
 
   app.use(express.json({ limit: "100kb" }));
@@ -93,7 +99,7 @@ async function startServer() {
   // that don't vary per authenticated user. Everything else defaults to
   // `no-store`, since a blanket no-store policy previously prevented even
   // these harmless public reads from ever being cached.
-  const PUBLICLY_CACHEABLE_GET_ROUTES = [/^\/api\/tips\/[^/]+$/, /^\/api\/creator\/stats\/[^/]+$/, /^\/api\/health$/];
+  const PUBLICLY_CACHEABLE_GET_ROUTES = [/^\/api\/tips\/[^/]+$/, /^\/api\/health$/];
 
   app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -307,8 +313,6 @@ async function startServer() {
       const currency = statusData.currency || 'UGX';
       const paymentMethod = statusData.payment_method || 'Mobile Money / Card';
       const confirmationCode = statusData.confirmation_code || null;
-      const creatorShare = (totalAmount * CREATOR_SHARE_RATE).toFixed(2);
-      const platformShare = (totalAmount * PLATFORM_FEE_RATE).toFixed(2);
 
       // 2. Fetch existing DB order if present
       let existingOrder: any = null;
@@ -357,61 +361,43 @@ async function startServer() {
         return res.status(400).json({ error: 'Payment reference mismatch' });
       }
 
-      const wasAlreadyCompleted = existingOrder.status === 'COMPLETED';
-
-      // 3. Upsert order in database
+      // 3. Persist status. Completed payments go through a shared helper
+      // that validates amount/currency against the stored order before any
+      // ledger credit (IPN used to fall back to the stored total when
+      // Pesapal omitted amount, which could credit an unpaid order).
       try {
-        if (existingOrder) {
-          const effectiveAmount = totalAmount > 0 ? String(totalAmount) : existingOrder.amount;
-          const effectiveAmtNum = parseFloat(effectiveAmount) || 0;
-          const calcCreatorShare = (effectiveAmtNum * CREATOR_SHARE_RATE).toFixed(2);
-          const calcPlatformShare = (effectiveAmtNum * PLATFORM_FEE_RATE).toFixed(2);
-
+        if (isCompleted) {
+          const completion = await markOrderCompletedAndCredit(existingOrder, statusData, trackingId);
+          if (!completion.credited && completion.reason && completion.reason !== 'already_completed') {
+            logIPN({
+              method: req.method,
+              path: req.path,
+              trackingId,
+              merchantRef,
+              notificationType,
+              status: 'REJECTED',
+              rawPayload: payload,
+              result: 'WARNING',
+              details: `Completed IPN rejected: ${completion.reason}`,
+            });
+            return res.status(200).json({
+              orderNotificationType: notificationType,
+              orderTrackingId: trackingId,
+              orderMerchantReference: merchantRef || existingOrder.merchantReference,
+              status: 200,
+            });
+          }
+        } else {
           await db
             .update(pesapalOrders)
             .set({
               status: standardStatus,
               orderTrackingId: trackingId,
               paymentMethod: paymentMethod || existingOrder.paymentMethod,
-              creatorEarnings: isCompleted ? calcCreatorShare : existingOrder.creatorEarnings,
-              platformEarnings: isCompleted ? calcPlatformShare : existingOrder.platformEarnings,
               pesapalConfirmationCode: confirmationCode || existingOrder.pesapalConfirmationCode,
               updatedAt: new Date(),
             })
             .where(eq(pesapalOrders.id, existingOrder.id));
-
-          // If this was a tip and is now completed, ensure recorded in tips table
-          if (isCompleted && !wasAlreadyCompleted && existingOrder.type === 'tip' && existingOrder.streamId) {
-            try {
-              await db.insert(tips).values({
-                streamId: existingOrder.streamId,
-                sender: existingOrder.email?.split('@')[0] || 'Super Supporter',
-                senderUid: existingOrder.userId || null,
-                amount: effectiveAmount,
-                currency: existingOrder.currency || currency,
-                message: existingOrder.description || 'Super Tip via Pesapal Mobile Money',
-                provider: paymentMethod,
-              });
-            } catch (tipInsertErr) {
-              console.warn("Could not insert stream tip row during IPN sync:", tipInsertErr);
-            }
-          }
-
-          // Apply earnings to the creator's ledger exactly once, only on the
-          // transition INTO COMPLETED - never re-applied if this webhook
-          // fires again for an already-completed order (Pesapal may retry).
-          if (isCompleted && !wasAlreadyCompleted) {
-            try {
-              await applyCompletedOrderToCreatorStats({
-                creatorId: existingOrder.creatorId,
-                amount: effectiveAmount,
-                currency: existingOrder.currency || currency,
-                type: existingOrder.type,
-              });
-            } catch (ledgerErr) {
-              console.error("Failed to update creator earnings ledger during IPN sync:", ledgerErr);
-            }
-          }
         }
       } catch (dbErr) {
         console.error("Failed to persist IPN status in DB:", dbErr);
@@ -515,37 +501,26 @@ async function startServer() {
 
       const statusData = await getPesapalTransactionStatus(trackingId);
       const { isCompleted, standardStatus } = normalizePesapalStatus(statusData);
+      const totalAmount = Number(statusData.amount);
 
-      const totalAmount = statusData.amount || (orderRecord ? parseFloat(orderRecord.amount) : 0);
-      const creatorShare = (totalAmount * CREATOR_SHARE_RATE).toFixed(2);
-      const platformShare = (totalAmount * PLATFORM_FEE_RATE).toFixed(2);
-      const wasAlreadyCompleted = orderRecord?.status === 'COMPLETED';
-
-      if (orderRecord) {
+      if (isCompleted) {
+        const completion = await markOrderCompletedAndCredit(orderRecord, statusData, trackingId);
+        if (!completion.credited && completion.reason && completion.reason !== 'already_completed') {
+          return res.status(409).json({
+            error: `Payment could not be reconciled: ${completion.reason}`,
+            reason: completion.reason,
+          });
+        }
+      } else {
         await db
           .update(pesapalOrders)
           .set({
             status: standardStatus,
             paymentMethod: statusData.payment_method || orderRecord.paymentMethod,
-            creatorEarnings: isCompleted ? creatorShare : orderRecord.creatorEarnings,
-            platformEarnings: isCompleted ? platformShare : orderRecord.platformEarnings,
             pesapalConfirmationCode: statusData.confirmation_code || orderRecord.pesapalConfirmationCode,
             updatedAt: new Date(),
           })
           .where(eq(pesapalOrders.id, orderRecord.id));
-
-        if (isCompleted && !wasAlreadyCompleted) {
-          try {
-            await applyCompletedOrderToCreatorStats({
-              creatorId: orderRecord.creatorId,
-              amount: totalAmount,
-              currency: orderRecord.currency,
-              type: orderRecord.type,
-            });
-          } catch (ledgerErr) {
-            console.error("Failed to update creator earnings ledger during manual reconcile:", ledgerErr);
-          }
-        }
       }
 
       logIPN({
@@ -605,7 +580,10 @@ async function startServer() {
 
   // Instant Webhook Simulation / Test Trigger
   app.post("/api/payments/simulate-ipn", requireAuth, async (req: AuthRequest, res) => {
-    if (process.env.NODE_ENV === "production" || req.user?.admin !== true) {
+    if (req.user?.admin !== true) {
+      return res.status(404).json({ error: "Not found" });
+    }
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_IPN_SIMULATION !== "true") {
       return res.status(404).json({ error: "Not found" });
     }
     auditAdminAction(req, "simulate_ipn");
@@ -703,50 +681,12 @@ async function startServer() {
             .where(eq(pesapalOrders.merchantReference, orderMerchantReference))
             .limit(1);
           const storedOrder = orderRows[0];
-          const returnedReference = statusData.merchant_reference || statusData.merchantReference;
-          const returnedCurrency = String(statusData.currency || '').toUpperCase();
-          const storedCurrency = String(storedOrder?.currency || '').toUpperCase();
-          const returnedAmount = Number(statusData.amount);
-          const storedAmount = Number(storedOrder?.amount);
-          if (
-            !storedOrder ||
-            storedOrder.orderTrackingId !== orderTrackingId ||
-            (returnedReference && returnedReference !== storedOrder.merchantReference) ||
-            !Number.isFinite(returnedAmount) ||
-            returnedAmount !== storedAmount ||
-            returnedCurrency !== storedCurrency
-          ) {
+          if (!storedOrder) {
             throw new Error('Payment callback does not match the stored order');
           }
-          const totalAmount = returnedAmount;
-          const creatorShare = (totalAmount * CREATOR_SHARE_RATE).toFixed(2);
-          const platformShare = (totalAmount * PLATFORM_FEE_RATE).toFixed(2);
-          const wasAlreadyCompleted = storedOrder.status === "COMPLETED";
-
-          await db
-            .update(pesapalOrders)
-            .set({
-              status: "COMPLETED",
-              orderTrackingId,
-              paymentMethod: statusData.payment_method || null,
-              creatorEarnings: creatorShare,
-              platformEarnings: platformShare,
-              pesapalConfirmationCode: statusData.confirmation_code || null,
-              updatedAt: new Date(),
-            })
-            .where(eq(pesapalOrders.id, storedOrder.id));
-
-          if (!wasAlreadyCompleted) {
-            try {
-              await applyCompletedOrderToCreatorStats({
-                creatorId: storedOrder.creatorId,
-                amount: totalAmount,
-                currency: storedOrder.currency,
-                type: storedOrder.type,
-              });
-            } catch (ledgerErr) {
-              console.error("Failed to update creator earnings ledger during callback:", ledgerErr);
-            }
+          const completion = await markOrderCompletedAndCredit(storedOrder, statusData, orderTrackingId);
+          if (!completion.credited && completion.reason && completion.reason !== 'already_completed') {
+            throw new Error(`Payment callback does not match the stored order: ${completion.reason}`);
           }
         }
       } catch (checkErr) {
@@ -809,23 +749,10 @@ async function startServer() {
           pesapalStatus.status_code === 1;
 
         if (isCompleted && dbOrder && dbOrder.status !== "COMPLETED") {
-          const totalAmount = pesapalStatus.amount || parseFloat(dbOrder.amount) || 0;
-          const creatorShare = (totalAmount * CREATOR_SHARE_RATE).toFixed(2);
-          const platformShare = (totalAmount * PLATFORM_FEE_RATE).toFixed(2);
-
-          await db
-            .update(pesapalOrders)
-            .set({
-              status: "COMPLETED",
-              paymentMethod: pesapalStatus.payment_method || dbOrder.paymentMethod,
-              creatorEarnings: creatorShare,
-              platformEarnings: platformShare,
-              pesapalConfirmationCode: pesapalStatus.confirmation_code || null,
-              updatedAt: new Date(),
-            })
-            .where(eq(pesapalOrders.orderTrackingId, trackingId));
-          
-          dbOrder.status = "COMPLETED";
+          const completion = await markOrderCompletedAndCredit(dbOrder, pesapalStatus, trackingId);
+          if (completion.credited || completion.reason === 'already_completed') {
+            dbOrder.status = "COMPLETED";
+          }
         }
       } catch (statusErr) {
         console.warn("Pesapal remote status check note:", statusErr);
@@ -849,27 +776,29 @@ async function startServer() {
       const authenticatedUserId = req.user!.uid;
       const numLimit = Math.min(100, Math.max(1, parseInt(limit as string) || 50));
 
-      let orders: any[] = [];
+      const ownerScope = or(
+        eq(pesapalOrders.userId, authenticatedUserId),
+        eq(pesapalOrders.creatorId, authenticatedUserId),
+      );
+      const filters = [ownerScope];
+      if (typeof type === "string" && type.trim()) {
+        filters.push(eq(pesapalOrders.type, type));
+      }
+      if (typeof status === "string" && status.trim()) {
+        filters.push(eq(pesapalOrders.status, status));
+      }
+
+      let filtered: any[] = [];
       try {
-        orders = await db
+        filtered = await db
           .select()
           .from(pesapalOrders)
-          .where(or(
-            eq(pesapalOrders.userId, authenticatedUserId),
-            eq(pesapalOrders.creatorId, authenticatedUserId),
-          ))
+          .where(and(...filters))
           .orderBy(desc(pesapalOrders.createdAt))
           .limit(numLimit);
       } catch (dbErr) {
         console.warn("DB query for payment history note:", dbErr);
       }
-
-      // Filter in memory if specific filter requested
-      const filtered = orders.filter((o) => {
-        if (type && o.type !== type) return false;
-        if (status && o.status !== status) return false;
-        return true;
-      });
 
       res.json({
         success: true,
@@ -916,7 +845,7 @@ async function startServer() {
       const userId = req.user!.uid;
       const stats = await getOrBackfillCreatorStats(userId);
 
-      const netBalanceUSD = Math.max(0, centsToUsd(stats.totalCreatorEarningsUsdCents));
+      const netBalanceUSD = availableBalanceUsd(stats);
       const totalGrossUSD = centsToUsd(stats.totalGrossUsdCents);
       const totalPlatformFeesUSD = centsToUsd(stats.totalPlatformFeesUsdCents);
 
@@ -992,29 +921,13 @@ async function startServer() {
         });
       }
 
-      let completedEarningsUSD = 0;
-      let pendingPayoutUSD = 0;
+      // Ensure a ledger row exists before the reservation transaction so we
+      // don't lock an empty table for first-time creators.
       try {
-        const stats = await getOrBackfillCreatorStats(userId);
-        completedEarningsUSD = centsToUsd(stats.totalCreatorEarningsUsdCents);
-
-        const pendingPayouts = await db
-          .select()
-          .from(payoutRequests)
-          .where(eq(payoutRequests.creatorId, userId));
-        pendingPayouts
-          .filter((payout) => ["PENDING", "PROCESSING"].includes(payout.status))
-          .forEach((payout) => { pendingPayoutUSD += Number(payout.amountUsd) || 0; });
+        await getOrBackfillCreatorStats(userId);
       } catch (balanceErr) {
         console.error("Payout balance verification error:", balanceErr);
         return res.status(503).json({ error: "Unable to verify payout balance" });
-      }
-
-      const availablePayoutUSD = Math.max(0, completedEarningsUSD - pendingPayoutUSD);
-      if (numAmountUSD > availablePayoutUSD) {
-        return res.status(400).json({
-          error: `Requested payout exceeds available balance ($${availablePayoutUSD.toFixed(2)} USD).`,
-        });
       }
 
       const payoutProvider = provider || method;
@@ -1024,34 +937,32 @@ async function startServer() {
       const receiptNumber: string | null = null;
 
       const creatorId = req.user!.uid;
-      let insertedRecord: any = null;
-      try {
-        const rows = await db
-          .insert(payoutRequests)
-          .values({
-            reference,
-            userId,
-            creatorId,
-            amountUsd: String(numAmountUSD.toFixed(2)),
-            localAmount,
-            currency,
-            provider: payoutProvider,
-            phone: String(phone).trim(),
-            recipientName: String(recipientName).trim(),
-            feeUsd: "0.00",
-            netPayoutUsd: String(numAmountUSD.toFixed(2)),
-            status: "PENDING",
-            kycTier: "Tier 2 (Verified Instant Settlement)",
-            receiptNumber,
-            notes: notes || `Direct Mobile Money Push to ${phone} via Pesapal/Telco Switch`,
-          })
-          .returning();
+      const reservation = await reservePayoutAndInsert({
+        userId,
+        amountUSD: numAmountUSD,
+        payoutValues: {
+          reference,
+          userId,
+          creatorId,
+          amountUsd: String(numAmountUSD.toFixed(2)),
+          localAmount,
+          currency,
+          provider: payoutProvider,
+          phone: String(phone).trim(),
+          recipientName: String(recipientName).trim(),
+          feeUsd: "0.00",
+          netPayoutUsd: String(numAmountUSD.toFixed(2)),
+          status: "PENDING",
+          kycTier: "Tier 2 (Verified Instant Settlement)",
+          receiptNumber,
+          notes: notes || `Direct Mobile Money Push to ${phone} via Pesapal/Telco Switch`,
+        },
+      });
 
-        insertedRecord = rows[0];
-      } catch (dbErr) {
-        console.error("Payout DB insert error:", dbErr);
-        return res.status(503).json({ error: "Payout service is temporarily unavailable" });
+      if (reservation.ok === false) {
+        return res.status(400).json({ error: reservation.error, availableUSD: reservation.availableUSD });
       }
+      const insertedRecord = reservation.inserted;
 
       res.json({
         success: true,
@@ -1269,35 +1180,12 @@ async function startServer() {
     }
   });
 
-  app.post("/api/tips", requireAuth, async (req: AuthRequest, res) => {
-    try {
-      const { streamId, sender, amount, currency, message, provider } = req.body || {};
-      if (!streamId || !sender || !amount || !currency) {
-        return res.status(400).json({ error: "Missing required tip fields" });
-      }
-
-      const inserted = await db
-        .insert(tips)
-        .values({
-          streamId,
-          sender,
-          senderUid: req.user!.uid,
-          amount: String(amount),
-          currency,
-          message: message || null,
-          provider: provider || null,
-        })
-        .returning();
-
-      res.json({ success: true, tip: inserted[0] });
-    } catch (error: any) {
-      console.error("Save tip error:", error);
-      res.status(500).json({ error: error.message || "Failed to save tip" });
-    }
-  });
+  // Tips are written only from verified Pesapal completion (see
+  // markOrderCompletedAndCredit). A public POST here previously let any
+  // signed-in user insert arbitrary unpaid tip rows into the stream feed.
 
   // Creator stats endpoint
-  app.get("/api/creator/stats/:userId", async (req, res) => {
+  app.get("/api/creator/stats/:userId", requireAuth, async (req: AuthRequest, res) => {
     try {
       const { userId } = req.params;
       const stats = await db
@@ -1305,8 +1193,26 @@ async function startServer() {
         .from(creatorStats)
         .where(eq(creatorStats.userId, userId))
         .limit(1);
+      const row = stats[0] || null;
+      if (!row) {
+        return res.json({ success: true, stats: null });
+      }
 
-      res.json({ success: true, stats: stats[0] || null });
+      const isOwner = req.user!.uid === userId;
+      const isAdmin = req.user?.admin === true;
+      if (!isOwner && !isAdmin) {
+        return res.json({
+          success: true,
+          stats: {
+            userId: row.userId,
+            totalTipsCount: row.totalTipsCount,
+            totalSubscriptionsCount: row.totalSubscriptionsCount,
+            completedOrdersCount: row.completedOrdersCount,
+          },
+        });
+      }
+
+      res.json({ success: true, stats: row });
     } catch (error: any) {
       console.error("Fetch creator stats error:", error);
       res.status(500).json({ error: error.message || "Failed to fetch creator stats" });
