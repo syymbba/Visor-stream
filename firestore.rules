@@ -56,12 +56,14 @@ service cloud.firestore {
         && resource.data.userId == request.auth.uid;
     }
 
-    match /tips/{tipId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && request.resource.data.senderUid == request.auth.uid;
-      allow update, delete: if false;
-    }
+    // NOTE: there is intentionally no `tips` collection rule here. The
+    // authoritative tip/earnings ledger lives in Postgres (`tips` table),
+    // written only by the trusted backend once a Pesapal payment actually
+    // completes (see server.ts). A Firestore-side `tips` collection used to
+    // be written to independently by dead client code (see chatService.ts),
+    // which risked a split-brain ledger where viewer-facing tip totals could
+    // disagree with a creator's real payout balance. Do not reintroduce
+    // client-writable access to a `tips` collection here.
 
     match /{document=**} {
       allow read, write: if false;

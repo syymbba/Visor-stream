@@ -177,44 +177,16 @@ export async function sendStreamChatMessage(
   return fullMsg;
 }
 
-// Post a Super Chat tip / donation to Firestore
-export async function recordStreamTip(
-  streamId: string,
-  tipData: {
-    streamerName: string;
-    senderName: string;
-    senderPhone?: string;
-    amount: number;
-    currency: string;
-    network: string;
-    message: string;
-  }
-): Promise<void> {
-  try {
-    const tipsCol = collection(db, 'tips');
-    await addDoc(tipsCol, {
-      ...tipData,
-      streamId,
-      status: 'completed',
-      createdAt: serverTimestamp()
-    });
-
-    // Also dispatch to stream chat as a pinned Super Tip
-    await sendStreamChatMessage(streamId, {
-      sender: tipData.senderName,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&auto=format&fit=crop&q=80',
-      badge: 'VIP',
-      text: tipData.message,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isDonation: true,
-      donationAmount: `${tipData.amount.toLocaleString()} ${tipData.currency}`,
-      donationCurrency: tipData.currency,
-      donationMessage: tipData.message
-    });
-  } catch (error) {
-    console.warn('Tip recording error:', error);
-  }
-}
+// Note: there used to be a `recordStreamTip()` here that wrote tip records
+// directly to a Firestore `tips` collection. It was unused dead code (no
+// component ever called it) that duplicated the *real* tip ledger, which
+// lives in Postgres (`tips` table, written only via the Pesapal IPN webhook
+// in server.ts once a payment actually completes - see POST /api/tips and
+// the webhook handler). Keeping both around risked a "split-brain" tips
+// model where a viewer-facing tip total and a creator's actual payout ledger
+// could silently disagree. If a Firestore-backed live tip alert is ever
+// needed again, it should be *driven by* the Postgres completion event
+// (e.g. via a server-triggered write), not written independently by the client.
 
 // Pool of realistic esports and gaming community live chatters
 export const SIMULATED_COMMUNITY_CHATTERS: Array<{
