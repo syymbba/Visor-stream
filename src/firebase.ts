@@ -8,6 +8,9 @@ import {
   updateProfile,
   signOut,
   onAuthStateChanged, 
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  fetchSignInMethodsForEmail,
   User 
 } from 'firebase/auth';
 import { 
@@ -125,7 +128,10 @@ export {
   createUserWithEmailAndPassword,
   updateProfile,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  fetchSignInMethodsForEmail
 };
 
 export type { User };

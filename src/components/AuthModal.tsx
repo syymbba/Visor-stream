@@ -4,9 +4,12 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   updateProfile,
-  signOut
+  signOut,
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  fetchSignInMethodsForEmail
 } from '../firebase';
-import { googleSignIn } from '../services/googleAuth';
+import { basicGoogleSignIn } from '../services/googleAuth';
 import { syncAuthUserWithFirestore, UserProfile } from '../services/userService';
 import { VisorLogo } from './VisorLogo';
 import { User, LogIn, UserPlus, Mail, Lock, Sparkles, Smartphone, ShieldCheck, X, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -46,7 +49,68 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Forgot-password flow
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+
   if (!isOpen) return null;
+
+  /**
+   * Describes an auth error, including a special case for
+   * `auth/account-exists-with-different-credential`: this fires when someone
+   * tries to sign in with a provider (e.g. Google) using an email that's
+   * already registered via a different provider (e.g. password). Firebase
+   * doesn't auto-link these, so without this the user would see a raw,
+   * confusing error with no path forward. We look up which method(s) the
+   * email is actually registered with and tell them explicitly.
+   */
+  const describeAuthError = async (err: any, attemptedEmail: string): Promise<string> => {
+    if (err.code === 'auth/account-exists-with-different-credential') {
+      try {
+        const methods = await fetchSignInMethodsForEmail(auth, attemptedEmail);
+        if (methods.includes('password')) {
+          return 'This email is already registered with a password. Please sign in with your email and password instead, then link Google from Settings.';
+        }
+        if (methods.length > 0) {
+          return `This email is already registered via ${methods.join(', ')}. Please sign in that way instead.`;
+        }
+      } catch {
+        // fall through to generic message below
+      }
+      return 'This email is already registered with a different sign-in method. Please use the method you originally signed up with.';
+    }
+    if (err.code === 'auth/email-already-in-use') {
+      return 'This email is already registered. Please sign in instead.';
+    }
+    if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+      return 'Invalid email or password. Please try again.';
+    }
+    if (err.code === 'auth/user-not-found') {
+      return 'No account found with this email. Please sign up.';
+    }
+    if (err.code === 'auth/too-many-requests') {
+      return 'Too many attempts. Please wait a moment and try again.';
+    }
+    return err.message || 'Authentication failed. Please check credentials.';
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setIsLoading(true);
+    try {
+      if (!email.trim()) {
+        throw new Error('Enter your email address first.');
+      }
+      await sendPasswordResetEmail(auth, email.trim());
+      setResetEmailSent(true);
+    } catch (err: any) {
+      // Deliberately generic: don't reveal whether the email exists.
+      setResetEmailSent(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +130,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
         });
 
+        // Fire off email verification (not blocking signup) - a verified
+        // email is now required server-side before a creator can request a
+        // payout (see /api/payouts/request), so this is a real prerequisite,
+        // not just a formality.
+        sendEmailVerification(userCred.user).catch((err) => {
+          console.warn('Could not send verification email:', err);
+        });
+
         const profile = await syncAuthUserWithFirestore(userCred.user, {
           displayName,
           networkProvider,
@@ -73,11 +145,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         });
 
         confetti({ particleCount: 50, spread: 60 });
-        setSuccessMsg(`Welcome to VISOR, ${displayName}!`);
+        setSuccessMsg(`Welcome to VISOR, ${displayName}! Check your inbox to verify your email.`);
         setTimeout(() => {
           onAuthSuccess(profile);
           onClose();
-        }, 1200);
+        }, 1500);
       } else {
         const userCred = await signInWithEmailAndPassword(auth, email, password);
         const profile = await syncAuthUserWithFirestore(userCred.user);
@@ -90,15 +162,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     } catch (err: any) {
       console.error('Auth error:', err);
-      let msg = err.message || 'Authentication failed. Please check credentials.';
-      if (err.code === 'auth/email-already-in-use') {
-        msg = 'This email is already registered. Please sign in instead.';
-      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
-        msg = 'Invalid email or password. Please try again.';
-      } else if (err.code === 'auth/user-not-found') {
-        msg = 'No account found with this email. Please sign up.';
-      }
-      setErrorMsg(msg);
+      setErrorMsg(await describeAuthError(err, email));
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +172,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setErrorMsg(null);
     setIsLoading(true);
     try {
-      const res = await googleSignIn();
+      const res = await basicGoogleSignIn();
       if (res && res.user) {
         const profile = await syncAuthUserWithFirestore(res.user);
         confetti({ particleCount: 50, spread: 60 });
@@ -120,7 +184,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     } catch (err: any) {
       console.error('Google sign in error:', err);
-      setErrorMsg(err.message || 'Google sign-in was canceled or failed.');
+      setErrorMsg(await describeAuthError(err, err.customData?.email || email));
     } finally {
       setIsLoading(false);
     }
@@ -143,10 +207,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <VisorLogo size="sm" showText={false} animated={true} />
             <div>
               <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                {isSignUp ? 'Create Visor Stream Account' : 'Sign In to Visor Stream'}
+                {isForgotPassword ? 'Reset Your Password' : isSignUp ? 'Create Visor Stream Account' : 'Sign In to Visor Stream'}
               </h2>
               <p className="text-xs text-slate-400">
-                {isSignUp ? 'Sync live chat, MoMo tips & streamer rewards' : 'Access your streamer studio & favorites'}
+                {isForgotPassword
+                  ? "We'll email you a link to reset your password"
+                  : isSignUp ? 'Sync live chat, MoMo tips & streamer rewards' : 'Access your streamer studio & favorites'}
               </p>
             </div>
           </div>
@@ -167,6 +233,51 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
+        {isForgotPassword ? (
+          <>
+            {resetEmailSent ? (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-xs text-emerald-300 flex items-center gap-2 animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+                <span>If an account exists for {email}, a password reset link is on its way.</span>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-3.5 font-sans">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-300 font-mono-code">Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="you@domain.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-3.5 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-2xl text-xs font-black uppercase tracking-wider transition-colors shadow-lg shadow-sky-500/20 disabled:opacity-50"
+                >
+                  {isLoading ? 'Sending...' : 'Send Reset Link'}
+                </button>
+              </form>
+            )}
+            <div className="text-center pt-1 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setResetEmailSent(false);
+                  setErrorMsg(null);
+                }}
+                className="text-xs text-sky-400 hover:underline font-mono-code font-bold"
+              >
+                Back to Sign In
+              </button>
+            </div>
+          </>
+        ) : (
+        <>
         {/* Google OAuth Button */}
         <button
           type="button"
@@ -245,6 +356,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 required
               />
             </div>
+            {!isSignUp && (
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => { setIsForgotPassword(true); setErrorMsg(null); setSuccessMsg(null); }}
+                  className="text-[11px] text-sky-400 hover:underline font-mono-code"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
           </div>
 
           {isSignUp && (
@@ -307,6 +429,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );
