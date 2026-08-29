@@ -3,10 +3,20 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { requireAuth, type AuthRequest } from "./src/middleware/auth.ts";
-import { getOrCreateUser, getUserProfile, updateUserProfile } from "./src/db/users.ts";
+import {
+  getOrCreateUser,
+  getUserProfile,
+  updateUserProfile,
+  ensureUserRow,
+  getTwoFactorState,
+  startTwoFactorSetup,
+  confirmTwoFactorEnabled,
+  disableTwoFactor,
+} from "./src/db/users.ts";
 import { db } from "./src/db/index.ts";
 import { tips, creatorStats, pesapalOrders, payoutRequests } from "./src/db/schema.ts";
-import { desc, eq, or, sql } from "drizzle-orm";
+import { applyCompletedOrderToCreatorStats, getOrBackfillCreatorStats } from "./src/db/creatorStats.ts";
+import { desc, eq, or } from "drizzle-orm";
 import {
   submitPesapalOrder,
   getPesapalTransactionStatus,
@@ -14,6 +24,19 @@ import {
   normalizePesapalStatus,
   getAppUrl,
 } from "./src/lib/pesapal.ts";
+import {
+  SUPPORTED_CURRENCIES,
+  CURRENCY_RATES_PER_USD,
+  CREATOR_SHARE_RATE,
+  PLATFORM_FEE_RATE,
+  getExpectedSubscriptionAmount,
+  toUSD,
+  fromUSD,
+  centsToUsd,
+} from "./src/lib/pricing.ts";
+import { createRateLimiter } from "./src/lib/rateLimiter.ts";
+import { createCorsMiddleware } from "./src/lib/cors.ts";
+import { generateTotpSecret, getTotpKeyUri, verifyTotpToken } from "./src/lib/twoFactor.ts";
 
 // In-memory buffer of recent IPN notifications for real-time audit & debugging
 interface IPNLogEntry {
@@ -57,26 +80,21 @@ async function startServer() {
     throw new Error("PESAPAL_CONSUMER_KEY and PESAPAL_CONSUMER_SECRET are required in production");
   }
 
-  const requestCounts = new Map<string, { count: number; resetAt: number }>();
-  const RATE_WINDOW_MS = 60_000;
-  const RATE_LIMIT = 120;
-  app.use("/api", (req, res, next) => {
-    const now = Date.now();
-    const key = req.ip || req.socket.remoteAddress || "unknown";
-    const current = requestCounts.get(key);
-    if (!current || current.resetAt <= now) {
-      requestCounts.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
-      return next();
-    }
-    current.count += 1;
-    if (current.count > RATE_LIMIT) {
-      return res.status(429).json({ error: "Too many requests" });
-    }
-    next();
-  });
+  // Shared-store-aware rate limiter: uses REDIS_URL when configured so the
+  // limit is enforced correctly across multiple server instances, instead of
+  // multiplying per-instance the way a plain in-memory Map would.
+  app.use("/api", createRateLimiter({ windowMs: 60_000, max: 120 }));
+  app.use("/api", createCorsMiddleware());
 
   app.use(express.json({ limit: "100kb" }));
   app.disable("x-powered-by");
+
+  // Routes safe to cache briefly at the edge/CDN: public, non-sensitive reads
+  // that don't vary per authenticated user. Everything else defaults to
+  // `no-store`, since a blanket no-store policy previously prevented even
+  // these harmless public reads from ever being cached.
+  const PUBLICLY_CACHEABLE_GET_ROUTES = [/^\/api\/tips\/[^/]+$/, /^\/api\/creator\/stats\/[^/]+$/, /^\/api\/health$/];
+
   app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
@@ -86,7 +104,12 @@ async function startServer() {
       res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
     }
     if (req.path.startsWith("/api/")) {
-      res.setHeader("Cache-Control", "no-store");
+      const isPubliclyCacheable =
+        req.method === "GET" && PUBLICLY_CACHEABLE_GET_ROUTES.some((re) => re.test(req.path));
+      res.setHeader(
+        "Cache-Control",
+        isPubliclyCacheable ? "public, max-age=15, stale-while-revalidate=60" : "no-store"
+      );
     }
     next();
   });
@@ -128,23 +151,35 @@ async function startServer() {
         return res.status(400).json({ error: "Invalid payment amount" });
       }
       const normalizedCurrency = String(currency).toUpperCase();
-      if (!['UGX', 'KES', 'TZS', 'USD'].includes(normalizedCurrency)) {
+      if (!SUPPORTED_CURRENCIES.includes(normalizedCurrency as any)) {
         return res.status(400).json({ error: "Unsupported currency" });
       }
       if (!['subscription', 'tip', 'topup'].includes(type)) {
         return res.status(400).json({ error: "Unsupported payment type" });
       }
       if (type === 'subscription') {
-        const planPricesUSD: Record<string, number> = { fan: 2, pro: 5, legend: 10 };
-        const currencyRates: Record<string, number> = { UGX: 3750, KES: 130, TZS: 2600, USD: 1 };
-        const expectedUSD = planId ? planPricesUSD[String(planId)] : undefined;
-        const expectedAmount = expectedUSD === undefined ? undefined : Math.round(expectedUSD * currencyRates[normalizedCurrency]);
+        const expectedAmount = getExpectedSubscriptionAmount(planId, normalizedCurrency);
         if (expectedAmount === undefined || numAmount !== expectedAmount) {
           return res.status(400).json({ error: "Invalid subscription plan or price" });
         }
       }
 
       const authenticatedUserId = req.user!.uid;
+
+      // Disallow a payer from designating themselves as the beneficiary of
+      // their own tip/subscription. This is the direct exploit path for the
+      // "self-attributed creator earnings" gap: since payouts are resolved
+      // purely from `order.creatorId === req.user.uid`, without this check an
+      // authenticated user could set creatorId to their own uid on a
+      // tip/subscription order and have it show up as their own creator
+      // earnings. (Full verification that `creatorId` corresponds to a real,
+      // registered streamer is a larger product change - streams/streamers in
+      // this codebase are currently mock data with no creator-account
+      // ownership table - so this targeted check closes the concrete
+      // self-dealing exploit without breaking the existing demo tipping flow.)
+      if ((type === 'tip' || type === 'subscription') && creatorId && creatorId === authenticatedUserId) {
+        return res.status(400).json({ error: "You cannot tip or subscribe to yourself" });
+      }
 
       // Unique Merchant Reference
       const merchantReference = `VSR-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
@@ -170,8 +205,8 @@ async function startServer() {
       });
 
       // Calculate initial 70/30 revenue allocation
-      const creatorEarnings = (numAmount * 0.7).toFixed(2);
-      const platformEarnings = (numAmount * 0.3).toFixed(2);
+      const creatorEarnings = (numAmount * CREATOR_SHARE_RATE).toFixed(2);
+      const platformEarnings = (numAmount * PLATFORM_FEE_RATE).toFixed(2);
 
       // Save order in Cloud SQL database as 'PENDING'
       try {
@@ -272,8 +307,8 @@ async function startServer() {
       const currency = statusData.currency || 'UGX';
       const paymentMethod = statusData.payment_method || 'Mobile Money / Card';
       const confirmationCode = statusData.confirmation_code || null;
-      const creatorShare = (totalAmount * 0.7).toFixed(2);
-      const platformShare = (totalAmount * 0.3).toFixed(2);
+      const creatorShare = (totalAmount * CREATOR_SHARE_RATE).toFixed(2);
+      const platformShare = (totalAmount * PLATFORM_FEE_RATE).toFixed(2);
 
       // 2. Fetch existing DB order if present
       let existingOrder: any = null;
@@ -329,8 +364,8 @@ async function startServer() {
         if (existingOrder) {
           const effectiveAmount = totalAmount > 0 ? String(totalAmount) : existingOrder.amount;
           const effectiveAmtNum = parseFloat(effectiveAmount) || 0;
-          const calcCreatorShare = (effectiveAmtNum * 0.7).toFixed(2);
-          const calcPlatformShare = (effectiveAmtNum * 0.3).toFixed(2);
+          const calcCreatorShare = (effectiveAmtNum * CREATOR_SHARE_RATE).toFixed(2);
+          const calcPlatformShare = (effectiveAmtNum * PLATFORM_FEE_RATE).toFixed(2);
 
           await db
             .update(pesapalOrders)
@@ -359,6 +394,22 @@ async function startServer() {
               });
             } catch (tipInsertErr) {
               console.warn("Could not insert stream tip row during IPN sync:", tipInsertErr);
+            }
+          }
+
+          // Apply earnings to the creator's ledger exactly once, only on the
+          // transition INTO COMPLETED - never re-applied if this webhook
+          // fires again for an already-completed order (Pesapal may retry).
+          if (isCompleted && !wasAlreadyCompleted) {
+            try {
+              await applyCompletedOrderToCreatorStats({
+                creatorId: existingOrder.creatorId,
+                amount: effectiveAmount,
+                currency: existingOrder.currency || currency,
+                type: existingOrder.type,
+              });
+            } catch (ledgerErr) {
+              console.error("Failed to update creator earnings ledger during IPN sync:", ledgerErr);
             }
           }
         }
@@ -466,8 +517,9 @@ async function startServer() {
       const { isCompleted, standardStatus } = normalizePesapalStatus(statusData);
 
       const totalAmount = statusData.amount || (orderRecord ? parseFloat(orderRecord.amount) : 0);
-      const creatorShare = (totalAmount * 0.7).toFixed(2);
-      const platformShare = (totalAmount * 0.3).toFixed(2);
+      const creatorShare = (totalAmount * CREATOR_SHARE_RATE).toFixed(2);
+      const platformShare = (totalAmount * PLATFORM_FEE_RATE).toFixed(2);
+      const wasAlreadyCompleted = orderRecord?.status === 'COMPLETED';
 
       if (orderRecord) {
         await db
@@ -481,6 +533,19 @@ async function startServer() {
             updatedAt: new Date(),
           })
           .where(eq(pesapalOrders.id, orderRecord.id));
+
+        if (isCompleted && !wasAlreadyCompleted) {
+          try {
+            await applyCompletedOrderToCreatorStats({
+              creatorId: orderRecord.creatorId,
+              amount: totalAmount,
+              currency: orderRecord.currency,
+              type: orderRecord.type,
+            });
+          } catch (ledgerErr) {
+            console.error("Failed to update creator earnings ledger during manual reconcile:", ledgerErr);
+          }
+        }
       }
 
       logIPN({
@@ -517,9 +582,20 @@ async function startServer() {
     }
   });
 
+  // Lightweight audit trail for admin-gated actions. In a fuller deployment
+  // this would be a persisted table with retention/alerting; for now this
+  // guarantees every admin-privileged access is at least visible in server
+  // logs with who/when/what, since there was previously no audit trail at all.
+  function auditAdminAction(req: AuthRequest, action: string) {
+    console.warn(
+      `[ADMIN AUDIT] uid=${req.user?.uid} email=${req.user?.email || "unknown"} action=${action} ip=${req.ip} at=${new Date().toISOString()}`
+    );
+  }
+
   // IPN Webhook Logs API (For monitoring and telemetry)
   app.get("/api/payments/ipn-logs", requireAuth, (req: AuthRequest, res) => {
     if (req.user?.admin !== true) return res.status(403).json({ error: "Forbidden" });
+    auditAdminAction(req, "view_ipn_logs");
     res.json({
       success: true,
       count: ipnLogsBuffer.length,
@@ -532,14 +608,23 @@ async function startServer() {
     if (process.env.NODE_ENV === "production" || req.user?.admin !== true) {
       return res.status(404).json({ error: "Not found" });
     }
+    auditAdminAction(req, "simulate_ipn");
     try {
       const { merchantReference, orderTrackingId, amount = 10000, currency = "UGX" } = req.body || {};
       const ref = merchantReference || `vsr_sim_${Date.now()}`;
       const tracking = orderTrackingId || `pesapal_track_${Date.now()}`;
+      const creatorId = req.user!.uid;
 
       const amtNum = parseFloat(String(amount));
-      const creatorShare = (amtNum * 0.7).toFixed(2);
-      const platformShare = (amtNum * 0.3).toFixed(2);
+      const creatorShare = (amtNum * CREATOR_SHARE_RATE).toFixed(2);
+      const platformShare = (amtNum * PLATFORM_FEE_RATE).toFixed(2);
+
+      const existingRows = await db
+        .select()
+        .from(pesapalOrders)
+        .where(eq(pesapalOrders.merchantReference, ref))
+        .limit(1);
+      const wasAlreadyCompleted = existingRows[0]?.status === "COMPLETED";
 
       await db
         .insert(pesapalOrders)
@@ -547,6 +632,7 @@ async function startServer() {
           merchantReference: ref,
           orderTrackingId: tracking,
           type: "tip",
+          creatorId,
           amount: String(amtNum),
           currency,
           status: "COMPLETED",
@@ -565,6 +651,14 @@ async function startServer() {
             updatedAt: new Date(),
           },
         });
+
+      if (!wasAlreadyCompleted) {
+        try {
+          await applyCompletedOrderToCreatorStats({ creatorId, amount: amtNum, currency, type: "tip" });
+        } catch (ledgerErr) {
+          console.error("Failed to update creator earnings ledger during simulated IPN:", ledgerErr);
+        }
+      }
 
       res.json({
         success: true,
@@ -625,8 +719,9 @@ async function startServer() {
             throw new Error('Payment callback does not match the stored order');
           }
           const totalAmount = returnedAmount;
-          const creatorShare = (totalAmount * 0.7).toFixed(2);
-          const platformShare = (totalAmount * 0.3).toFixed(2);
+          const creatorShare = (totalAmount * CREATOR_SHARE_RATE).toFixed(2);
+          const platformShare = (totalAmount * PLATFORM_FEE_RATE).toFixed(2);
+          const wasAlreadyCompleted = storedOrder.status === "COMPLETED";
 
           await db
             .update(pesapalOrders)
@@ -640,6 +735,19 @@ async function startServer() {
               updatedAt: new Date(),
             })
             .where(eq(pesapalOrders.id, storedOrder.id));
+
+          if (!wasAlreadyCompleted) {
+            try {
+              await applyCompletedOrderToCreatorStats({
+                creatorId: storedOrder.creatorId,
+                amount: totalAmount,
+                currency: storedOrder.currency,
+                type: storedOrder.type,
+              });
+            } catch (ledgerErr) {
+              console.error("Failed to update creator earnings ledger during callback:", ledgerErr);
+            }
+          }
         }
       } catch (checkErr) {
         console.warn("Status check during callback warning:", checkErr);
@@ -702,8 +810,8 @@ async function startServer() {
 
         if (isCompleted && dbOrder && dbOrder.status !== "COMPLETED") {
           const totalAmount = pesapalStatus.amount || parseFloat(dbOrder.amount) || 0;
-          const creatorShare = (totalAmount * 0.7).toFixed(2);
-          const platformShare = (totalAmount * 0.3).toFixed(2);
+          const creatorShare = (totalAmount * CREATOR_SHARE_RATE).toFixed(2);
+          const platformShare = (totalAmount * PLATFORM_FEE_RATE).toFixed(2);
 
           await db
             .update(pesapalOrders)
@@ -796,81 +904,35 @@ async function startServer() {
   });
 
   // 6. Real-Time Dynamic Wallet Balance API
+  //
+  // Previously this pulled EVERY completed order across the entire platform
+  // into Node and filtered by creatorId in JS (O(all completed orders) on
+  // every single request, on a 15-20s poll from potentially many open tabs).
+  // It now reads a per-creator ledger row that's maintained incrementally by
+  // the IPN/callback/reconcile/simulate handlers below (O(1) read), lazily
+  // backfilling from an indexed, creator-scoped SQL query the first time.
   app.get("/api/wallet/balance", requireAuth, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.uid;
+      const stats = await getOrBackfillCreatorStats(userId);
 
-      let completedOrders: any[] = [];
-      try {
-        completedOrders = await db
-          .select()
-          .from(pesapalOrders)
-          .where(eq(pesapalOrders.status, "COMPLETED"));
-        completedOrders = completedOrders.filter((order) => order.creatorId === userId);
-      } catch (dbErr) {
-        console.warn("DB query for completed orders note:", dbErr);
-      }
-
-      // Conversion rates standard for Visor Stream
-      // 1 USD = 3,750 UGX | 130 KES | 2,600 TZS
-      const toUSD = (amt: number, curr: string): number => {
-        const c = (curr || "UGX").toUpperCase();
-        if (c === "USD") return amt;
-        if (c === "UGX") return amt / 3750;
-        if (c === "KES") return amt / 130;
-        if (c === "TZS") return amt / 2600;
-        return amt / 3750;
-      };
-
-      let totalGrossUSD = 0;
-      let totalCreatorEarningsUSD = 0;
-      let totalPlatformFeesUSD = 0;
-      let completedTipsCount = 0;
-      let completedSubsCount = 0;
-
-      completedOrders.forEach((order) => {
-        const rawAmt = parseFloat(order.amount) || 0;
-        const amtUSD = toUSD(rawAmt, order.currency);
-        totalGrossUSD += amtUSD;
-
-        if (order.type === "subscription") {
-          completedSubsCount += 1;
-          // 70% to creator, 30% platform
-          totalCreatorEarningsUSD += amtUSD * 0.7;
-          totalPlatformFeesUSD += amtUSD * 0.3;
-        } else if (order.type === "tip") {
-          completedTipsCount += 1;
-          // Tips go 100% (or 95%) to creator
-          totalCreatorEarningsUSD += amtUSD;
-        } else {
-          totalCreatorEarningsUSD += amtUSD * 0.7;
-          totalPlatformFeesUSD += amtUSD * 0.3;
-        }
-      });
-
-      const netBalanceUSD = Math.max(0, Math.round(totalCreatorEarningsUSD * 100) / 100);
-      const netBalanceUGX = Math.round(netBalanceUSD * 3750);
-      const netBalanceKES = Math.round(netBalanceUSD * 130);
-      const netBalanceTZS = Math.round(netBalanceUSD * 2600);
+      const netBalanceUSD = Math.max(0, centsToUsd(stats.totalCreatorEarningsUsdCents));
+      const totalGrossUSD = centsToUsd(stats.totalGrossUsdCents);
+      const totalPlatformFeesUSD = centsToUsd(stats.totalPlatformFeesUsdCents);
 
       res.json({
         success: true,
         balanceUSD: netBalanceUSD,
-        balanceUGX: netBalanceUGX,
-        balanceKES: netBalanceKES,
-        balanceTZS: netBalanceTZS,
-        totalRevenueUSD: Math.round(totalGrossUSD * 100) / 100,
+        balanceUGX: Math.round(fromUSD(netBalanceUSD, "UGX")),
+        balanceKES: Math.round(fromUSD(netBalanceUSD, "KES")),
+        balanceTZS: Math.round(fromUSD(netBalanceUSD, "TZS")),
+        totalRevenueUSD: totalGrossUSD,
         creatorEarningsUSD: netBalanceUSD,
-        platformFeesUSD: Math.round(totalPlatformFeesUSD * 100) / 100,
-        totalSubscribers: completedSubsCount,
-        totalTipsCount: completedTipsCount,
-        completedOrdersCount: completedOrders.length,
-        currencyRates: {
-          UGX: 3750,
-          KES: 130,
-          TZS: 2600,
-          USD: 1,
-        },
+        platformFeesUSD: totalPlatformFeesUSD,
+        totalSubscribers: stats.totalSubscriptionsCount,
+        totalTipsCount: stats.totalTipsCount,
+        completedOrdersCount: stats.completedOrdersCount,
+        currencyRates: CURRENCY_RATES_PER_USD,
       });
     } catch (error: any) {
       console.error("Fetch Wallet Balance Error:", error);
@@ -906,23 +968,35 @@ async function startServer() {
       }
 
       const userId = req.user!.uid;
+
+      // Require a verified email before allowing money to be withdrawn from
+      // the platform. Firebase includes `email_verified` directly on the ID
+      // token, so this is a cheap, real check - previously nothing in the
+      // signup flow even sent a verification email (see AuthModal.tsx).
+      if (!req.user?.email_verified) {
+        return res.status(403).json({
+          error: "Please verify your email address before requesting a payout. Check your inbox for a verification link.",
+        });
+      }
+
+      // If the creator has TOTP 2FA enabled, require a valid current code
+      // before releasing funds. This is the enforcement point that makes the
+      // "Two-Factor Authentication" setting actually protect something,
+      // instead of being a client-only cosmetic toggle.
+      const { twoFactorToken } = req.body || {};
+      const twoFactorState = await getTwoFactorState(userId);
+      if (twoFactorState?.twoFactorEnabled && !verifyTotpToken(twoFactorToken, twoFactorState.twoFactorSecret)) {
+        return res.status(401).json({
+          error: "A valid 2FA code is required to request a payout.",
+          requiresTwoFactor: true,
+        });
+      }
+
       let completedEarningsUSD = 0;
       let pendingPayoutUSD = 0;
       try {
-        const completedOrders = await db
-          .select()
-          .from(pesapalOrders)
-          .where(eq(pesapalOrders.status, "COMPLETED"));
-        const toUSD = (amount: number, code: string) => {
-          const rates: Record<string, number> = { UGX: 3750, KES: 130, TZS: 2600, USD: 1 };
-          return amount / (rates[code.toUpperCase()] || 3750);
-        };
-        completedOrders
-          .filter((order) => order.creatorId === userId)
-          .forEach((order) => {
-            const amountUSD = toUSD(Number(order.amount) || 0, order.currency || "UGX");
-            completedEarningsUSD += order.type === "tip" ? amountUSD : amountUSD * 0.7;
-          });
+        const stats = await getOrBackfillCreatorStats(userId);
+        completedEarningsUSD = centsToUsd(stats.totalCreatorEarningsUsdCents);
 
         const pendingPayouts = await db
           .select()
@@ -943,16 +1017,8 @@ async function startServer() {
         });
       }
 
-      // Rates for local amount conversion
-      const rateMap: Record<string, number> = {
-        UGX: 3750,
-        KES: 130,
-        TZS: 2600,
-        USD: 1,
-      };
       const payoutProvider = provider || method;
-      const rate = rateMap[currency] || 3750;
-      const localAmount = (numAmountUSD * rate).toFixed(0);
+      const localAmount = fromUSD(numAmountUSD, currency).toFixed(0);
 
       const reference = `PO-VSR-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
       const receiptNumber: string | null = null;
@@ -1063,6 +1129,89 @@ async function startServer() {
     } catch (error: any) {
       console.error("Auth sync error:", error);
       res.status(500).json({ error: error.message || "Failed to sync user" });
+    }
+  });
+
+  // ==========================================
+  // TWO-FACTOR AUTHENTICATION (real, backend-enforced TOTP)
+  //
+  // Replaces the old client-only `twoFactorEnabled` boolean, which was never
+  // checked anywhere and was frequently rejected/silently dropped by
+  // Firestore rules anyway. State lives in Postgres; the secret never leaves
+  // the server except once, at enrollment time, for the user to scan/enter
+  // into their authenticator app.
+  // ==========================================
+
+  app.get("/api/auth/2fa/status", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const state = await getTwoFactorState(req.user!.uid);
+      res.json({ success: true, enabled: Boolean(state?.twoFactorEnabled) });
+    } catch (error: any) {
+      console.error("2FA status error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch 2FA status" });
+    }
+  });
+
+  app.post("/api/auth/2fa/setup", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user!.uid;
+      const email = req.user?.email || "";
+      await ensureUserRow(uid, email);
+
+      const secret = generateTotpSecret();
+      await startTwoFactorSetup(uid, secret);
+
+      res.json({
+        success: true,
+        secret,
+        otpauthUrl: getTotpKeyUri(email || uid, secret),
+      });
+    } catch (error: any) {
+      console.error("2FA setup error:", error);
+      res.status(500).json({ error: error.message || "Failed to start 2FA setup" });
+    }
+  });
+
+  app.post("/api/auth/2fa/verify", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user!.uid;
+      const { token } = req.body || {};
+      const state = await getTwoFactorState(uid);
+
+      if (!state?.twoFactorPendingSecret) {
+        return res.status(400).json({ error: "No pending 2FA setup found. Please start setup again." });
+      }
+      if (!verifyTotpToken(token, state.twoFactorPendingSecret)) {
+        return res.status(400).json({ error: "Invalid verification code. Please try again." });
+      }
+
+      await confirmTwoFactorEnabled(uid, state.twoFactorPendingSecret);
+      res.json({ success: true, enabled: true });
+    } catch (error: any) {
+      console.error("2FA verify error:", error);
+      res.status(500).json({ error: error.message || "Failed to verify 2FA code" });
+    }
+  });
+
+  app.post("/api/auth/2fa/disable", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user!.uid;
+      const { token } = req.body || {};
+      const state = await getTwoFactorState(uid);
+
+      if (state?.twoFactorEnabled) {
+        // Require a current valid code to disable, so a hijacked browser
+        // session alone isn't enough to strip 2FA protection from an account.
+        if (!verifyTotpToken(token, state.twoFactorSecret)) {
+          return res.status(400).json({ error: "A valid 2FA code is required to disable two-factor authentication." });
+        }
+      }
+
+      await disableTwoFactor(uid);
+      res.json({ success: true, enabled: false });
+    } catch (error: any) {
+      console.error("2FA disable error:", error);
+      res.status(500).json({ error: error.message || "Failed to disable 2FA" });
     }
   });
 
