@@ -374,9 +374,16 @@ export function App() {
           Each is its own dedicated, fully self-contained page (no navbar, no
           tab-switcher, no access to any other app content) so they satisfy
           Google OAuth verification's requirement for a standalone, publicly
-          accessible privacy policy / terms of service document. */}
-      {activeTab === 'privacy' && <PrivacyPolicyPage />}
-      {activeTab === 'terms' && <TermsOfServicePage />}
+          accessible privacy policy / terms of service document. When a
+          signed-in user reaches these from inside the app (e.g. Settings >
+          Support & Legal), onBackToApp gives them a way back without a full
+          page reload. */}
+      {activeTab === 'privacy' && (
+        <PrivacyPolicyPage onBackToApp={currentUser ? () => handleNavigateTab('live') : undefined} />
+      )}
+      {activeTab === 'terms' && (
+        <TermsOfServicePage onBackToApp={currentUser ? () => handleNavigateTab('live') : undefined} />
+      )}
 
       {/* 2b. PUBLIC "ABOUT" INFO PAGE (Directly accessible without forcing login) */}
       {isPublicLegal && !isStandaloneLegalDoc && (
@@ -387,6 +394,7 @@ export function App() {
             onBackToLanding={() => handleNavigateTab('landing')}
             onBackToApp={currentUser ? () => handleNavigateTab('live') : undefined}
             onEnterApp={() => handleNavigateTab('live')}
+            onNavigateLegal={(section) => handleNavigateTab(section)}
           />
         </div>
       )}

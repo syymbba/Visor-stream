@@ -970,36 +970,40 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               </div>
             </div>
 
-            {/* Product Links */}
+            {/* Product Links - these scroll to the matching showcase section
+                further up this same landing page. They intentionally do NOT
+                open the authenticated app dashboard (onEnterApp/onNavigateTab)
+                from the public marketing footer; a visitor should only see
+                landing-page content until they actually sign in. */}
             <div className="space-y-3">
               <h4 className="font-bold text-white font-mono-code uppercase tracking-wider text-xs">
                 Platform
               </h4>
               <ul className="space-y-2 text-slate-400">
                 <li>
-                  <button onClick={onEnterApp} className="hover:text-white transition-colors">
-                    Live Stream Feed
-                  </button>
+                  <a href="#live-streams" onClick={(e) => { e.preventDefault(); scrollToSection('live-streams'); }} className="hover:text-white transition-colors">
+                    Live Streams
+                  </a>
                 </li>
                 <li>
-                  <button onClick={() => onNavigateTab ? onNavigateTab('creator') : onEnterApp()} className="hover:text-white transition-colors">
-                    Creator Studio
-                  </button>
+                  <a href="#creative-tools" onClick={(e) => { e.preventDefault(); scrollToSection('creative-tools'); }} className="hover:text-white transition-colors">
+                    Creator Studio Tools
+                  </a>
                 </li>
                 <li>
-                  <button onClick={() => onNavigateTab ? onNavigateTab('store') : onEnterApp()} className="hover:text-white transition-colors">
+                  <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-white transition-colors">
                     Game Store & Vault
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button onClick={() => onNavigateTab ? onNavigateTab('reels') : onEnterApp()} className="hover:text-white transition-colors">
+                  <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-white transition-colors">
                     Short-Form Reels
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button onClick={() => onNavigateTab ? onNavigateTab('esports') : onEnterApp()} className="hover:text-white transition-colors">
-                    Esports Tournaments
-                  </button>
+                  <a href="#creators" onClick={(e) => { e.preventDefault(); scrollToSection('creators'); }} className="hover:text-white transition-colors">
+                    Esports & Community
+                  </a>
                 </li>
               </ul>
             </div>

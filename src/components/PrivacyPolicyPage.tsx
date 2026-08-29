@@ -1,11 +1,34 @@
 import React from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, ArrowLeft } from 'lucide-react';
 
-export const PrivacyPolicyPage: React.FC = () => (
+export interface PrivacyPolicyPageProps {
+  /**
+   * When provided, this page was reached from inside the authenticated app
+   * (e.g. Settings > Support & Legal) rather than from the public landing
+   * page. Shows a "Back to App" control that returns via client-side
+   * navigation instead of a full page reload, so viewing the policy while
+   * signed in doesn't feel like being kicked out of the platform.
+   */
+  onBackToApp?: () => void;
+}
+
+export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBackToApp }) => (
   <main className="min-h-screen bg-[#0b0e14] text-slate-200 px-4 py-8 sm:px-6 lg:px-8">
     <article className="policy-page mx-auto max-w-4xl space-y-8 rounded-2xl border border-slate-800 bg-slate-900/90 p-6 shadow-2xl sm:p-10">
       <header className="space-y-3 border-b border-slate-800 pb-6">
-        <a href="/" className="text-sm font-bold text-sky-400 hover:text-sky-300">Visor Stream</a>
+        <div className="flex items-center justify-between gap-3">
+          {onBackToApp ? (
+            <button
+              onClick={onBackToApp}
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-sky-400 hover:text-sky-300"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              Back to App
+            </button>
+          ) : (
+            <a href="/" className="text-sm font-bold text-sky-400 hover:text-sky-300">Visor Stream</a>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <Lock className="h-6 w-6 text-sky-400" aria-hidden="true" />
           <h1 className="text-3xl font-black text-white sm:text-4xl">Privacy Policy</h1>
@@ -101,9 +124,6 @@ export const PrivacyPolicyPage: React.FC = () => (
         <p>Questions, privacy requests, and data deletion requests can be sent to <a href="mailto:syymbba@gmail.com">syymbba@gmail.com</a>. We aim to respond to all legitimate requests within 30 days.</p>
       </section>
 
-      <footer className="border-t border-slate-800 pt-6 text-sm text-slate-400">
-        <a href="/terms" className="text-sky-400 hover:text-sky-300">Terms of Service</a>
-      </footer>
     </article>
   </main>
 );
