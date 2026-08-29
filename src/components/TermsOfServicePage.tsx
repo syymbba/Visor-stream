@@ -1,11 +1,34 @@
 import React from 'react';
-import { FileText } from 'lucide-react';
+import { FileText, ArrowLeft } from 'lucide-react';
 
-export const TermsOfServicePage: React.FC = () => (
+export interface TermsOfServicePageProps {
+  /**
+   * When provided, this page was reached from inside the authenticated app
+   * (e.g. Settings > Support & Legal) rather than from the public landing
+   * page. Shows a "Back to App" control that returns via client-side
+   * navigation instead of a full page reload, so viewing the terms while
+   * signed in doesn't feel like being kicked out of the platform.
+   */
+  onBackToApp?: () => void;
+}
+
+export const TermsOfServicePage: React.FC<TermsOfServicePageProps> = ({ onBackToApp }) => (
   <main className="min-h-screen bg-[#0b0e14] text-slate-200 px-4 py-8 sm:px-6 lg:px-8">
     <article className="policy-page mx-auto max-w-4xl space-y-8 rounded-2xl border border-slate-800 bg-slate-900/90 p-6 shadow-2xl sm:p-10">
       <header className="space-y-3 border-b border-slate-800 pb-6">
-        <a href="/" className="text-sm font-bold text-sky-400 hover:text-sky-300">Visor Stream</a>
+        <div className="flex items-center justify-between gap-3">
+          {onBackToApp ? (
+            <button
+              onClick={onBackToApp}
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-sky-400 hover:text-sky-300"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              Back to App
+            </button>
+          ) : (
+            <a href="/" className="text-sm font-bold text-sky-400 hover:text-sky-300">Visor Stream</a>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <FileText className="h-6 w-6 text-sky-400" aria-hidden="true" />
           <h1 className="text-3xl font-black text-white sm:text-4xl">Terms of Service</h1>
@@ -31,7 +54,6 @@ export const TermsOfServicePage: React.FC = () => (
       <section className="space-y-3"><h2>14. General Provisions</h2><p>If any provision of these Terms is found unenforceable, the remaining provisions remain in full effect. These Terms, together with our Privacy Policy and any policies referenced in-app, constitute the entire agreement between you and Visor Stream regarding the Service. We may assign these Terms in connection with a merger, acquisition, or sale of assets; you may not assign your rights or obligations without our consent. You agree to comply with applicable export control and sanctions laws in your use of the Service.</p></section>
       <section className="space-y-3"><h2>15. Changes and Contact</h2><p>We may update these Terms as the Service changes. Continued use after an updated effective date means you accept the revised Terms. Questions, notices, and legal requests may be sent to <a href="mailto:syymbba@gmail.com">syymbba@gmail.com</a>.</p></section>
 
-      <footer className="border-t border-slate-800 pt-6 text-sm text-slate-400"><a href="/privacy" className="text-sky-400 hover:text-sky-300">Privacy Policy</a></footer>
     </article>
   </main>
 );
