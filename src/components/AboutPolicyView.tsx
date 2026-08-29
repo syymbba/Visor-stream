@@ -21,8 +21,18 @@ import {
 } from 'lucide-react';
 import { PLATFORM_FAQS } from '../data/mockData';
 
+// NOTE: Privacy Policy and Terms of Service are intentionally NOT sections of
+// this component. They are dedicated, standalone pages
+// (src/components/PrivacyPolicyPage.tsx, src/components/TermsOfServicePage.tsx,
+// routed at /privacy and /terms in App.tsx) with no tab-switcher and no
+// access to any other app content, as required for Google OAuth
+// verification. This component used to also embed shorter, drifted copies of
+// both documents here (with different effective dates and even incorrect
+// payment-provider names), which risked showing reviewers inconsistent
+// policy text depending on which link they clicked. Do not re-add 'privacy'
+// or 'terms' sections here - link out to /privacy and /terms instead.
 interface AboutPolicyViewProps {
-  initialSection?: 'about' | 'terms' | 'privacy' | 'guidelines' | 'payouts' | 'careers' | 'contact';
+  initialSection?: 'about' | 'guidelines' | 'payouts' | 'careers' | 'contact';
   onBackToLanding?: () => void;
   onBackToApp?: () => void;
   onEnterApp?: () => void;
@@ -36,7 +46,7 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
   onEnterApp,
   isStandalone = false
 }) => {
-  const [activeSection, setActiveSection] = useState<'about' | 'terms' | 'privacy' | 'guidelines' | 'payouts' | 'careers' | 'contact'>(initialSection);
+  const [activeSection, setActiveSection] = useState<'about' | 'guidelines' | 'payouts' | 'careers' | 'contact'>(initialSection);
 
   useEffect(() => {
     if (initialSection) {
@@ -85,8 +95,6 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
         {[
           { id: 'about', label: 'About Visor', icon: Info },
           { id: 'payouts', label: '70/30 Streamer Payout Model', icon: DollarSign },
-          { id: 'terms', label: 'Terms of Service', icon: FileText },
-          { id: 'privacy', label: 'Privacy Policy', icon: Lock },
           { id: 'guidelines', label: 'Community Guidelines', icon: Shield },
           { id: 'careers', label: 'Careers & Internships', icon: Briefcase },
         ].map((sec) => {
@@ -107,6 +115,24 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
             </button>
           );
         })}
+
+        {/* Real links (not tab-switcher buttons) to the standalone legal
+            pages - clicking these navigates to their own dedicated page
+            rather than swapping content inside this component. */}
+        <a
+          href="/terms"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800"
+        >
+          <FileText className="w-4 h-4" />
+          <span>Terms of Service</span>
+        </a>
+        <a
+          href="/privacy"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800"
+        >
+          <Lock className="w-4 h-4" />
+          <span>Privacy Policy</span>
+        </a>
       </div>
 
       {/* SECTION 1: ABOUT VISOR */}
@@ -214,152 +240,6 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
               <span className="font-bold text-white">Settlement Frequency & Minimums:</span>
               <p>Payouts are calculated on the 1st of each month and distributed within 24 hours. The minimum withdrawal threshold is just $20 USD with zero forex conversion penalty.</p>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* SECTION 3: TERMS OF SERVICE */}
-      {activeSection === 'terms' && (
-        <div className="bg-slate-900 p-7 sm:p-9 rounded-[28px] sm:rounded-[32px] border border-slate-800 shadow-2xl max-w-4xl mx-auto space-y-6 text-xs text-slate-300 leading-relaxed animate-fadeIn font-sans">
-          <div className="border-b border-slate-800 pb-4">
-            <h2 className="text-2xl font-black text-white tracking-tight font-rajdhani uppercase">
-              TERMS OF SERVICE
-            </h2>
-            <p className="text-[11px] text-slate-400 font-mono-code mt-1">Last Updated: August 18, 2026</p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 space-y-1.5">
-              <h4 className="font-bold text-white text-sm">1. Acceptance of Terms:</h4>
-              <p>By creating an account or accessing Visor Stream, you agree to comply with these Terms of Service, our Community Guidelines, and applicable local digital regulations.</p>
-            </div>
-
-            <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 space-y-1.5">
-              <h4 className="font-bold text-white text-sm">2. Account Eligibility & Registration:</h4>
-              <p>Users must be at least 13 years of age to register an account. Creators who monetize content must be authorized in their jurisdiction to receive mobile money, card, or banking transfers.</p>
-            </div>
-
-            <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 space-y-1.5">
-              <h4 className="font-bold text-white text-sm">3. Content Ownership & Licensing:</h4>
-              <p>Creators retain full copyright ownership of all live streams, VODs, and clips created on Visor Stream. By broadcasting or uploading content, creators grant Visor Stream a non-exclusive, worldwide license to host, stream, and distribute the media across the platform.</p>
-            </div>
-
-            <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 space-y-1.5">
-              <h4 className="font-bold text-white text-sm">4. Subscriptions, Payments & Refunds:</h4>
-              <p>Paid channel subscriptions, passes, and digital items renew automatically on a recurring billing cycle unless canceled prior to the renewal date. Refunds are processed in accordance with our financial policy for verified billing or technical errors.</p>
-            </div>
-
-            <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 space-y-1.5">
-              <h4 className="font-bold text-white text-sm">5. Service Modifications & Termination:</h4>
-              <p>We reserve the right to suspend or terminate accounts that violate our Community Guidelines or engage in unauthorized platform activity.</p>
-            </div>
-
-            <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 space-y-1.5">
-              <h4 className="font-bold text-white text-sm">6. Developer & Legal Contact:</h4>
-              <p>
-                For legal inquiries, support, or data deletion requests, contact us at{' '}
-                <a href="mailto:syymbba@gmail.com" className="text-sky-400 underline font-mono-code font-bold">
-                  syymbba@gmail.com
-                </a>
-                .
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* SECTION 4: PRIVACY POLICY */}
-      {activeSection === 'privacy' && (
-        <div className="bg-[#0b0e14] p-7 sm:p-9 rounded-[28px] sm:rounded-[32px] border border-[#2a475e] shadow-2xl max-w-4xl mx-auto space-y-6 text-xs text-slate-300 leading-relaxed animate-fadeIn font-sans">
-          <div className="border-b border-[#2a475e]/80 pb-4">
-            <div className="flex items-center gap-2 text-[#38bdf8] mb-1">
-              <Lock className="w-5 h-5" />
-              <span className="text-[10px] font-mono-code uppercase font-bold tracking-wider">Legal Compliance & Data Governance</span>
-            </div>
-            <h2 className="text-2xl font-black text-white tracking-tight font-rajdhani uppercase">
-              PRIVACY POLICY
-            </h2>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-[11px] text-slate-400 font-mono-code">Last Updated: August 18, 2026</span>
-            </div>
-          </div>
-
-          {/* Section 1: Information We Collect */}
-          <div className="p-5 bg-[#171a21] rounded-2xl border border-[#2a475e] space-y-2">
-            <div className="flex items-center gap-2 text-white font-bold text-sm">
-              <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 font-mono-code text-xs flex items-center justify-center border border-sky-500/30">1</span>
-              <h4>Information We Collect</h4>
-            </div>
-            <p className="text-slate-300 leading-relaxed pl-8">
-              We collect account profile information (username, email address, profile picture) when you authenticate via Google or standard sign-up. We also collect usage telemetry data (latency pings, stream view counts) to improve streaming performance.
-            </p>
-          </div>
-
-          {/* Section 2: Use of Google User Data */}
-          <div className="p-5 bg-[#171a21] rounded-2xl border border-[#2a475e] space-y-2">
-            <div className="flex items-center gap-2 text-white font-bold text-sm">
-              <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 font-mono-code text-xs flex items-center justify-center border border-sky-500/30">2</span>
-              <h4>Use of Google User Data</h4>
-            </div>
-            <p className="text-slate-300 leading-relaxed pl-8">
-              Visor Stream accesses your Google account information solely to authenticate your user identity and set up your account profile. We do not use Google user data for serving advertisements, nor do we transfer or share this data with external AI models or third-party data brokers.
-            </p>
-          </div>
-
-          {/* Section 3: Google API Limited Use Disclosure */}
-          <div className="p-5 bg-gradient-to-br from-[#171a21] to-[#0d1f30] rounded-2xl border border-[#0284c7]/40 shadow-lg space-y-2">
-            <div className="flex items-center gap-2 text-sky-300 font-bold text-sm">
-              <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-300 font-mono-code text-xs flex items-center justify-center border border-sky-400/40">3</span>
-              <h4>Google API Limited Use Disclosure</h4>
-            </div>
-            <p className="text-slate-200 leading-relaxed pl-8 font-medium">
-              Visor Stream’s use and transfer to any other app of information received from Google APIs will adhere to the{' '}
-              <a
-                href="https://developers.google.com/terms/api-services-user-data-policy"
-                target="_blank"
-                rel="noreferrer"
-                className="text-[#38bdf8] underline hover:text-sky-300 font-bold inline-flex items-center gap-1"
-              >
-                Google API Services User Data Policy
-                <ExternalLink className="w-3 h-3" />
-              </a>
-              , including the Limited Use requirements.
-            </p>
-          </div>
-
-          {/* Section 4: Data Protection & Payment Security */}
-          <div className="p-5 bg-[#171a21] rounded-2xl border border-[#2a475e] space-y-2">
-            <div className="flex items-center gap-2 text-white font-bold text-sm">
-              <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 font-mono-code text-xs flex items-center justify-center border border-sky-500/30">4</span>
-              <h4>Data Protection & Payment Security</h4>
-            </div>
-            <p className="text-slate-300 leading-relaxed pl-8">
-              All financial transactions (Mobile Money and Credit/Debit Cards) are processed via PCI-DSS compliant third-party payment gateways (such as Flutterwave, Paystack, and Stripe). Visor Stream never stores raw payment PINs, passwords, or full credit card numbers.
-            </p>
-          </div>
-
-          {/* Section 5: Data Retention & Deletion */}
-          <div className="p-5 bg-[#171a21] rounded-2xl border border-[#2a475e] space-y-2">
-            <div className="flex items-center gap-2 text-white font-bold text-sm">
-              <span className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 font-mono-code text-xs flex items-center justify-center border border-sky-500/30">5</span>
-              <h4>Data Retention & Deletion</h4>
-            </div>
-            <p className="text-slate-300 leading-relaxed pl-8">
-              Users retain full control over their data. You can request complete account and personal data deletion at any time by navigating to Settings &gt; Account &gt; Delete Account, or by contacting{' '}
-              <a href="mailto:syymbba@gmail.com" className="text-sky-400 underline font-mono-code font-bold">
-                syymbba@gmail.com
-              </a>
-              .
-            </p>
-          </div>
-
-          {/* Contact / Inquiries Note */}
-          <div className="p-4 bg-[#0b0e14] rounded-2xl border border-[#2a475e] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono-code">
-            <div className="flex items-center gap-2 text-slate-300">
-              <Mail className="w-4 h-4 text-sky-400" />
-              <span>Data Protection Officer: <strong className="text-white">syymbba@gmail.com</strong></span>
-            </div>
-            <span className="text-slate-400 text-[11px]">Kampala, Uganda • Global CDN Relay</span>
           </div>
         </div>
       )}

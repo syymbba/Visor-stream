@@ -931,22 +931,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </div>
           </div>
 
-          {/* Quick Legal and Company Stats */}
-          <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono-code text-slate-400">
+          {/* Developer contact. Privacy Policy / Terms of Service links live
+              exclusively in the footer below - see the "Legal & Compliance"
+              column - to avoid duplicating the same links in multiple spots
+              on this page. */}
+          <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 flex items-center justify-center gap-4 text-xs font-mono-code text-slate-400">
             <div>Developer & Platform Contact: <a href="mailto:syymbba@gmail.com" className="text-sky-400 underline">syymbba@gmail.com</a></div>
-            <div className="flex items-center gap-3">
-              <button onClick={() => onNavigateLegal('terms')} className="text-sky-400 hover:underline">
-                Terms of Service
-              </button>
-              <span>•</span>
-              <button onClick={() => onNavigateLegal('privacy')} className="text-sky-400 hover:underline">
-                Privacy Policy
-              </button>
-              <span>•</span>
-              <button onClick={() => onNavigateLegal('about')} className="text-sky-400 hover:underline">
-                Detailed About Page
-              </button>
-            </div>
           </div>
 
         </div>
@@ -1053,37 +1043,46 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               </ul>
             </div>
 
-            {/* Legal & Compliance (Public Standalone Links) */}
+            {/* Legal & Compliance - the ONLY place on this landing page with
+                links to /privacy and /terms. Real <a href> elements (not
+                click handlers with no href) so the links are explicit,
+                visible HTML links that work even without JavaScript;
+                onClick still intercepts the click for a smooth in-app
+                transition when JS is available. Each link goes straight to
+                its own dedicated, standalone page and nothing else. */}
             <div className="space-y-3">
               <h4 className="font-bold text-white font-mono-code uppercase tracking-wider text-xs">
                 Legal & Compliance
               </h4>
               <ul className="space-y-2 text-slate-400">
                 <li>
-                  <button
-                    onClick={() => onNavigateLegal('privacy')}
+                  <a
+                    href="/privacy"
+                    onClick={(e) => { e.preventDefault(); onNavigateLegal('privacy'); }}
                     className="hover:text-sky-400 transition-colors font-semibold text-slate-300 flex items-center gap-1 text-left"
                   >
                     <Lock className="w-3.5 h-3.5 text-sky-400" />
                     <span>Privacy Policy</span>
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button
-                    onClick={() => onNavigateLegal('terms')}
+                  <a
+                    href="/terms"
+                    onClick={(e) => { e.preventDefault(); onNavigateLegal('terms'); }}
                     className="hover:text-sky-400 transition-colors font-semibold text-slate-300 flex items-center gap-1 text-left"
                   >
                     <FileText className="w-3.5 h-3.5 text-sky-400" />
                     <span>Terms of Service</span>
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button
-                    onClick={() => onNavigateLegal('about')}
+                  <a
+                    href="/about"
+                    onClick={(e) => { e.preventDefault(); onNavigateLegal('about'); }}
                     className="hover:text-white transition-colors"
                   >
                     About Visor Stream
-                  </button>
+                  </a>
                 </li>
                 <li>
                   <a
@@ -1107,14 +1106,6 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               © 2026 VISOR STREAM Technologies. All rights reserved.
             </div>
             <div className="flex items-center gap-4">
-              <button onClick={() => onNavigateLegal('privacy')} className="hover:text-slate-300">
-                Privacy Policy
-              </button>
-              <span>•</span>
-              <button onClick={() => onNavigateLegal('terms')} className="hover:text-slate-300">
-                Terms of Service
-              </button>
-              <span>•</span>
               <a href="mailto:syymbba@gmail.com" className="hover:text-slate-300">
                 syymbba@gmail.com
               </a>

@@ -26,6 +26,8 @@ import { PricingView } from './components/PricingView';
 import { PricingModal } from './components/PricingModal';
 import { SettingsView } from './components/SettingsView';
 import { AboutPolicyView } from './components/AboutPolicyView';
+import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
+import { TermsOfServicePage } from './components/TermsOfServicePage';
 import { FeatureInfoView, FeatureId } from './components/FeatureInfoView';
 import { PaymentStatusView } from './components/PaymentStatusView';
 import { PaymentHistory } from './components/PaymentHistory';
@@ -334,6 +336,11 @@ export function App() {
 
   // Check if current view is public legal standalone page
   const isPublicLegal = activeTab === 'privacy' || activeTab === 'terms' || activeTab === 'about';
+  // Privacy and Terms are dedicated, self-contained pages (required for Google
+  // OAuth verification: each must be its own page with no access to other app
+  // content), separate from the "About" info page which still uses the
+  // tabbed AboutPolicyView.
+  const isStandaloneLegalDoc = activeTab === 'privacy' || activeTab === 'terms';
 
   // Check if current view is public feature deep-dive page
   const isFeatureView = activeTab.startsWith('features-');
@@ -363,8 +370,16 @@ export function App() {
         />
       )}
 
-      {/* 2. PUBLIC LEGAL PAGES (Directly accessible without forcing login) */}
-      {isPublicLegal && (
+      {/* 2a. STANDALONE PRIVACY POLICY / TERMS OF SERVICE PAGES
+          Each is its own dedicated, fully self-contained page (no navbar, no
+          tab-switcher, no access to any other app content) so they satisfy
+          Google OAuth verification's requirement for a standalone, publicly
+          accessible privacy policy / terms of service document. */}
+      {activeTab === 'privacy' && <PrivacyPolicyPage />}
+      {activeTab === 'terms' && <TermsOfServicePage />}
+
+      {/* 2b. PUBLIC "ABOUT" INFO PAGE (Directly accessible without forcing login) */}
+      {isPublicLegal && !isStandaloneLegalDoc && (
         <div>
           <AboutPolicyView
             initialSection={activeTab as any}
