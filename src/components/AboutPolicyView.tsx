@@ -36,6 +36,7 @@ interface AboutPolicyViewProps {
   onBackToLanding?: () => void;
   onBackToApp?: () => void;
   onEnterApp?: () => void;
+  onNavigateLegal?: (section: 'privacy' | 'terms') => void;
   isStandalone?: boolean;
 }
 
@@ -44,6 +45,7 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
   onBackToLanding,
   onBackToApp,
   onEnterApp,
+  onNavigateLegal,
   isStandalone = false
 }) => {
   const [activeSection, setActiveSection] = useState<'about' | 'guidelines' | 'payouts' | 'careers' | 'contact'>(initialSection);
@@ -118,9 +120,15 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
 
         {/* Real links (not tab-switcher buttons) to the standalone legal
             pages - clicking these navigates to their own dedicated page
-            rather than swapping content inside this component. */}
+            rather than swapping content inside this component. The `href`
+            keeps them real, crawlable, right-click-able links; onClick
+            intercepts a normal left-click to route through the app's own
+            client-side navigation instead of a full page reload (a full
+            reload to a deep path like /terms will 404 on hosts that aren't
+            configured with an SPA fallback rewrite). */}
         <a
           href="/terms"
+          onClick={(e) => { if (onNavigateLegal) { e.preventDefault(); onNavigateLegal('terms'); } }}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800"
         >
           <FileText className="w-4 h-4" />
@@ -128,6 +136,7 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
         </a>
         <a
           href="/privacy"
+          onClick={(e) => { if (onNavigateLegal) { e.preventDefault(); onNavigateLegal('privacy'); } }}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800"
         >
           <Lock className="w-4 h-4" />
