@@ -11,7 +11,8 @@ import {
   ChevronUp,
   AlertCircle,
   Shield,
-  Zap
+  Zap,
+  Gamepad2
 } from 'lucide-react';
 
 interface LiveMatchPredictionsWidgetProps {
@@ -36,7 +37,7 @@ export const LiveMatchPredictionsWidget: React.FC<LiveMatchPredictionsWidgetProp
   // Prediction State
   const [prediction, setPrediction] = useState({
     id: 'pred-uganda-vs-kenya',
-    question: '🎮 Will Uganda Vipers win Game 2 against Nairobi Kings?',
+    question: 'Will Uganda Vipers win Game 2 against Nairobi Kings?',
     optionA: 'Uganda Vipers (Yes)',
     optionB: 'Nairobi Kings (No)',
     poolA: 42000,
@@ -117,7 +118,8 @@ export const LiveMatchPredictionsWidget: React.FC<LiveMatchPredictionsWidgetProp
                 {timeLeft > 0 ? `Submissions Open (${formatTime(timeLeft)})` : 'Voting Locked'}
               </span>
             </div>
-            <p className="text-[11px] text-slate-300 font-medium">
+            <p className="text-[11px] text-slate-300 font-medium flex items-center gap-1.5">
+              <Gamepad2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
               {prediction.question}
             </p>
           </div>

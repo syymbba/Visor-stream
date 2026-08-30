@@ -35,6 +35,7 @@ import {
   VolumeX,
   Pin,
   Flame,
+  Mic,
   Zap,
   ArrowDown,
   Filter,
@@ -421,8 +422,11 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                   </span>
                   <span className="text-xs text-slate-500 font-mono-code">UPTIME: {currentStream.uptime}</span>
                 </div>
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                  {currentStream.title}
+                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-1.5">
+                  {currentStream.title.includes('[GRAND FINALS]') && (
+                    <Flame className="w-5 h-5 text-orange-500 shrink-0" />
+                  )}
+                  <span>{currentStream.title}</span>
                 </h1>
               </div>
 
@@ -506,7 +510,11 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5 font-bold text-amber-300">
                     <Gift className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Active Tip Jar Goal: 🎙️ Studio Mic & Capture Card Upgrade</span>
+                    <span className="flex items-center gap-1">
+                      Active Tip Jar Goal:
+                      <Mic className="w-3.5 h-3.5 text-amber-400 inline-block" />
+                      Studio Mic & Capture Card Upgrade
+                    </span>
                   </div>
                   <span className="font-mono-code font-bold text-white text-[11px]">
                     $335 / $450 USD (74%)

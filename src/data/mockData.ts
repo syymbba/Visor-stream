@@ -107,7 +107,7 @@ export const INITIAL_STREAMERS = [
 export const MOCK_LIVE_STREAMS: LiveStream[] = [
   {
     id: 'live_1',
-    title: '🔥 [GRAND FINALS] Visor Pro Invitational Cup — Apex Mobile Champions Squad!',
+    title: '[GRAND FINALS] Visor Pro Invitational Cup — Apex Mobile Champions Squad!',
     streamer: INITIAL_STREAMERS[0],
     game: 'Apex Legends Mobile',
     gameId: 'apex_legends',
@@ -652,7 +652,7 @@ export const MOCK_COMMUNITY_POSTS: CommunityPost[] = [
 ];
 
 export const MOCK_CREATOR_DASHBOARD: CreatorDashboardStats = {
-  streamTitle: '🔥 [GRAND FINALS] Visor Pro Invitational Cup — Apex Mobile Champions Squad!',
+  streamTitle: '[GRAND FINALS] Visor Pro Invitational Cup — Apex Mobile Champions Squad!',
   gameCategory: 'Apex Legends Mobile',
   streamKey: '',
   serverIngestUrl: 'rtmp://ingest.nairobi.visorstream.com/live',
