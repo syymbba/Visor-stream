@@ -277,7 +277,7 @@ export const MOCK_TUTORIALS: GamingTutorial[] = [
     gameCategory: 'Battle Royale',
     author: INITIAL_STREAMERS[0],
     thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    videoUrl: 'https://stream.mux.com/placeholder.m3u8',
     difficulty: 'Master',
     duration: '22:15',
     views: 82000,
@@ -766,7 +766,7 @@ export const MOCK_REELS: ReelClip[] = [
     title: '🎯 400m AWM Headshot through Smoke — Nairobi Knights Scrims',
     creator: INITIAL_STREAMERS[1],
     game: 'PUBG Mobile',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    videoUrl: 'https://stream.mux.com/placeholder.m3u8',
     posterUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=80',
     views: 62100,
     likes: 5120,
@@ -783,7 +783,7 @@ export const MOCK_REELS: ReelClip[] = [
     title: '🔥 Unstoppable 40-Yard Free Kick Curve in EA Sports FC 24 Weekend League',
     creator: INITIAL_STREAMERS[2],
     game: 'EA Sports FC 24',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    videoUrl: 'https://stream.mux.com/placeholder.m3u8',
     posterUrl: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=600&auto=format&fit=crop&q=80',
     views: 31500,
     likes: 2900,
@@ -800,7 +800,7 @@ export const MOCK_REELS: ReelClip[] = [
     title: '👑 Perfect Mishima Electric Wind God Fist Combo into Wall Break (Tekken 8)',
     creator: INITIAL_STREAMERS[4],
     game: 'Tekken 8',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    videoUrl: 'https://stream.mux.com/placeholder.m3u8',
     posterUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80',
     views: 54000,
     likes: 4780,
@@ -824,7 +824,7 @@ export const MOCK_LIBRARY_ITEMS: UserLibraryItem[] = [
     duration: '24:15',
     fileSize: '342 MB',
     downloadedAt: 'Downloaded 2 days ago',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    videoUrl: 'https://stream.mux.com/placeholder.m3u8',
     thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80',
     progressPercent: 65,
     isOfflineAvailable: true,
@@ -838,7 +838,7 @@ export const MOCK_LIBRARY_ITEMS: UserLibraryItem[] = [
     duration: '18:40',
     fileSize: '215 MB',
     downloadedAt: 'Downloaded yesterday',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    videoUrl: 'https://stream.mux.com/placeholder.m3u8',
     thumbnail: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=80',
     progressPercent: 100,
     isOfflineAvailable: true,
@@ -851,7 +851,7 @@ export const MOCK_LIBRARY_ITEMS: UserLibraryItem[] = [
     author: INITIAL_STREAMERS[2],
     duration: '1:45:20',
     savedAt: 'Saved 3 days ago',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    videoUrl: 'https://stream.mux.com/placeholder.m3u8',
     thumbnail: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=600&auto=format&fit=crop&q=80',
     progressPercent: 30,
     isOfflineAvailable: false,
@@ -864,7 +864,7 @@ export const MOCK_LIBRARY_ITEMS: UserLibraryItem[] = [
     author: INITIAL_STREAMERS[3],
     duration: '32:10',
     savedAt: 'Saved last week',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    videoUrl: 'https://stream.mux.com/placeholder.m3u8',
     thumbnail: 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=600&auto=format&fit=crop&q=80',
     progressPercent: 0,
     isOfflineAvailable: false,
@@ -889,7 +889,7 @@ export const MOCK_LIBRARY_ITEMS: UserLibraryItem[] = [
     },
     duration: '2:14:08',
     savedAt: 'Recorded Aug 15, 2026',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    videoUrl: 'https://stream.mux.com/placeholder.m3u8',
     thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80',
     fileSize: '1.4 GB',
     isOfflineAvailable: true,
@@ -914,7 +914,7 @@ export const MOCK_LIBRARY_ITEMS: UserLibraryItem[] = [
     },
     duration: '0:42',
     savedAt: 'Clipped yesterday',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    videoUrl: 'https://stream.mux.com/placeholder.m3u8',
     thumbnail: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=80',
     fileSize: '45 MB',
     isOfflineAvailable: true,
@@ -955,9 +955,9 @@ export const MOCK_CARDS: CardPaymentMethod[] = [
 ];
 
 export const MOCK_CREATOR_CLIPS: CreatorClip[] = [
-  { id: 'clip_1', title: 'Wingman 1v3 clutch in last ring', game: 'Apex Legends Mobile', duration: '0:34', createdAt: '2 hours ago', views: 1240, thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500&auto=format&fit=crop&q=80', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
-  { id: 'clip_2', title: 'Triple grenade bounce squad wipe', game: 'PUBG Mobile', duration: '0:22', createdAt: 'Yesterday', views: 2890, thumbnail: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=500&auto=format&fit=crop&q=80', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' },
-  { id: 'clip_3', title: 'Corner kick Olimpico goal', game: 'EA Sports FC 24', duration: '0:18', createdAt: '3 days ago', views: 950, thumbnail: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=500&auto=format&fit=crop&q=80', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' },
+  { id: 'clip_1', title: 'Wingman 1v3 clutch in last ring', game: 'Apex Legends Mobile', duration: '0:34', createdAt: '2 hours ago', views: 1240, thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500&auto=format&fit=crop&q=80', videoUrl: 'https://stream.mux.com/placeholder.m3u8' },
+  { id: 'clip_2', title: 'Triple grenade bounce squad wipe', game: 'PUBG Mobile', duration: '0:22', createdAt: 'Yesterday', views: 2890, thumbnail: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=500&auto=format&fit=crop&q=80', videoUrl: 'https://stream.mux.com/placeholder.m3u8' },
+  { id: 'clip_3', title: 'Corner kick Olimpico goal', game: 'EA Sports FC 24', duration: '0:18', createdAt: '3 days ago', views: 950, thumbnail: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=500&auto=format&fit=crop&q=80', videoUrl: 'https://stream.mux.com/placeholder.m3u8' },
 ];
 
 export const MOCK_CREATOR_TIP_JAR: CreatorTipJarConfig = {
@@ -1055,4 +1055,3 @@ export const PLATFORM_FAQS = [
     a: 'Click the "Go Live" button in the top navigation or visit the Creator Studio. Set up your channel in under 2 minutes, get your unique RTMP Stream Key, and start broadcasting via OBS Studio, Streamlabs, or direct mobile screen capture.'
   }
 ];
-

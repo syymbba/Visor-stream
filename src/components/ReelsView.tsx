@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ReelClip, Currency } from '../types';
 import { MOCK_REELS, CURRENCY_RATES } from '../data/mockData';
+import { getMuxPlaybackUrl, getMuxPosterUrl } from '../lib/mux';
 import {
   Heart,
   MessageCircle,
@@ -47,6 +48,8 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const currentClip = reels[currentIndex] || reels[0];
+  const currentVideoUrl = getMuxPlaybackUrl(currentClip?.muxPlaybackId) || currentClip.videoUrl;
+  const currentPosterUrl = getMuxPosterUrl(currentClip?.muxPlaybackId) || currentClip.posterUrl;
 
   useEffect(() => {
     if (videoRef.current) {
@@ -177,8 +180,8 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
         <div className="relative w-full max-w-[420px] aspect-[9/16] bg-[#0b0e14] border border-[#2a475e] rounded-3xl overflow-hidden shadow-2xl shadow-black/80 flex items-center justify-center">
           <video
             ref={videoRef}
-            src={currentClip.videoUrl}
-            poster={currentClip.posterUrl}
+            src={currentVideoUrl}
+            poster={currentPosterUrl}
             loop
             muted={isMuted}
             playsInline

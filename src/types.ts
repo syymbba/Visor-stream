@@ -87,6 +87,7 @@ export interface ReelClip {
   game: string;
   videoUrl: string;
   posterUrl: string;
+  muxPlaybackId?: string;
   views: number;
   likes: number;
   commentsCount: number;
@@ -110,6 +111,7 @@ export interface UserLibraryItem {
   savedAt?: string;
   videoUrl: string;
   thumbnail: string;
+  muxPlaybackId?: string;
   progressPercent?: number;
   isOfflineAvailable?: boolean;
 }
@@ -123,6 +125,7 @@ export interface CreatorClip {
   views: number;
   thumbnail: string;
   videoUrl: string;
+  muxPlaybackId?: string;
 }
 
 export interface Streamer {
@@ -177,6 +180,7 @@ export interface GamingTutorial {
   author: Streamer;
   thumbnail: string;
   videoUrl: string;
+  muxPlaybackId?: string;
   difficulty: 'Beginner' | 'Intermediate' | 'Pro' | 'Master';
   duration: string;
   views: number;
