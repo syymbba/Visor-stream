@@ -60,6 +60,26 @@ interface IPNLogEntry {
 }
 
 const ipnLogsBuffer: IPNLogEntry[] = [];
+
+// Fields that may carry raw credentials or PII from the payment provider —
+// strip them before storing in the in-memory audit buffer so they don't
+// persist in process memory or get exposed via /api/payments/ipn-logs.
+const IPN_PAYLOAD_STRIP_KEYS = new Set([
+  'consumer_key', 'consumer_secret', 'access_token', 'token', 'secret',
+  'password', 'card_number', 'cvv', 'pan', 'account_number',
+]);
+function sanitizeIpnPayload(payload: any, depth = 0): any {
+  if (!payload || typeof payload !== 'object' || depth > 5) return payload;
+  if (Array.isArray(payload)) return payload.map((item) => sanitizeIpnPayload(item, depth + 1));
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(payload)) {
+    out[k] = IPN_PAYLOAD_STRIP_KEYS.has(k.toLowerCase())
+      ? '[REDACTED]'
+      : sanitizeIpnPayload(v, depth + 1);
+  }
+  return out;
+}
+
 function logIPN(entry: Omit<IPNLogEntry, 'id' | 'timestamp'>) {
   const fullEntry: IPNLogEntry = {
     id: `ipn_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -170,7 +190,18 @@ async function startServer() {
         }
       }
 
+      // Validate and sanitize string fields to prevent log injection / spoofing.
       const authenticatedUserId = req.user!.uid;
+      const safeEmail = email ? String(email).slice(0, 254) : "customer@visorstream.com";
+      const safePhone = phone ? String(phone).slice(0, 20) : "";
+      const safeFirstName = firstName ? String(firstName).replace(/[^\p{L}\p{N} '-]/gu, "").slice(0, 50) : "Visor";
+      const safeLastName = lastName ? String(lastName).replace(/[^\p{L}\p{N} '-]/gu, "").slice(0, 50) : "User";
+      const safeDescription = description ? String(description).slice(0, 250) : undefined;
+      // planId and streamId are stored as-is but capped to prevent bloat
+      const safePlanId = planId ? String(planId).slice(0, 64) : undefined;
+      const safeStreamId = streamId ? String(streamId).slice(0, 128) : undefined;
+      // creatorId comes from the client but the self-tip check below is the key guard
+      const safeCreatorId = creatorId ? String(creatorId).slice(0, 128) : null;
 
       // Disallow a payer from designating themselves as the beneficiary of
       // their own tip/subscription. This is the direct exploit path for the
@@ -183,7 +214,7 @@ async function startServer() {
       // this codebase are currently mock data with no creator-account
       // ownership table - so this targeted check closes the concrete
       // self-dealing exploit without breaking the existing demo tipping flow.)
-      if ((type === 'tip' || type === 'subscription') && creatorId && creatorId === authenticatedUserId) {
+      if ((type === 'tip' || type === 'subscription') && safeCreatorId && safeCreatorId === authenticatedUserId) {
         return res.status(400).json({ error: "You cannot tip or subscribe to yourself" });
       }
 
@@ -201,13 +232,13 @@ async function startServer() {
         merchantReference,
         amount: numAmount,
         currency: normalizedCurrency,
-        description: description || `Visor Stream ${type === "tip" ? "Live Stream Tip" : "Subscription"}`,
+        description: safeDescription || `Visor Stream ${type === "tip" ? "Live Stream Tip" : "Subscription"}`,
         callbackUrl,
         notificationId,
-        email,
-        phone,
-        firstName,
-        lastName,
+        email: safeEmail,
+        phone: safePhone,
+        firstName: safeFirstName,
+        lastName: safeLastName,
       });
 
       // Calculate initial 70/30 revenue allocation
@@ -220,16 +251,16 @@ async function startServer() {
           merchantReference,
           orderTrackingId: pesapalRes.order_tracking_id,
           type,
-          planId: planId || null,
+          planId: safePlanId || null,
           userId: authenticatedUserId,
-          creatorId: creatorId || null,
-          streamId: streamId || null,
+          creatorId: safeCreatorId || null,
+          streamId: safeStreamId || null,
           amount: String(numAmount),
-          currency,
+          currency: normalizedCurrency,
           status: "PENDING",
-          description: description || null,
-          email,
-          phone,
+          description: safeDescription || null,
+          email: safeEmail,
+          phone: safePhone,
           creatorEarnings,
           platformEarnings,
         });
@@ -280,7 +311,7 @@ async function startServer() {
         merchantRef: merchantRef,
         notificationType,
         status: 'AWAITING_TRACKING_ID',
-        rawPayload: payload,
+        rawPayload: sanitizeIpnPayload(payload),
         result: 'WARNING',
         details: 'Received webhook ping without OrderTrackingId parameter',
       });
@@ -345,7 +376,7 @@ async function startServer() {
           merchantRef,
           notificationType,
           status: 'UNKNOWN_ORDER',
-          rawPayload: payload,
+          rawPayload: sanitizeIpnPayload(payload),
           result: 'WARNING',
           details: 'Ignored webhook for an order that was not created by Visor',
         });
@@ -376,7 +407,7 @@ async function startServer() {
               merchantRef,
               notificationType,
               status: 'REJECTED',
-              rawPayload: payload,
+              rawPayload: sanitizeIpnPayload(payload),
               result: 'WARNING',
               details: `Completed IPN rejected: ${completion.reason}`,
             });
@@ -415,7 +446,7 @@ async function startServer() {
         currency,
         paymentMethod,
         confirmationCode: confirmationCode || undefined,
-        rawPayload: payload,
+        rawPayload: sanitizeIpnPayload(payload),
         result: isCompleted ? 'SUCCESS' : isFailed ? 'WARNING' : 'SUCCESS',
         details: `Processed in ${Date.now() - startTime}ms. Status: ${standardStatus}. Confirmation: ${confirmationCode || 'N/A'}`,
       });
@@ -441,7 +472,7 @@ async function startServer() {
         merchantRef,
         notificationType,
         status: 'ERROR',
-        rawPayload: payload,
+        rawPayload: sanitizeIpnPayload(payload),
         result: 'ERROR',
         details: error.message || 'Internal webhook error',
       });
@@ -534,7 +565,7 @@ async function startServer() {
         currency: statusData.currency || orderRecord?.currency || 'UGX',
         paymentMethod: statusData.payment_method || orderRecord?.paymentMethod,
         confirmationCode: statusData.confirmation_code,
-        rawPayload: req.body,
+        rawPayload: sanitizeIpnPayload(req.body),
         result: isCompleted ? 'SUCCESS' : 'WARNING',
         details: `Manual reconciliation completed. Status: ${standardStatus}`,
       });
@@ -884,17 +915,28 @@ async function startServer() {
 
       const numAmountUSD = parseFloat(String(amountUSD));
 
-      if (isNaN(numAmountUSD) || numAmountUSD < 20) {
+      if (isNaN(numAmountUSD) || numAmountUSD < 20 || numAmountUSD > 50000) {
         return res.status(400).json({
           error: "Minimum payout threshold is $20.00 USD (75,000 UGX / 2,600 KES)",
         });
       }
 
-      if (!phone || String(phone).trim().length < 6) {
+      if (!phone || String(phone).trim().length < 6 || String(phone).trim().length > 20) {
         return res.status(400).json({
           error: "Valid Mobile Money phone number or payout address is required",
         });
       }
+
+      const normalizedPayoutCurrency = String(currency).toUpperCase();
+      if (!SUPPORTED_CURRENCIES.includes(normalizedPayoutCurrency as any)) {
+        return res.status(400).json({ error: "Unsupported payout currency" });
+      }
+
+      const safeRecipientName = recipientName
+        ? String(recipientName).replace(/[^\p{L}\p{N} '-]/gu, "").slice(0, 100)
+        : "Visor Broadcaster";
+      const safeNotes = notes ? String(notes).slice(0, 500) : undefined;
+      const safePayoutPhone = String(phone).trim();
 
       const userId = req.user!.uid;
 
@@ -914,11 +956,19 @@ async function startServer() {
       // instead of being a client-only cosmetic toggle.
       const { twoFactorToken } = req.body || {};
       const twoFactorState = await getTwoFactorState(userId);
-      if (twoFactorState?.twoFactorEnabled && !verifyTotpToken(twoFactorToken, twoFactorState.twoFactorSecret)) {
-        return res.status(401).json({
-          error: "A valid 2FA code is required to request a payout.",
-          requiresTwoFactor: true,
-        });
+      if (twoFactorState?.twoFactorEnabled) {
+        if (typeof twoFactorToken !== 'string' || !/^\d{6}$/.test(twoFactorToken)) {
+          return res.status(401).json({
+            error: "A valid 2FA code is required to request a payout.",
+            requiresTwoFactor: true,
+          });
+        }
+        if (!verifyTotpToken(twoFactorToken, twoFactorState.twoFactorSecret)) {
+          return res.status(401).json({
+            error: "A valid 2FA code is required to request a payout.",
+            requiresTwoFactor: true,
+          });
+        }
       }
 
       // Ensure a ledger row exists before the reservation transaction so we
@@ -930,8 +980,8 @@ async function startServer() {
         return res.status(503).json({ error: "Unable to verify payout balance" });
       }
 
-      const payoutProvider = provider || method;
-      const localAmount = fromUSD(numAmountUSD, currency).toFixed(0);
+      const payoutProvider = provider ? String(provider).slice(0, 64) : (method ? String(method).slice(0, 64) : "MTN MoMo");
+      const localAmount = fromUSD(numAmountUSD, normalizedPayoutCurrency).toFixed(0);
 
       const reference = `PO-VSR-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
       const receiptNumber: string | null = null;
@@ -946,16 +996,16 @@ async function startServer() {
           creatorId,
           amountUsd: String(numAmountUSD.toFixed(2)),
           localAmount,
-          currency,
+          currency: normalizedPayoutCurrency,
           provider: payoutProvider,
-          phone: String(phone).trim(),
-          recipientName: String(recipientName).trim(),
+          phone: safePayoutPhone,
+          recipientName: safeRecipientName,
           feeUsd: "0.00",
           netPayoutUsd: String(numAmountUSD.toFixed(2)),
           status: "PENDING",
           kycTier: "Tier 2 (Verified Instant Settlement)",
           receiptNumber,
-          notes: notes || `Direct Mobile Money Push to ${phone} via Pesapal/Telco Switch`,
+          notes: safeNotes || `Direct Mobile Money Push to ${safePayoutPhone} via Pesapal/Telco Switch`,
         },
       });
 
@@ -1087,6 +1137,11 @@ async function startServer() {
     try {
       const uid = req.user!.uid;
       const { token } = req.body || {};
+      // TOTP codes are always 6 digits; reject anything that doesn't match so
+      // verifyTotpToken never receives unexpected input types.
+      if (typeof token !== 'string' || !/^\d{6}$/.test(token)) {
+        return res.status(400).json({ error: "Invalid verification code. Please try again." });
+      }
       const state = await getTwoFactorState(uid);
 
       if (!state?.twoFactorPendingSecret) {
@@ -1113,6 +1168,9 @@ async function startServer() {
       if (state?.twoFactorEnabled) {
         // Require a current valid code to disable, so a hijacked browser
         // session alone isn't enough to strip 2FA protection from an account.
+        if (typeof token !== 'string' || !/^\d{6}$/.test(token)) {
+          return res.status(400).json({ error: "A valid 2FA code is required to disable two-factor authentication." });
+        }
         if (!verifyTotpToken(token, state.twoFactorSecret)) {
           return res.status(400).json({ error: "A valid 2FA code is required to disable two-factor authentication." });
         }
@@ -1147,13 +1205,21 @@ async function startServer() {
       if (!uid) return res.status(401).json({ error: "Unauthorized" });
 
       const { gamerTag, bio, currency, momoPhone, momoProvider, dataSaver } = req.body || {};
+
+      // Validate and sanitize string inputs to prevent oversized or malformed writes.
+      const safeGamerTag = gamerTag !== undefined ? String(gamerTag).slice(0, 64) : undefined;
+      const safeBio = bio !== undefined ? String(bio).slice(0, 500) : undefined;
+      const safeCurrency = currency ? String(currency).toUpperCase().slice(0, 10) : undefined;
+      const safeMomoPhone = momoPhone ? String(momoPhone).slice(0, 20) : undefined;
+      const safeMomoProvider = momoProvider ? String(momoProvider).slice(0, 64) : undefined;
+
       const updated = await updateUserProfile(uid, {
-        gamerTag,
-        bio,
-        currency,
-        momoPhone,
-        momoProvider,
-        dataSaver,
+        gamerTag: safeGamerTag,
+        bio: safeBio,
+        currency: safeCurrency,
+        momoPhone: safeMomoPhone,
+        momoProvider: safeMomoProvider,
+        dataSaver: typeof dataSaver === 'boolean' ? dataSaver : undefined,
       });
 
       res.json({ success: true, profile: updated });

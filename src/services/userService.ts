@@ -71,14 +71,16 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
  * UserProfile: they represent real money / paid-tier entitlements and are only
  * ever set by the trusted backend. `twoFactorEnabled` is also excluded because
  * it is now backend-authoritative (see /api/auth/2fa/*) rather than a client
- * boolean, so it must never be written from the browser.
+ * boolean, so it must never be written from the browser. `streamKey`,
+ * `rtmpServer`, `bitrateCapKbps`, and `lowLatencyMode` are stream ingest
+ * credentials and server-side configuration; they must not be browser-writable.
+ * `userLevel` and `userXp` gate creator rank/unlocks and are backend-authoritative.
  */
 const CLIENT_WRITABLE_PROFILE_FIELDS: readonly (keyof UserProfile)[] = [
   'uid', 'displayName', 'email', 'photoURL', 'bio', 'networkProvider',
   'mobileNumber', 'lowDataMode', 'notificationsEnabled',
   'privacyProfileVisibility', 'privacyDirectMessages', 'blockedUsers',
-  'chatFlair', 'streamKey', 'rtmpServer', 'bitrateCapKbps',
-  'lowLatencyMode', 'showBalanceInHeader', 'userLevel', 'userXp',
+  'chatFlair', 'showBalanceInHeader',
 ];
 
 function pickClientWritableFields(profile: Partial<UserProfile>): Partial<UserProfile> {
@@ -115,6 +117,16 @@ export const getUserProfile = fetchUserProfile;
 export async function saveUserProfile(profile: UserProfile): Promise<boolean> {
   try {
     const docRef = doc(db, 'users', profile.uid);
+
+    // Validate blockedUsers before writing: must be an array of strings with a
+    // reasonable upper bound so a broken or malicious client cannot bloat the doc.
+    if (profile.blockedUsers !== undefined) {
+      if (!Array.isArray(profile.blockedUsers) || profile.blockedUsers.length > 500 ||
+          profile.blockedUsers.some((id) => typeof id !== 'string' || id.length > 128)) {
+        return false;
+      }
+    }
+
     const dataToSave = {
       // Only send fields the client is actually permitted to write. Sending
       // server-authoritative fields (balanceUSD, proGamerTier, twoFactorEnabled)
