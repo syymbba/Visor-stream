@@ -68,7 +68,12 @@ service cloud.firestore {
         && request.resource.data.sender is string
         && request.resource.data.message is string
         && request.resource.data.message.size() <= 1000;
-      allow update, delete: if request.auth != null
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['message', 'updatedAt'])
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 1000;
+      allow delete: if request.auth != null
         && resource.data.userId == request.auth.uid;
     }
 
