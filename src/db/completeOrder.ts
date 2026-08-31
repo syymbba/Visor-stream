@@ -1,9 +1,9 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { getFirestore } from 'firebase-admin/firestore';
 import { db } from './index.ts';
 import { pesapalOrders, tips } from './schema.ts';
-import { applyCompletedOrderToCreatorStats } from './creatorStats.ts';
-import { CREATOR_SHARE_RATE, PLATFORM_FEE_RATE } from '../lib/pricing.ts';
+import { applyCompletedOrderToCreatorStats, splitForOrderType } from './creatorStats.ts';
+import { toUSD } from '../lib/pricing.ts';
 
 export interface PesapalStatusLike {
   amount?: number | string;
@@ -70,11 +70,20 @@ export async function markOrderCompletedAndCredit(
     return { credited: false, reason: validated.reason };
   }
 
-  const wasAlreadyCompleted = order.status === 'COMPLETED';
-  const creatorShare = (validated.amount * CREATOR_SHARE_RATE).toFixed(2);
-  const platformShare = (validated.amount * PLATFORM_FEE_RATE).toFixed(2);
+  // Compute earnings using the same type-aware split as the ledger so that
+  // tips are credited 100% to the creator (not the flat 70/30 rate that was
+  // previously applied here, causing the creatorEarnings column to understate
+  // tip payouts by 30%).
+  const amountUSD = toUSD(validated.amount, validated.currency);
+  const { creatorUSD, platformUSD } = splitForOrderType(amountUSD, order.type);
+  const creatorShare = creatorUSD.toFixed(2);
+  const platformShare = platformUSD.toFixed(2);
 
-  await db
+  // Atomic idempotency guard: only update the row when it is still in a
+  // non-COMPLETED state. If a concurrent IPN retry or reconcile call already
+  // flipped the status, this UPDATE matches 0 rows, and we bail out without
+  // double-crediting the creator ledger.
+  const updated = await db
     .update(pesapalOrders)
     .set({
       status: 'COMPLETED',
@@ -85,9 +94,11 @@ export async function markOrderCompletedAndCredit(
       pesapalConfirmationCode: statusData.confirmation_code || order.pesapalConfirmationCode,
       updatedAt: new Date(),
     })
-    .where(eq(pesapalOrders.id, order.id));
+    .where(and(eq(pesapalOrders.id, order.id), ne(pesapalOrders.status, 'COMPLETED')))
+    .returning({ id: pesapalOrders.id });
 
-  if (wasAlreadyCompleted) {
+  if (updated.length === 0) {
+    // A concurrent call already completed this order.
     return { credited: false, reason: 'already_completed' };
   }
 

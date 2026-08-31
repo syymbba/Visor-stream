@@ -11,7 +11,7 @@ interface CompletedOrderLike {
   type: string;
 }
 
-function splitForOrderType(amountUSD: number, type: string): { creatorUSD: number; platformUSD: number } {
+export function splitForOrderType(amountUSD: number, type: string): { creatorUSD: number; platformUSD: number } {
   // Tips go 100% to the creator; subscriptions/other types follow the
   // platform's standard 70/30 revenue split.
   if (type === 'tip') {
