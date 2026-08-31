@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserLibraryItem, Currency } from '../types';
 import { MOCK_LIBRARY_ITEMS, CURRENCY_RATES } from '../data/mockData';
+import { getMuxPlaybackUrl, getMuxPosterUrl } from '../lib/mux';
 import {
   FolderDown,
   Bookmark,
@@ -347,8 +348,8 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
 
             <div className="aspect-video bg-black flex items-center justify-center">
               <video
-                src={playingItem.videoUrl}
-                poster={playingItem.thumbnail}
+                src={getMuxPlaybackUrl(playingItem.muxPlaybackId) || playingItem.videoUrl}
+                poster={getMuxPosterUrl(playingItem.muxPlaybackId) || playingItem.thumbnail}
                 controls
                 autoPlay
                 className="w-full h-full object-contain"

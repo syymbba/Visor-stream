@@ -8,6 +8,7 @@ import { StreamOverlayWidget } from './StreamOverlayWidget';
 import { RevenueSplitChart } from './RevenueSplitChart';
 import { useWalletBalance } from '../hooks/useWalletBalance';
 import { getAuthHeaders } from '../firebase';
+import { createMuxDirectUpload } from '../services/muxService';
 import confetti from 'canvas-confetti';
 import {
   LayoutDashboard,
@@ -87,6 +88,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
   const [cashoutSuccessAlert, setCashoutSuccessAlert] = useState<string | null>(null);
   const [cashoutTwoFactorRequired, setCashoutTwoFactorRequired] = useState(false);
   const [cashoutTwoFactorToken, setCashoutTwoFactorToken] = useState('');
+  const [vodUploadStatus, setVodUploadStatus] = useState<string | null>(null);
 
   const fetchPayoutHistory = async () => {
     setLoadingPayouts(true);
@@ -177,6 +179,23 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
     const newKey = 'live_vsr_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 10);
     setStats(prev => ({ ...prev, streamKey: newKey }));
     confetti({ particleCount: 30, spread: 50 });
+  };
+
+  const handleVodUpload = async (file: File) => {
+    setVodUploadStatus('Requesting Mux upload URL...');
+    const { uploadUrl } = await createMuxDirectUpload();
+    setVodUploadStatus('Uploading VOD to Mux...');
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type || 'video/mp4',
+      },
+      body: file,
+    });
+    if (!uploadRes.ok) {
+      throw new Error('Failed to upload VOD to Mux');
+    }
+    setVodUploadStatus('VOD uploaded. Processing in Mux...');
   };
 
   const handleProcessCashout = async (e: React.FormEvent) => {
@@ -731,6 +750,35 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
                 </div>
               </div>
             </div>
+
+            <div className="bg-slate-900 p-6 rounded-[28px] sm:rounded-[32px] border border-slate-800 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3.5">
+                <div className="flex items-center gap-2">
+                  <Download className="w-4 h-4 text-sky-400" />
+                  <h3 className="font-black text-xs uppercase text-slate-400 tracking-widest font-mono-code">
+                    Upload Creator VODs to Mux
+                  </h3>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-300 uppercase font-mono-code">VOD File</label>
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleVodUpload(file).catch((err) => {
+                        setVodUploadStatus(err instanceof Error ? err.message : 'VOD upload failed');
+                      });
+                    }
+                  }}
+                  className="w-full text-xs text-slate-300"
+                />
+                {vodUploadStatus && <p className="text-[11px] text-sky-300">{vodUploadStatus}</p>}
+              </div>
+            </div>
+
           </div>
         </div>
 

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { GamingTutorial } from '../types';
+import { getMuxPlaybackUrl } from '../lib/mux';
+import { createMuxDirectUpload } from '../services/muxService';
 import {
   BookOpen,
   Play,
@@ -48,6 +50,8 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
   const [newPlatform, setNewPlatform] = useState<'Mobile' | 'PC' | 'Console' | 'Cross-Platform'>('Mobile');
   const [newMission, setNewMission] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [uploadingVideo, setUploadingVideo] = useState<File | null>(null);
+  const [muxUploadStatus, setMuxUploadStatus] = useState<string | null>(null);
 
   const gamesList = ['all', 'PUBG Mobile', 'EA Sports FC 24', 'Apex Legends Mobile', 'Free Fire', 'Tekken 8', 'Valorant'];
   const difficulties = ['all', 'Beginner', 'Intermediate', 'Pro', 'Master'];
@@ -122,6 +126,24 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
     confetti({ particleCount: 70, spread: 60 });
   };
 
+  const handleMuxVideoUpload = async (file: File) => {
+    setUploadingVideo(file);
+    setMuxUploadStatus('Requesting Mux upload URL...');
+    const { uploadUrl } = await createMuxDirectUpload();
+    setMuxUploadStatus('Uploading video to Mux...');
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type || 'video/mp4',
+      },
+      body: file,
+    });
+    if (!uploadRes.ok) {
+      throw new Error('Mux upload failed');
+    }
+    setMuxUploadStatus('Upload sent to Mux. Waiting for processing...');
+  };
+
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
       {/* Top Banner: Tutorials & Mission Guides Bento Hero Header */}
@@ -147,7 +169,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-950 hover:bg-sky-400 transition-colors font-black text-xs uppercase tracking-widest shadow-lg shadow-sky-500/10"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>Publish A Tutorial</span>
+              <span className="text-slate-950">Publish A Tutorial</span>
             </button>
 
             <button
@@ -155,7 +177,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-xs font-bold uppercase font-mono-code"
             >
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>Unlock Masterclass Tier</span>
+              <span className="text-white">Unlock Masterclass Tier</span>
             </button>
           </div>
         </div>
@@ -168,7 +190,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
           <div className="relative aspect-video w-full bg-slate-950 rounded-[28px] sm:rounded-[32px] overflow-hidden border border-slate-800 shadow-2xl">
             <video
               key={activeTutorial.id}
-              src={activeTutorial.videoUrl}
+              src={getMuxPlaybackUrl(activeTutorial.muxPlaybackId) || activeTutorial.videoUrl}
               controls
               playsInline
               className="w-full h-full object-cover"
@@ -177,7 +199,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
               <span className="px-3 py-1 rounded-xl bg-sky-500 text-slate-950 font-black text-xs uppercase shadow">
                 TUTORIAL • {activeTutorial.difficulty}
               </span>
-              <span className="px-3 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md text-slate-200 text-xs font-mono-code border border-slate-800">
+              <span className="px-3 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md text-white text-xs font-mono-code border border-slate-800">
                 {activeTutorial.game}
               </span>
             </div>
@@ -467,6 +489,24 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
             </div>
 
             <form onSubmit={handleCreateTutorial} className="space-y-3.5">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-300">Video File</label>
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleMuxVideoUpload(file).catch((err) => {
+                        setMuxUploadStatus(err instanceof Error ? err.message : 'Mux upload failed');
+                      });
+                    }
+                  }}
+                  className="w-full text-xs text-slate-300"
+                />
+                {muxUploadStatus && <p className="text-[11px] text-sky-300">{muxUploadStatus}</p>}
+              </div>
+
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-300">Tutorial Title</label>
                 <input

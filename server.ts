@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
+import Mux from "@mux/mux-node";
 import { requireAuth, type AuthRequest } from "./src/middleware/auth.ts";
 import {
   getOrCreateUser,
@@ -60,6 +61,11 @@ interface IPNLogEntry {
 }
 
 const ipnLogsBuffer: IPNLogEntry[] = [];
+const muxAccessTokenId = process.env.MUX_TOKEN_ID;
+const muxAccessTokenSecret = process.env.MUX_TOKEN_SECRET;
+const mux = muxAccessTokenId && muxAccessTokenSecret
+  ? new Mux({ tokenId: muxAccessTokenId, tokenSecret: muxAccessTokenSecret })
+  : null;
 
 // Fields that may carry raw credentials or PII from the payment provider —
 // strip them before storing in the in-memory audit buffer so they don't
@@ -148,6 +154,45 @@ async function startServer() {
   // Health check endpoint
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", service: "visor-stream", db: "cloud-sql", pesapal: "v3" });
+  });
+
+  app.get("/api/mux/config", (_req, res) => {
+    res.json({
+      configured: Boolean(mux),
+      uploadType: "direct_upload",
+    });
+  });
+
+  app.post("/api/mux/direct-upload", requireAuth, async (_req: AuthRequest, res) => {
+    if (!mux) {
+      return res.status(500).json({ error: "Mux is not configured" });
+    }
+
+    const upload = await mux.video.uploads.create({
+      cors_origin: getAppUrl(),
+      new_asset_settings: { playback_policy: ["public"] },
+    });
+
+    return res.json({
+      uploadUrl: upload.url,
+      uploadId: upload.id,
+      assetId: upload.asset_id ?? null,
+    });
+  });
+
+  app.get("/api/mux/assets/:assetId", requireAuth, async (req: AuthRequest, res) => {
+    if (!mux) {
+      return res.status(500).json({ error: "Mux is not configured" });
+    }
+
+    const asset = await mux.video.assets.retrieve(req.params.assetId);
+    return res.json({
+      assetId: asset.id,
+      status: asset.status,
+      playbackIds: asset.playback_ids,
+      duration: asset.duration,
+      createdAt: asset.created_at,
+    });
   });
 
   // ==========================================
@@ -1219,7 +1264,7 @@ async function startServer() {
         currency: safeCurrency,
         momoPhone: safeMomoPhone,
         momoProvider: safeMomoProvider,
-        dataSaver: typeof dataSaver === 'boolean' ? dataSaver : undefined,
+        dataSaver: typeof dataSaver === 'boolean' ? String(dataSaver) : undefined,
       });
 
       res.json({ success: true, profile: updated });
@@ -1318,4 +1363,3 @@ async function startServer() {
 }
 
 startServer();
-
