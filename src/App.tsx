@@ -357,7 +357,8 @@ export function App() {
     : 'high-fps-streaming';
 
   return (
-    <div className="min-h-screen bg-[#0b0e14] text-slate-200 flex flex-col font-sans selection:bg-[#38bdf8] selection:text-[#0b0e14] steam-grid-bg">
+    <Suspense fallback={<div className="min-h-screen bg-[#0b0e14]" />}>
+      <div className="min-h-screen bg-[#0b0e14] text-slate-200 flex flex-col font-sans selection:bg-[#38bdf8] selection:text-[#0b0e14] steam-grid-bg">
       
       {/* 1. PUBLIC LANDING PAGE (Shown for guest visitors on root `/` or when Landing is selected) */}
       {activeTab === 'landing' && (
@@ -701,7 +702,8 @@ export function App() {
       {/* Vercel Web Analytics */}
       <Analytics />
       <SpeedInsights />
-    </div>
+      </div>
+    </Suspense>
   );
 }
 
