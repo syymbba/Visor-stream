@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import {
   MOCK_LIVE_STREAMS,
   MOCK_TUTORIALS,
@@ -11,26 +11,8 @@ import {
 } from './data/mockData';
 import { LiveStream, GamingTutorial, Currency, SubscriptionPlan, ReelClip, UserLibraryItem } from './types';
 import { Navbar } from './components/Navbar';
-import { LandingPageView } from './components/LandingPageView';
-import { LivePlayerView } from './components/LivePlayerView';
-import { ReelsView } from './components/ReelsView';
-import { LibraryView } from './components/LibraryView';
-import { TutorialsView } from './components/TutorialsView';
-import { GamesView } from './components/GamesView';
-import { EsportsView } from './components/EsportsView';
-import { CommunityView } from './components/CommunityView';
-import { StoreView } from './components/StoreView';
-import { CreatorStudioView } from './components/CreatorStudioView';
-import { StreamOverlayWidget } from './components/StreamOverlayWidget';
-import { PricingView } from './components/PricingView';
+import type { FeatureId } from './components/FeatureInfoView';
 import { PricingModal } from './components/PricingModal';
-import { SettingsView } from './components/SettingsView';
-import { AboutPolicyView } from './components/AboutPolicyView';
-import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
-import { TermsOfServicePage } from './components/TermsOfServicePage';
-import { FeatureInfoView, FeatureId } from './components/FeatureInfoView';
-import { PaymentStatusView } from './components/PaymentStatusView';
-import { PaymentHistory } from './components/PaymentHistory';
 import { OfflineBanner } from './components/OfflineBanner';
 import { useWalletBalance } from './hooks/useWalletBalance';
 import { useOfflineManager } from './hooks/useOfflineManager';
@@ -42,6 +24,64 @@ import { getUserProfile, UserProfile } from './services/userService';
 import confetti from 'canvas-confetti';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+
+const LandingPageView = lazy(() =>
+  import('./components/LandingPageView').then(({ LandingPageView }) => ({ default: LandingPageView })),
+);
+const LivePlayerView = lazy(() =>
+  import('./components/LivePlayerView').then(({ LivePlayerView }) => ({ default: LivePlayerView })),
+);
+const ReelsView = lazy(() =>
+  import('./components/ReelsView').then(({ ReelsView }) => ({ default: ReelsView })),
+);
+const LibraryView = lazy(() =>
+  import('./components/LibraryView').then(({ LibraryView }) => ({ default: LibraryView })),
+);
+const TutorialsView = lazy(() =>
+  import('./components/TutorialsView').then(({ TutorialsView }) => ({ default: TutorialsView })),
+);
+const GamesView = lazy(() =>
+  import('./components/GamesView').then(({ GamesView }) => ({ default: GamesView })),
+);
+const EsportsView = lazy(() =>
+  import('./components/EsportsView').then(({ EsportsView }) => ({ default: EsportsView })),
+);
+const CommunityView = lazy(() =>
+  import('./components/CommunityView').then(({ CommunityView }) => ({ default: CommunityView })),
+);
+const StoreView = lazy(() =>
+  import('./components/StoreView').then(({ StoreView }) => ({ default: StoreView })),
+);
+const CreatorStudioView = lazy(() =>
+  import('./components/CreatorStudioView').then(({ CreatorStudioView }) => ({ default: CreatorStudioView })),
+);
+const StreamOverlayWidget = lazy(() =>
+  import('./components/StreamOverlayWidget').then(({ StreamOverlayWidget }) => ({ default: StreamOverlayWidget })),
+);
+const PricingView = lazy(() =>
+  import('./components/PricingView').then(({ PricingView }) => ({ default: PricingView })),
+);
+const SettingsView = lazy(() =>
+  import('./components/SettingsView').then(({ SettingsView }) => ({ default: SettingsView })),
+);
+const AboutPolicyView = lazy(() =>
+  import('./components/AboutPolicyView').then(({ AboutPolicyView }) => ({ default: AboutPolicyView })),
+);
+const PrivacyPolicyPage = lazy(() =>
+  import('./components/PrivacyPolicyPage').then(({ PrivacyPolicyPage }) => ({ default: PrivacyPolicyPage })),
+);
+const TermsOfServicePage = lazy(() =>
+  import('./components/TermsOfServicePage').then(({ TermsOfServicePage }) => ({ default: TermsOfServicePage })),
+);
+const FeatureInfoView = lazy(() =>
+  import('./components/FeatureInfoView').then(({ FeatureInfoView }) => ({ default: FeatureInfoView })),
+);
+const PaymentStatusView = lazy(() =>
+  import('./components/PaymentStatusView').then(({ PaymentStatusView }) => ({ default: PaymentStatusView })),
+);
+const PaymentHistory = lazy(() =>
+  import('./components/PaymentHistory').then(({ PaymentHistory }) => ({ default: PaymentHistory })),
+);
 
 type AppTab =
   | 'landing'
@@ -328,9 +368,11 @@ export function App() {
   // Standalone OBS / vMix Overlay View
   if (activeTab === 'overlay') {
     return (
-      <div className="min-h-screen bg-transparent p-4 flex flex-col justify-start">
-        <StreamOverlayWidget standalone={true} />
-      </div>
+      <Suspense fallback={<div className="min-h-screen bg-[#0b0e14]" />}>
+        <div className="min-h-screen bg-transparent p-4 flex flex-col justify-start">
+          <StreamOverlayWidget standalone={true} />
+        </div>
+      </Suspense>
     );
   }
 
@@ -349,7 +391,8 @@ export function App() {
     : 'high-fps-streaming';
 
   return (
-    <div className="min-h-screen bg-[#0b0e14] text-slate-200 flex flex-col font-sans selection:bg-[#38bdf8] selection:text-[#0b0e14] steam-grid-bg">
+    <Suspense fallback={<div className="min-h-screen bg-[#0b0e14]" />}>
+      <div className="min-h-screen bg-[#0b0e14] text-slate-200 flex flex-col font-sans selection:bg-[#38bdf8] selection:text-[#0b0e14] steam-grid-bg">
       
       {/* 1. PUBLIC LANDING PAGE (Shown for guest visitors on root `/` or when Landing is selected) */}
       {activeTab === 'landing' && (
@@ -665,9 +708,9 @@ export function App() {
       {/* Vercel Web Analytics */}
       <Analytics />
       <SpeedInsights />
-    </div>
+      </div>
+    </Suspense>
   );
 }
 
 export default App;
-
