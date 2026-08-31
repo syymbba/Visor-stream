@@ -11,77 +11,43 @@ import {
 } from './data/mockData';
 import { LiveStream, GamingTutorial, Currency, SubscriptionPlan, ReelClip, UserLibraryItem } from './types';
 import { Navbar } from './components/Navbar';
-import type { FeatureId } from './components/FeatureInfoView';
-import { PricingModal } from './components/PricingModal';
 import { OfflineBanner } from './components/OfflineBanner';
 import { useWalletBalance } from './hooks/useWalletBalance';
 import { useOfflineManager } from './hooks/useOfflineManager';
-import { GoLiveModal } from './components/GoLiveModal';
-import { NotificationsModal } from './components/NotificationsModal';
-import { AuthModal } from './components/AuthModal';
+import type { FeatureId } from './components/FeatureInfoView';
 import { auth, onAuthStateChanged, User } from './firebase';
 import { getUserProfile, UserProfile } from './services/userService';
 import confetti from 'canvas-confetti';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
-const LandingPageView = lazy(() =>
-  import('./components/LandingPageView').then(({ LandingPageView }) => ({ default: LandingPageView })),
-);
-const LivePlayerView = lazy(() =>
-  import('./components/LivePlayerView').then(({ LivePlayerView }) => ({ default: LivePlayerView })),
-);
-const ReelsView = lazy(() =>
-  import('./components/ReelsView').then(({ ReelsView }) => ({ default: ReelsView })),
-);
-const LibraryView = lazy(() =>
-  import('./components/LibraryView').then(({ LibraryView }) => ({ default: LibraryView })),
-);
-const TutorialsView = lazy(() =>
-  import('./components/TutorialsView').then(({ TutorialsView }) => ({ default: TutorialsView })),
-);
-const GamesView = lazy(() =>
-  import('./components/GamesView').then(({ GamesView }) => ({ default: GamesView })),
-);
-const EsportsView = lazy(() =>
-  import('./components/EsportsView').then(({ EsportsView }) => ({ default: EsportsView })),
-);
-const CommunityView = lazy(() =>
-  import('./components/CommunityView').then(({ CommunityView }) => ({ default: CommunityView })),
-);
-const StoreView = lazy(() =>
-  import('./components/StoreView').then(({ StoreView }) => ({ default: StoreView })),
-);
-const CreatorStudioView = lazy(() =>
-  import('./components/CreatorStudioView').then(({ CreatorStudioView }) => ({ default: CreatorStudioView })),
-);
-const StreamOverlayWidget = lazy(() =>
-  import('./components/StreamOverlayWidget').then(({ StreamOverlayWidget }) => ({ default: StreamOverlayWidget })),
-);
-const PricingView = lazy(() =>
-  import('./components/PricingView').then(({ PricingView }) => ({ default: PricingView })),
-);
-const SettingsView = lazy(() =>
-  import('./components/SettingsView').then(({ SettingsView }) => ({ default: SettingsView })),
-);
-const AboutPolicyView = lazy(() =>
-  import('./components/AboutPolicyView').then(({ AboutPolicyView }) => ({ default: AboutPolicyView })),
-);
-const PrivacyPolicyPage = lazy(() =>
-  import('./components/PrivacyPolicyPage').then(({ PrivacyPolicyPage }) => ({ default: PrivacyPolicyPage })),
-);
-const TermsOfServicePage = lazy(() =>
-  import('./components/TermsOfServicePage').then(({ TermsOfServicePage }) => ({ default: TermsOfServicePage })),
-);
-const FeatureInfoView = lazy(() =>
-  import('./components/FeatureInfoView').then(({ FeatureInfoView }) => ({ default: FeatureInfoView })),
-);
-const PaymentStatusView = lazy(() =>
-  import('./components/PaymentStatusView').then(({ PaymentStatusView }) => ({ default: PaymentStatusView })),
-);
-const PaymentHistory = lazy(() =>
-  import('./components/PaymentHistory').then(({ PaymentHistory }) => ({ default: PaymentHistory })),
-);
+const LandingPageView = lazy(() => import('./components/LandingPageView').then(({ LandingPageView }) => ({ default: LandingPageView })));
+const LivePlayerView = lazy(() => import('./components/LivePlayerView').then(({ LivePlayerView }) => ({ default: LivePlayerView })));
+const ReelsView = lazy(() => import('./components/ReelsView').then(({ ReelsView }) => ({ default: ReelsView })));
+const LibraryView = lazy(() => import('./components/LibraryView').then(({ LibraryView }) => ({ default: LibraryView })));
+const TutorialsView = lazy(() => import('./components/TutorialsView').then(({ TutorialsView }) => ({ default: TutorialsView })));
+const GamesView = lazy(() => import('./components/GamesView').then(({ GamesView }) => ({ default: GamesView })));
+const EsportsView = lazy(() => import('./components/EsportsView').then(({ EsportsView }) => ({ default: EsportsView })));
+const CommunityView = lazy(() => import('./components/CommunityView').then(({ CommunityView }) => ({ default: CommunityView })));
+const StoreView = lazy(() => import('./components/StoreView').then(({ StoreView }) => ({ default: StoreView })));
+const CreatorStudioView = lazy(() => import('./components/CreatorStudioView').then(({ CreatorStudioView }) => ({ default: CreatorStudioView })));
+const StreamOverlayWidget = lazy(() => import('./components/StreamOverlayWidget').then(({ StreamOverlayWidget }) => ({ default: StreamOverlayWidget })));
+const PricingView = lazy(() => import('./components/PricingView').then(({ PricingView }) => ({ default: PricingView })));
+const PricingModal = lazy(() => import('./components/PricingModal').then(({ PricingModal }) => ({ default: PricingModal })));
+const SettingsView = lazy(() => import('./components/SettingsView').then(({ SettingsView }) => ({ default: SettingsView })));
+const AboutPolicyView = lazy(() => import('./components/AboutPolicyView').then(({ AboutPolicyView }) => ({ default: AboutPolicyView })));
+const PrivacyPolicyPage = lazy(() => import('./components/PrivacyPolicyPage').then(({ PrivacyPolicyPage }) => ({ default: PrivacyPolicyPage })));
+const TermsOfServicePage = lazy(() => import('./components/TermsOfServicePage').then(({ TermsOfServicePage }) => ({ default: TermsOfServicePage })));
+const FeatureInfoView = lazy(() => import('./components/FeatureInfoView').then(({ FeatureInfoView }) => ({ default: FeatureInfoView })));
+const PaymentStatusView = lazy(() => import('./components/PaymentStatusView').then(({ PaymentStatusView }) => ({ default: PaymentStatusView })));
+const PaymentHistory = lazy(() => import('./components/PaymentHistory').then(({ PaymentHistory }) => ({ default: PaymentHistory })));
+const GoLiveModal = lazy(() => import('./components/GoLiveModal').then(({ GoLiveModal }) => ({ default: GoLiveModal })));
+const NotificationsModal = lazy(() => import('./components/NotificationsModal').then(({ NotificationsModal }) => ({ default: NotificationsModal })));
+const AuthModal = lazy(() => import('./components/AuthModal').then(({ AuthModal }) => ({ default: AuthModal })));
+
+function PageLoader() {
+  return <div className="min-h-[12rem]" aria-busy="true" />;
+}
 
 type AppTab =
   | 'landing'
@@ -368,7 +334,7 @@ export function App() {
   // Standalone OBS / vMix Overlay View
   if (activeTab === 'overlay') {
     return (
-      <Suspense fallback={<div className="min-h-screen bg-[#0b0e14]" />}>
+      <Suspense fallback={<PageLoader />}>
         <div className="min-h-screen bg-transparent p-4 flex flex-col justify-start">
           <StreamOverlayWidget standalone={true} />
         </div>
@@ -396,21 +362,23 @@ export function App() {
       
       {/* 1. PUBLIC LANDING PAGE (Shown for guest visitors on root `/` or when Landing is selected) */}
       {activeTab === 'landing' && (
-        <LandingPageView
-          isAuthenticated={Boolean(currentUser)}
-          userDisplayName={currentUser?.displayName}
-          userAvatar={currentUser?.photoURL}
-          onOpenLogin={openAuthLogin}
-          onOpenSignUp={openAuthSignUp}
-          onEnterApp={() => handleNavigateTab('live')}
-          onSelectStream={(stream) => {
-            setSelectedStream(stream);
-            handleNavigateTab('live');
-          }}
-          onNavigateLegal={(section) => handleNavigateTab(section as AppTab)}
-          onNavigateTab={(tab) => handleNavigateTab(tab as AppTab)}
-          onSelectFeature={(featureId) => handleNavigateTab(`features-${featureId}` as AppTab)}
-        />
+        <Suspense fallback={<PageLoader />}>
+          <LandingPageView
+            isAuthenticated={Boolean(currentUser)}
+            userDisplayName={currentUser?.displayName}
+            userAvatar={currentUser?.photoURL}
+            onOpenLogin={openAuthLogin}
+            onOpenSignUp={openAuthSignUp}
+            onEnterApp={() => handleNavigateTab('live')}
+            onSelectStream={(stream) => {
+              setSelectedStream(stream);
+              handleNavigateTab('live');
+            }}
+            onNavigateLegal={(section) => handleNavigateTab(section as AppTab)}
+            onNavigateTab={(tab) => handleNavigateTab(tab as AppTab)}
+            onSelectFeature={(featureId) => handleNavigateTab(`features-${featureId}` as AppTab)}
+          />
+        </Suspense>
       )}
 
       {/* 2a. STANDALONE PRIVACY POLICY / TERMS OF SERVICE PAGES
@@ -422,35 +390,43 @@ export function App() {
           Support & Legal), onBackToApp gives them a way back without a full
           page reload. */}
       {activeTab === 'privacy' && (
-        <PrivacyPolicyPage onBackToApp={currentUser ? () => handleNavigateTab('live') : undefined} />
+        <Suspense fallback={<PageLoader />}>
+          <PrivacyPolicyPage onBackToApp={currentUser ? () => handleNavigateTab('live') : undefined} />
+        </Suspense>
       )}
       {activeTab === 'terms' && (
-        <TermsOfServicePage onBackToApp={currentUser ? () => handleNavigateTab('live') : undefined} />
+        <Suspense fallback={<PageLoader />}>
+          <TermsOfServicePage onBackToApp={currentUser ? () => handleNavigateTab('live') : undefined} />
+        </Suspense>
       )}
 
       {/* 2b. PUBLIC "ABOUT" INFO PAGE (Directly accessible without forcing login) */}
       {isPublicLegal && !isStandaloneLegalDoc && (
         <div>
-          <AboutPolicyView
-            initialSection={activeTab as any}
-            isStandalone={true}
-            onBackToLanding={() => handleNavigateTab('landing')}
-            onBackToApp={currentUser ? () => handleNavigateTab('live') : undefined}
-            onEnterApp={() => handleNavigateTab('live')}
-            onNavigateLegal={(section) => handleNavigateTab(section)}
-          />
+          <Suspense fallback={<PageLoader />}>
+            <AboutPolicyView
+              initialSection={activeTab as any}
+              isStandalone={true}
+              onBackToLanding={() => handleNavigateTab('landing')}
+              onBackToApp={currentUser ? () => handleNavigateTab('live') : undefined}
+              onEnterApp={() => handleNavigateTab('live')}
+              onNavigateLegal={(section) => handleNavigateTab(section)}
+            />
+          </Suspense>
         </div>
       )}
 
       {/* 3. PUBLIC FEATURE DEEP-DIVE PAGES (Architecture, Ingest Specs & Live HUD details) */}
       {isFeatureView && (
         <div>
-          <FeatureInfoView
-            featureId={currentFeatureId}
-            onBackToLanding={() => handleNavigateTab('landing')}
-            onSelectFeature={(id) => handleNavigateTab(`features-${id}` as AppTab)}
-            onEnterApp={() => handleNavigateTab('live')}
-          />
+          <Suspense fallback={<PageLoader />}>
+            <FeatureInfoView
+              featureId={currentFeatureId}
+              onBackToLanding={() => handleNavigateTab('landing')}
+              onSelectFeature={(id) => handleNavigateTab(`features-${id}` as AppTab)}
+              onEnterApp={() => handleNavigateTab('live')}
+            />
+          </Suspense>
         </div>
       )}
 
@@ -540,170 +516,188 @@ export function App() {
               </div>
             )}
 
-            {activeTab === 'live' && (
-              <LivePlayerView
-                currentStream={selectedStream}
-                allStreams={liveStreams}
-                onSelectStream={setSelectedStream}
-                currentCurrency={currentCurrency}
-                userTier={(userProfile?.proGamerTier as any) || 'free'}
-                onOpenSubscribe={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
-                isOfflineMode={offlineManager.isOfflineMode}
-                onNavigateToLibrary={() => handleNavigateTab('library')}
-              />
-            )}
+            <Suspense fallback={<PageLoader />}>
+              {activeTab === 'live' && (
+                <LivePlayerView
+                  currentStream={selectedStream}
+                  allStreams={liveStreams}
+                  onSelectStream={setSelectedStream}
+                  currentCurrency={currentCurrency}
+                  userTier={(userProfile?.proGamerTier as any) || 'free'}
+                  onOpenSubscribe={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
+                  isOfflineMode={offlineManager.isOfflineMode}
+                  onNavigateToLibrary={() => handleNavigateTab('library')}
+                />
+              )}
 
-            {activeTab === 'reels' && (
-              <ReelsView
-                currentCurrency={currentCurrency}
-                onSaveToLibrary={() => {}}
-                onOpenCreator={() => handleNavigateTab('creator')}
-              />
-            )}
+              {activeTab === 'reels' && (
+                <ReelsView
+                  currentCurrency={currentCurrency}
+                  onSaveToLibrary={() => {}}
+                  onOpenCreator={() => handleNavigateTab('creator')}
+                />
+              )}
 
-            {activeTab === 'library' && (
-              <LibraryView
-                currentCurrency={currentCurrency}
-                isOfflineMode={offlineManager.isOfflineMode}
-                setIsOfflineMode={offlineManager.toggleOfflineMode}
-                onNavigateToTutorials={() => handleNavigateTab('tutorials')}
-                onNavigateToReels={() => handleNavigateTab('reels')}
-              />
-            )}
+              {activeTab === 'library' && (
+                <LibraryView
+                  currentCurrency={currentCurrency}
+                  isOfflineMode={offlineManager.isOfflineMode}
+                  setIsOfflineMode={offlineManager.toggleOfflineMode}
+                  onNavigateToTutorials={() => handleNavigateTab('tutorials')}
+                  onNavigateToReels={() => handleNavigateTab('reels')}
+                />
+              )}
 
-            {activeTab === 'tutorials' && (
-              <TutorialsView
-                tutorials={tutorials}
-                selectedTutorial={selectedTutorial}
-                onSelectTutorial={setSelectedTutorial}
-                currentCurrency={currentCurrency}
-                onOpenSubscribe={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
-              />
-            )}
+              {activeTab === 'tutorials' && (
+                <TutorialsView
+                  tutorials={tutorials}
+                  selectedTutorial={selectedTutorial}
+                  onSelectTutorial={setSelectedTutorial}
+                  currentCurrency={currentCurrency}
+                  onOpenSubscribe={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
+                />
+              )}
 
-            {activeTab === 'games' && (
-              <GamesView
-                games={MOCK_GAMES}
-                onSelectCategory={() => {
-                  handleNavigateTab('live');
-                }}
-              />
-            )}
+              {activeTab === 'games' && (
+                <GamesView
+                  games={MOCK_GAMES}
+                  onSelectCategory={() => {
+                    handleNavigateTab('live');
+                  }}
+                />
+              )}
 
-            {activeTab === 'esports' && (
-              <EsportsView
-                tournaments={MOCK_TOURNAMENTS}
-                currentCurrency={currentCurrency}
-                onOpenLiveTournamentStream={() => {
-                  setSelectedStream(liveStreams[0]);
-                  handleNavigateTab('live');
-                }}
-              />
-            )}
+              {activeTab === 'esports' && (
+                <EsportsView
+                  tournaments={MOCK_TOURNAMENTS}
+                  currentCurrency={currentCurrency}
+                  onOpenLiveTournamentStream={() => {
+                    setSelectedStream(liveStreams[0]);
+                    handleNavigateTab('live');
+                  }}
+                />
+              )}
 
-            {activeTab === 'community' && (
-              <CommunityView
-                posts={MOCK_COMMUNITY_POSTS}
-                onOpenSubscribe={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
-              />
-            )}
+              {activeTab === 'community' && (
+                <CommunityView
+                  posts={MOCK_COMMUNITY_POSTS}
+                  onOpenSubscribe={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
+                />
+              )}
 
-            {activeTab === 'store' && (
-              <StoreView
-                items={MOCK_STORE_ITEMS}
-                currentCurrency={currentCurrency}
-              />
-            )}
+              {activeTab === 'store' && (
+                <StoreView
+                  items={MOCK_STORE_ITEMS}
+                  currentCurrency={currentCurrency}
+                />
+              )}
 
-            {activeTab === 'creator' && (
-              <CreatorStudioView
-                stats={MOCK_CREATOR_DASHBOARD}
-                currentCurrency={currentCurrency}
-                onStartBroadcast={() => setIsGoLiveOpen(true)}
-              />
-            )}
+              {activeTab === 'creator' && (
+                <CreatorStudioView
+                  stats={MOCK_CREATOR_DASHBOARD}
+                  currentCurrency={currentCurrency}
+                  onStartBroadcast={() => setIsGoLiveOpen(true)}
+                />
+              )}
 
-            {activeTab === 'pricing' && (
-              <PricingView
-                currentCurrency={currentCurrency}
-                setCurrentCurrency={setCurrentCurrency}
-                onSubscribePlan={handleOpenPlanCheckout}
-              />
-            )}
+              {activeTab === 'pricing' && (
+                <PricingView
+                  currentCurrency={currentCurrency}
+                  setCurrentCurrency={setCurrentCurrency}
+                  onSubscribePlan={handleOpenPlanCheckout}
+                />
+              )}
 
-            {activeTab === 'settings' && (
-              <SettingsView
-                currentCurrency={currentCurrency}
-                setCurrentCurrency={setCurrentCurrency}
-                showBalanceInHeader={showBalanceInHeader}
-                setShowBalanceInHeader={setShowBalanceInHeader}
-                onOpenSubscribe={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
-                onOpenAuthModal={openAuthLogin}
-                onNavigateToTab={(tab) => handleNavigateTab(tab as AppTab)}
-              />
-            )}
+              {activeTab === 'settings' && (
+                <SettingsView
+                  currentCurrency={currentCurrency}
+                  setCurrentCurrency={setCurrentCurrency}
+                  showBalanceInHeader={showBalanceInHeader}
+                  setShowBalanceInHeader={setShowBalanceInHeader}
+                  onOpenSubscribe={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
+                  onOpenAuthModal={openAuthLogin}
+                  onNavigateToTab={(tab) => handleNavigateTab(tab as AppTab)}
+                />
+              )}
 
-            {activeTab === 'payments' && (
-              <PaymentHistory
-                currentCurrency={currentCurrency}
-                userId={currentUser?.uid}
-              />
-            )}
+              {activeTab === 'payments' && (
+                <PaymentHistory
+                  currentCurrency={currentCurrency}
+                  userId={currentUser?.uid}
+                />
+              )}
 
-            {activeTab === 'payment-status' && (
-              <PaymentStatusView
-                orderTrackingId={paymentCallbackData?.orderTrackingId}
-                merchantReference={paymentCallbackData?.merchantReference}
-                statusParam={paymentCallbackData?.statusParam}
-                initialAmount={paymentCallbackData?.initialAmount}
-                initialCurrency={paymentCallbackData?.initialCurrency}
-                statusCode={paymentCallbackData?.statusCode}
-                statusDesc={paymentCallbackData?.statusDesc}
-                errorCode={paymentCallbackData?.errorCode}
-                errorMessage={paymentCallbackData?.errorMessage}
-                paymentMethod={paymentCallbackData?.paymentMethod}
-                onNavigateHome={() => handleNavigateTab('live')}
-                onNavigateStudio={() => handleNavigateTab('creator')}
-                onNavigateLive={() => handleNavigateTab('live')}
-                onTryAgain={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
-              />
-            )}
+              {activeTab === 'payment-status' && (
+                <PaymentStatusView
+                  orderTrackingId={paymentCallbackData?.orderTrackingId}
+                  merchantReference={paymentCallbackData?.merchantReference}
+                  statusParam={paymentCallbackData?.statusParam}
+                  initialAmount={paymentCallbackData?.initialAmount}
+                  initialCurrency={paymentCallbackData?.initialCurrency}
+                  statusCode={paymentCallbackData?.statusCode}
+                  statusDesc={paymentCallbackData?.statusDesc}
+                  errorCode={paymentCallbackData?.errorCode}
+                  errorMessage={paymentCallbackData?.errorMessage}
+                  paymentMethod={paymentCallbackData?.paymentMethod}
+                  onNavigateHome={() => handleNavigateTab('live')}
+                  onNavigateStudio={() => handleNavigateTab('creator')}
+                  onNavigateLive={() => handleNavigateTab('live')}
+                  onTryAgain={() => handleOpenPlanCheckout(SUBSCRIPTION_PLANS[1])}
+                />
+              )}
+            </Suspense>
           </main>
         </>
       )}
 
       {/* Global Modals */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        initialMode={authModalMode}
-        onClose={() => setIsAuthModalOpen(false)}
-        onAuthSuccess={(profile) => {
-          setUserProfile(profile);
-          setIsAuthModalOpen(false);
-          if (activeTab === 'landing') {
-            handleNavigateTab('live');
-          }
-        }}
-      />
+      {isAuthModalOpen && (
+        <Suspense fallback={null}>
+          <AuthModal
+            isOpen
+            initialMode={authModalMode}
+            onClose={() => setIsAuthModalOpen(false)}
+            onAuthSuccess={(profile) => {
+              setUserProfile(profile);
+              setIsAuthModalOpen(false);
+              if (activeTab === 'landing') {
+                handleNavigateTab('live');
+              }
+            }}
+          />
+        </Suspense>
+      )}
 
-      <GoLiveModal
-        isOpen={isGoLiveOpen}
-        onClose={() => setIsGoLiveOpen(false)}
-        onStartBroadcast={handleStartBroadcast}
-      />
+      {isGoLiveOpen && (
+        <Suspense fallback={null}>
+          <GoLiveModal
+            isOpen
+            onClose={() => setIsGoLiveOpen(false)}
+            onStartBroadcast={handleStartBroadcast}
+          />
+        </Suspense>
+      )}
 
-      <PricingModal
-        isOpen={isPricingModalOpen}
-        onClose={() => setIsPricingModalOpen(false)}
-        selectedPlan={selectedPlanForModal}
-        currentCurrency={currentCurrency}
-        onSuccess={handleSubscriptionSuccess}
-      />
+      {isPricingModalOpen && (
+        <Suspense fallback={null}>
+          <PricingModal
+            isOpen
+            onClose={() => setIsPricingModalOpen(false)}
+            selectedPlan={selectedPlanForModal}
+            currentCurrency={currentCurrency}
+            onSuccess={handleSubscriptionSuccess}
+          />
+        </Suspense>
+      )}
 
-      <NotificationsModal
-        isOpen={isNotificationsOpen}
-        onClose={() => setIsNotificationsOpen(false)}
-      />
+      {isNotificationsOpen && (
+        <Suspense fallback={null}>
+          <NotificationsModal
+            isOpen
+            onClose={() => setIsNotificationsOpen(false)}
+          />
+        </Suspense>
+      )}
 
       {/* Vercel Web Analytics */}
       <Analytics />
