@@ -6,10 +6,21 @@ export interface MuxDirectUploadResponse {
   assetId: string | null;
 }
 
-export async function createMuxDirectUpload(): Promise<MuxDirectUploadResponse> {
+export interface MuxDirectUploadRequest {
+  contentType: string;
+  fileSize: number;
+}
+
+export async function createMuxDirectUpload(
+  payload: MuxDirectUploadRequest
+): Promise<MuxDirectUploadResponse> {
   const res = await fetch('/api/mux/direct-upload', {
     method: 'POST',
-    headers: await getAuthHeaders(),
+    headers: {
+      'Content-Type': 'application/json',
+      ...(await getAuthHeaders()),
+    },
+    body: JSON.stringify(payload),
   });
   const data = await res.json();
   if (!res.ok || data?.error) {

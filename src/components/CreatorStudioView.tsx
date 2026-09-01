@@ -183,7 +183,10 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
 
   const handleVodUpload = async (file: File) => {
     setVodUploadStatus('Requesting Mux upload URL...');
-    const { uploadUrl } = await createMuxDirectUpload();
+    const { uploadUrl } = await createMuxDirectUpload({
+      contentType: file.type,
+      fileSize: file.size,
+    });
     setVodUploadStatus('Uploading VOD to Mux...');
     const uploadRes = await fetch(uploadUrl, {
       method: 'PUT',

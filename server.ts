@@ -66,6 +66,8 @@ const muxAccessTokenSecret = process.env.MUX_TOKEN_SECRET;
 const mux = muxAccessTokenId && muxAccessTokenSecret
   ? new Mux({ tokenId: muxAccessTokenId, tokenSecret: muxAccessTokenSecret })
   : null;
+const MAX_MUX_UPLOAD_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
+const ALLOWED_VIDEO_CONTENT_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
 
 // Fields that may carry raw credentials or PII from the payment provider —
 // strip them before storing in the in-memory audit buffer so they don't
@@ -163,9 +165,21 @@ async function startServer() {
     });
   });
 
-  app.post("/api/mux/direct-upload", requireAuth, async (_req: AuthRequest, res) => {
+  app.post("/api/mux/direct-upload", requireAuth, async (req: AuthRequest, res) => {
     if (!mux) {
       return res.status(500).json({ error: "Mux is not configured" });
+    }
+
+    const contentType = String(req.body?.contentType ?? "").toLowerCase().trim();
+    const fileSize = Number(req.body?.fileSize);
+    if (!contentType || !Number.isFinite(fileSize) || fileSize <= 0) {
+      return res.status(400).json({ error: "contentType and fileSize are required" });
+    }
+    if (!ALLOWED_VIDEO_CONTENT_TYPES.has(contentType)) {
+      return res.status(400).json({ error: "Unsupported file type. Allowed: video/mp4, video/webm, video/quicktime" });
+    }
+    if (fileSize > MAX_MUX_UPLOAD_SIZE_BYTES) {
+      return res.status(400).json({ error: "File exceeds maximum allowed size of 2GB" });
     }
 
     const upload = await mux.video.uploads.create({

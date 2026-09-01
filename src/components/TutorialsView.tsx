@@ -129,7 +129,10 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
   const handleMuxVideoUpload = async (file: File) => {
     setUploadingVideo(file);
     setMuxUploadStatus('Requesting Mux upload URL...');
-    const { uploadUrl } = await createMuxDirectUpload();
+    const { uploadUrl } = await createMuxDirectUpload({
+      contentType: file.type,
+      fileSize: file.size,
+    });
     setMuxUploadStatus('Uploading video to Mux...');
     const uploadRes = await fetch(uploadUrl, {
       method: 'PUT',
