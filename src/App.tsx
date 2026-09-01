@@ -12,6 +12,7 @@ import {
 import { LiveStream, GamingTutorial, Currency, SubscriptionPlan, ReelClip, UserLibraryItem } from './types';
 import { Navbar } from './components/Navbar';
 import { OfflineBanner } from './components/OfflineBanner';
+import { SplashScreen } from './components/SplashScreen';
 import { useWalletBalance } from './hooks/useWalletBalance';
 import { useOfflineManager } from './hooks/useOfflineManager';
 import type { FeatureId } from './components/FeatureInfoView';
@@ -357,9 +358,11 @@ export function App() {
     : 'high-fps-streaming';
 
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0b0e14]" />}>
+    <>
+      <SplashScreen />
+      <Suspense fallback={<div className="min-h-screen bg-[#0b0e14]" />}>
       <div className="min-h-screen bg-[#0b0e14] text-slate-200 flex flex-col font-sans selection:bg-[#38bdf8] selection:text-[#0b0e14] steam-grid-bg">
-      
+
       {/* 1. PUBLIC LANDING PAGE (Shown for guest visitors on root `/` or when Landing is selected) */}
       {activeTab === 'landing' && (
         <Suspense fallback={<PageLoader />}>
@@ -703,7 +706,8 @@ export function App() {
       <Analytics />
       <SpeedInsights />
       </div>
-    </Suspense>
+      </Suspense>
+    </>
   );
 }
 
