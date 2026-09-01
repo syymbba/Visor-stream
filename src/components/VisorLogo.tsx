@@ -166,13 +166,13 @@ export const VisorLogo: React.FC<VisorLogoProps> = ({
       </div>
 
       {showText && (
-        <div className="flex flex-col leading-none">
+        <div className="flex flex-col leading-none min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className={`font-rajdhani font-bold tracking-wider text-slate-100 text-xl sm:text-2xl uppercase ${textClassName}`}>
+            <span className={`font-rajdhani font-bold tracking-wider text-slate-100 text-base sm:text-2xl uppercase whitespace-nowrap ${textClassName}`}>
               VISOR<span className="text-[#38BDF8] font-extrabold ml-1">STREAM</span>
             </span>
           </div>
-          <span className="text-[10px] tracking-widest uppercase font-medium text-slate-400 font-rajdhani mt-0.5">
+          <span className="hidden sm:block text-[10px] tracking-widest uppercase font-medium text-slate-400 font-rajdhani mt-0.5">
             Stream • Play • Connect
           </span>
         </div>

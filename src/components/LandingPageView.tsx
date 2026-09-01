@@ -184,18 +184,19 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <div className="flex items-center gap-2.5">
                 <button
                   onClick={onOpenLogin}
-                  className="px-4 py-2 rounded-xl text-xs font-mono-code font-bold uppercase tracking-wider text-slate-200 hover:text-white bg-slate-800/60 hover:bg-slate-800 border border-slate-700/80 transition-all flex items-center gap-1.5"
+                  className="px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-mono-code font-bold uppercase tracking-wider text-slate-200 hover:text-white bg-slate-800/60 hover:bg-slate-800 border border-slate-700/80 transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap shrink-0"
                 >
-                  <LogIn className="w-3.5 h-3.5 text-sky-400" />
+                  <LogIn className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400 shrink-0" />
                   <span>{t('landing.log_in')}</span>
                 </button>
 
                 <button
                   onClick={onOpenSignUp}
-                  className="px-4 sm:px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-sky-500/20 transition-all hover:scale-105"
+                  className="px-2.5 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-[10px] sm:text-xs uppercase tracking-wider flex items-center gap-1 sm:gap-1.5 shadow-lg shadow-sky-500/20 transition-all hover:scale-105 whitespace-nowrap shrink-0"
                 >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>{t('landing.get_started')}</span>
+                  <UserPlus className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                  <span className="sm:hidden">{t('landing.get_started_short')}</span>
+                  <span className="hidden sm:inline">{t('landing.get_started')}</span>
                 </button>
               </div>
             )}
