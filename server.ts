@@ -69,6 +69,24 @@ const mux = muxAccessTokenId && muxAccessTokenSecret
 const MAX_MUX_UPLOAD_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
 const ALLOWED_VIDEO_CONTENT_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
 
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self'",
+  // 'unsafe-inline' style-src is required: components set inline style={} for
+  // dynamic values (progress bars, chart widths) with no nonce plumbing.
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' https: data: blob:",
+  "media-src 'self' https://stream.mux.com https://image.mux.com blob:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://stream.mux.com https://image.mux.com " +
+    "https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com " +
+    "https://*.firebaseio.com wss://*.firebaseio.com https://vitals.vercel-insights.com",
+  "frame-src 'self' https://accounts.google.com",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+
 // Fields that may carry raw credentials or PII from the payment provider —
 // strip them before storing in the in-memory audit buffer so they don't
 // persist in process memory or get exposed via /api/payments/ipn-logs.
@@ -118,6 +136,17 @@ async function startServer() {
   app.use("/api/payments/checkout", sensitiveLimiter);
   app.use("/api/payouts", sensitiveLimiter);
   app.use("/api/auth", sensitiveLimiter);
+  app.use("/api/mux/direct-upload", sensitiveLimiter);
+  // Generous, non-fail-closed limiter on the Pesapal webhook aliases: these
+  // are unauthenticated by design (external callbacks), so without any
+  // throttle they're an open flood vector that each trigger an outbound
+  // Pesapal status lookup. Deliberately not `sensitiveLimiter` - failing
+  // closed here would risk dropping genuine payment confirmations during a
+  // Redis hiccup, which is worse than the availability risk being mitigated.
+  const webhookLimiter = createRateLimiter({ windowMs: 60_000, max: 300 });
+  for (const path of ["/api/payments/ipn", "/api/pesapal/ipn", "/api/pesapal/webhook", "/api/pesapal/idn-webhook", "/api/payments/idn"]) {
+    app.use(path, webhookLimiter);
+  }
   app.use("/api", createCorsMiddleware());
 
   app.use(express.json({ limit: "100kb" }));
@@ -136,6 +165,9 @@ async function startServer() {
     res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
     if (process.env.NODE_ENV === "production") {
       res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+      // Only enforced in production - Vite's dev-mode HMR needs inline/eval
+      // script execution that a strict CSP would otherwise block.
+      res.setHeader("Content-Security-Policy", CONTENT_SECURITY_POLICY);
     }
     if (req.path.startsWith("/api/")) {
       const isPubliclyCacheable =
@@ -184,7 +216,10 @@ async function startServer() {
 
     const upload = await mux.video.uploads.create({
       cors_origin: getAppUrl(),
-      new_asset_settings: { playback_policy: ["public"] },
+      // passthrough round-trips onto the resulting asset (readable via
+      // assets.retrieve), which is what lets the GET route below verify the
+      // requester owns the asset without a separate ownership table.
+      new_asset_settings: { playback_policy: ["public"], passthrough: req.user!.uid },
     });
 
     return res.json({
@@ -200,6 +235,12 @@ async function startServer() {
     }
 
     const asset = await mux.video.assets.retrieve(req.params.assetId);
+    // Fail closed: an asset with no passthrough (created before this check
+    // existed, or outside this upload flow) can't be proven to belong to the
+    // requester, so it's treated the same as belonging to someone else.
+    if (asset.passthrough !== req.user!.uid) {
+      return res.status(404).json({ error: "Asset not found" });
+    }
     return res.json({
       assetId: asset.id,
       status: asset.status,
