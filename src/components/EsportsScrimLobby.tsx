@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '../lib/i18n';
 import {
   Users,
   Swords,
@@ -34,6 +35,7 @@ export interface ScrimLobbyItem {
 }
 
 export const EsportsScrimLobby: React.FC = () => {
+  const { t } = useLanguage();
   const [selectedGame, setSelectedGame] = useState<string>('all');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [activeLobby, setActiveLobby] = useState<ScrimLobbyItem | null>(null);
@@ -164,7 +166,7 @@ export const EsportsScrimLobby: React.FC = () => {
             <Gamepad2 className="w-3.5 h-3.5 text-purple-400" />
             <span>Community Scrims & Matchmaking Lobbies</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white">Live Custom Scrim Lobbies</h2>
+          <h2 className="text-xl sm:text-2xl font-black text-white">{t('scrim.banner.title')}</h2>
           <p className="text-xs text-slate-400">
             Create or join competitive practice rooms, check in your squad, and battle for escrow cash prizes.
           </p>
@@ -175,7 +177,7 @@ export const EsportsScrimLobby: React.FC = () => {
           className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30 transition-transform active:scale-95 whitespace-nowrap"
         >
           <Plus className="w-4 h-4" />
-          <span>Host Custom Scrim Lobby</span>
+          <span>{t('scrim.banner.hostButton')}</span>
         </button>
       </div>
 
@@ -271,7 +273,7 @@ export const EsportsScrimLobby: React.FC = () => {
                 disabled={lobby.currentTeams >= lobby.maxTeams || lobby.status !== 'OPEN'}
                 className="flex-1 py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold text-xs transition-transform active:scale-95"
               >
-                {lobby.currentTeams >= lobby.maxTeams ? 'Full' : 'Join Squad Slot'}
+                {lobby.currentTeams >= lobby.maxTeams ? 'Full' : t('scrim.card.joinSquad')}
               </button>
             </div>
           </div>

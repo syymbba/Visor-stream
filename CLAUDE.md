@@ -19,15 +19,18 @@ video upload/playback, Pesapal for payments/tips/payouts.
 ## i18n
 
 `src/lib/i18n.tsx` provides `useLanguage()` (`t`, `language`, `setLanguage`,
-`isRTL`) for 6 languages (en, sw, lg, fr, pt, ar). Coverage is currently
-"core surfaces" (Navbar, Settings, TipJar, Landing page chrome, Auth/GoLive/
-Tip modals) — see DESIGN.md's Known Gaps for exactly what's wired and what
-isn't. When adding new UI chrome (buttons, labels, headers — not dynamic
-data/content), add a translated key to all 6 languages in `i18n.tsx` and use
-`t('key')` rather than a hardcoded string, to avoid regressing the coverage
-that exists. RTL is real and automatic for Arabic (`dir="rtl"` on `<html>`)
-— don't add manual LTR-only positioning (`ml-`/`mr-`/`left-`/`right-`) for
-new core-surface UI without checking it still works mirrored.
+`isRTL`) for 16 languages (en, sw, lg, fr, pt, ar, es, de, zh, hi, ru, ja,
+ha, yo, am, zu). Coverage spans UI chrome system-wide — nav, headings, CTA
+buttons, empty-states, core form labels across essentially every view — see
+DESIGN.md's Known Gaps for the specific deep-panel/data-table/legal-prose
+exclusions. When adding new UI chrome (buttons, labels, headers — not
+dynamic data/content), add a translated key to all 16 languages in
+`i18n.tsx` and use `t('key')` rather than a hardcoded string, to avoid
+regressing the coverage that exists. RTL is real and automatic for Arabic
+(`dir="rtl"` on `<html>`) — don't add manual LTR-only positioning
+(`ml-`/`mr-`/`left-`/`right-`) without checking it still works mirrored.
+Luganda/Hausa/Yoruba/Amharic/Zulu translations are best-effort, not
+native-reviewed.
 
 ## Testing
 

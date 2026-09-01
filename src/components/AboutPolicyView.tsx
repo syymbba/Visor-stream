@@ -20,6 +20,7 @@ import {
   LayoutDashboard
 } from 'lucide-react';
 import { PLATFORM_FAQS } from '../data/mockData';
+import { useLanguage } from '../lib/i18n';
 
 // NOTE: Privacy Policy and Terms of Service are intentionally NOT sections of
 // this component. They are dedicated, standalone pages
@@ -48,6 +49,7 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
   onNavigateLegal,
   isStandalone = false
 }) => {
+  const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState<'about' | 'guidelines' | 'payouts' | 'careers' | 'contact'>(initialSection);
 
   useEffect(() => {
@@ -67,7 +69,7 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
               className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 font-mono-code font-bold text-xs flex items-center gap-2 transition-colors"
             >
               <ArrowLeft className="w-4 h-4 text-sky-400" />
-              <span>Back to Stream Feed</span>
+              <span>{t('about.nav.backToStream')}</span>
             </button>
           ) : onBackToLanding ? (
             <button
@@ -95,10 +97,10 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
       {/* Navigation Header for Legal / Info Pages */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar p-2 bg-slate-900 rounded-[24px] border border-slate-800 text-xs font-mono-code">
         {[
-          { id: 'about', label: 'About Visor', icon: Info },
-          { id: 'payouts', label: '70/30 Streamer Payout Model', icon: DollarSign },
-          { id: 'guidelines', label: 'Community Guidelines', icon: Shield },
-          { id: 'careers', label: 'Careers & Internships', icon: Briefcase },
+          { id: 'about', label: t('about.tabs.about'), icon: Info },
+          { id: 'payouts', label: t('about.tabs.payouts'), icon: DollarSign },
+          { id: 'guidelines', label: t('about.tabs.guidelines'), icon: Shield },
+          { id: 'careers', label: t('about.tabs.careers'), icon: Briefcase },
         ].map((sec) => {
           const Icon = sec.icon;
           const isActive = activeSection === sec.id;
@@ -150,7 +152,7 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
           <div className="text-center space-y-3">
             <VisorLogo size="xl" glow={true} className="justify-center" />
             <h1 className="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight mt-4">
-              The Dedicated Next-Gen Gaming & Learning Hub
+              {t('about.hero.title')}
             </h1>
             <p className="text-sm text-slate-300 max-w-2xl mx-auto leading-relaxed">
               Visor is a high-performance video streaming and social platform designed specifically for gamers who want more than just entertainment. We give players and creators a place to share gameplay, connect with fans, build communities, master challenging missions, and monetize their creativity without barriers.
@@ -164,7 +166,7 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
                 OUR MISSION
               </span>
               <h3 className="text-xl font-black text-white">
-                Democratize Gaming Content & Learning
+                {t('about.mission.title')}
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed">
                 To make gaming content creation and consumption accessible through affordable subscription tiers ($2–$10/month), direct Mobile Money (M-Pesa, MTN, Airtel) payments, and structured video tutorials that help gamers overcome challenging levels.
@@ -176,7 +178,7 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
                 OUR VISION
               </span>
               <h3 className="text-xl font-black text-white">
-                The Global Stage for Esports & Creators
+                {t('about.vision.title')}
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed">
                 To become the premier creator-first gaming ecosystem, hosting seasonal esports tournaments with six-figure prize pools and scaling ultra low-latency server relays across the globe.
@@ -187,7 +189,7 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
           {/* Core Values */}
           <div className="bg-slate-900 p-7 rounded-[28px] sm:rounded-[32px] border border-slate-800 space-y-4 shadow-xl">
             <h3 className="text-lg font-black text-white uppercase tracking-tight">
-              Core Platform Values
+              {t('about.values.title')}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
               <div className="p-4 bg-slate-800/40 rounded-2xl border border-slate-800 space-y-1">
@@ -218,7 +220,7 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
             <div className="flex items-center gap-3 text-emerald-400">
               <DollarSign className="w-6 h-6" />
               <h2 className="text-2xl font-black uppercase text-white tracking-tight">
-                Streamer Monetization & Payout Policy
+                {t('about.payouts.title')}
               </h2>
             </div>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
@@ -257,7 +259,7 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
       {activeSection === 'guidelines' && (
         <div className="bg-slate-900 p-7 sm:p-9 rounded-[28px] sm:rounded-[32px] border border-slate-800 shadow-2xl max-w-4xl mx-auto space-y-4 text-xs text-slate-300 leading-relaxed animate-fadeIn">
           <h2 className="text-xl font-black text-white tracking-tight">
-            Community Guidelines & Fair Play
+            {t('about.guidelines.title')}
           </h2>
           <p><strong className="text-white">1. Anti-Harassment:</strong> Treat fellow gamers, streamers, and viewers with dignity. Hate speech, toxicity, and cyberbullying result in immediate account suspension.</p>
           <p><strong className="text-white">2. Anti-Cheating:</strong> Using aimbots, wallhacks, or modified APKs in competitive tournaments is strictly banned.</p>
@@ -269,7 +271,7 @@ export const AboutPolicyView: React.FC<AboutPolicyViewProps> = ({
       {activeSection === 'careers' && (
         <div className="bg-slate-900 p-7 sm:p-9 rounded-[28px] sm:rounded-[32px] border border-slate-800 shadow-2xl max-w-4xl mx-auto space-y-4 text-xs text-slate-300 leading-relaxed animate-fadeIn">
           <h2 className="text-xl font-black text-white tracking-tight">
-            Join the Visor Team
+            {t('about.careers.title')}
           </h2>
           <p>We are building the leading modern digital gaming and esports company. Open roles include:</p>
           <div className="space-y-2.5 pt-2">

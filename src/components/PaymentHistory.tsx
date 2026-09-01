@@ -21,6 +21,7 @@ import {
 import { Currency } from '../types';
 import { CURRENCY_RATES } from '../data/mockData';
 import { getAuthHeaders } from '../firebase';
+import { useLanguage } from '../lib/i18n';
 
 export interface PaymentTransaction {
   id: string;
@@ -58,6 +59,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
   onSelectTransaction,
   className = '',
 }) => {
+  const { t } = useLanguage();
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -205,7 +207,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
           <CheckCircle2 className="w-3 h-3" />
-          <span>COMPLETED</span>
+          <span>{t('payment.status.completed')}</span>
         </span>
       );
     }
@@ -213,14 +215,14 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
           <Clock className="w-3 h-3 animate-pulse" />
-          <span>PENDING</span>
+          <span>{t('payment.status.pending')}</span>
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
         <XCircle className="w-3 h-3" />
-        <span>FAILED</span>
+        <span>{t('payment.status.failed')}</span>
       </span>
     );
   };
@@ -263,7 +265,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
           </div>
           <div>
             <h3 className="text-lg font-black text-white tracking-tight flex items-center gap-2">
-              <span>Pesapal v3 Payment History</span>
+              <span>{t('payment.header.title')}</span>
               <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-mono-code">
                 {filteredTransactions.length} records
               </span>
@@ -365,7 +367,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
           <div className="w-12 h-12 rounded-2xl bg-slate-800/80 text-slate-500 flex items-center justify-center mx-auto mb-3">
             <Receipt className="w-6 h-6" />
           </div>
-          <p className="text-sm font-bold text-slate-300">No transactions found</p>
+          <p className="text-sm font-bold text-slate-300">{t('payment.empty.title')}</p>
           <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
             Transactions made via Pesapal (MTN MoMo, Airtel, M-Pesa, or Visa/Mastercard) will appear here instantly.
           </p>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StoreMerchItem, Currency } from '../types';
 import { CURRENCY_RATES } from '../data/mockData';
+import { useLanguage } from '../lib/i18n';
 import confetti from 'canvas-confetti';
 import {
   ShoppingBag,
@@ -22,6 +23,7 @@ export const StoreView: React.FC<StoreViewProps> = ({
   items,
   currentCurrency,
 }) => {
+  const { t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [checkoutItem, setCheckoutItem] = useState<StoreMerchItem | null>(null);
   const [orderComplete, setOrderComplete] = useState(false);
@@ -66,10 +68,10 @@ export const StoreView: React.FC<StoreViewProps> = ({
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Visor Official Gear & Creator Merch Store
+                {t('store.header.title')}
               </h1>
               <p className="text-xs text-slate-400">
-                Official esports jerseys, mobile gaming finger sleeves, magnetic coolers & creator drops
+                {t('store.header.subtitle')}
               </p>
             </div>
           </div>
@@ -87,7 +89,7 @@ export const StoreView: React.FC<StoreViewProps> = ({
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              {c === 'all' ? 'All Merch' : c}
+              {c === 'all' ? t('store.filter.all_merch') : c}
             </button>
           ))}
         </div>
@@ -156,7 +158,7 @@ export const StoreView: React.FC<StoreViewProps> = ({
                     onClick={() => handleBuy(item)}
                     className="px-4 py-2 rounded-xl bg-white text-slate-950 hover:bg-sky-400 transition-colors font-black text-xs uppercase tracking-wider shadow-md active:scale-95"
                   >
-                    Buy Now
+                    {t('store.card.buy_now')}
                   </button>
                 </div>
               </div>
@@ -172,7 +174,7 @@ export const StoreView: React.FC<StoreViewProps> = ({
             <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5 text-[#00B4D8]" />
-                <h3 className="font-rajdhani font-bold text-lg text-white">Order Checkout</h3>
+                <h3 className="font-rajdhani font-bold text-lg text-white">{t('store.checkout.title')}</h3>
               </div>
               <button
                 onClick={() => setCheckoutItem(null)}
@@ -185,9 +187,9 @@ export const StoreView: React.FC<StoreViewProps> = ({
             {orderComplete ? (
               <div className="py-6 text-center space-y-2">
                 <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto animate-bounce" />
-                <h4 className="text-lg font-bold text-white font-rajdhani">Order Confirmed!</h4>
+                <h4 className="text-lg font-bold text-white font-rajdhani">{t('store.checkout.order_confirmed')}</h4>
                 <p className="text-xs text-slate-300">
-                  Receipt and delivery tracking link sent via SMS to your mobile phone.
+                  {t('store.checkout.confirmation_message')}
                 </p>
               </div>
             ) : (
@@ -207,7 +209,7 @@ export const StoreView: React.FC<StoreViewProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Delivery Address / City</label>
+                  <label className="text-xs font-semibold text-slate-300">{t('store.checkout.address_label')}</label>
                   <input
                     type="text"
                     defaultValue="Kampala / Nairobi Central"
@@ -217,7 +219,7 @@ export const StoreView: React.FC<StoreViewProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Mobile Money Phone Number</label>
+                  <label className="text-xs font-semibold text-slate-300">{t('store.checkout.phone_label')}</label>
                   <input
                     type="tel"
                     defaultValue="0780123456"

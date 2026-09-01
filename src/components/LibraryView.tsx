@@ -21,6 +21,7 @@ import {
   X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '../lib/i18n';
 
 interface LibraryViewProps {
   currentCurrency: Currency;
@@ -37,6 +38,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   onNavigateToTutorials,
   onNavigateToReels
 }) => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'downloaded' | 'saved' | 'created_vod'>('downloaded');
   const [items, setItems] = useState<UserLibraryItem[]>(MOCK_LIBRARY_ITEMS);
   const [playingItem, setPlayingItem] = useState<UserLibraryItem | null>(null);
@@ -102,11 +104,11 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             <div className="flex items-center gap-2">
               <FolderDown className="w-6 h-6 text-[#38bdf8]" />
               <h1 className="text-xl sm:text-2xl font-black text-white font-rajdhani uppercase tracking-wide">
-                User Media Library & Offline Vault
+                {t('library.header_title')}
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Manage downloaded tutorials, bookmarked stream VODs, and recorded broadcast highlights with offline playback.
+              {t('library.header_desc')}
             </p>
           </div>
 
@@ -124,7 +126,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               }`}
             >
               {isOfflineMode ? <WifiOff className="w-4 h-4 text-amber-400" /> : <Wifi className="w-4 h-4 text-emerald-400" />}
-              <span>{isOfflineMode ? 'Offline Mode Active' : 'Online Sync Active'}</span>
+              <span>{isOfflineMode ? t('library.offline_mode_active') : t('library.online_sync_active')}</span>
             </button>
 
             <button
@@ -132,7 +134,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               className="px-3 py-2 bg-[#1b2838] border border-[#2a475e] hover:border-rose-500/50 text-slate-400 hover:text-rose-400 rounded-xl text-xs font-mono-code transition-all"
               title="Free up device storage"
             >
-              Clear Cache
+              {t('library.clear_cache_button')}
             </button>
           </div>
         </div>
@@ -160,7 +162,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             onClick={() => setIsOfflineMode(false)}
             className="underline font-bold text-white shrink-0"
           >
-            Go Online
+            {t('library.go_online_button')}
           </button>
         </div>
       )}
@@ -176,7 +178,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           }`}
         >
           <FolderDown className="w-4 h-4" />
-          <span>Downloaded Videos</span>
+          <span>{t('library.tab_downloaded')}</span>
           <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono-code bg-[#0284c7]/15 text-sky-300 border border-[#0369a1]/30">
             {downloadedItems.length}
           </span>
@@ -191,7 +193,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           }`}
         >
           <Bookmark className="w-4 h-4" />
-          <span>Saved & Watch Later</span>
+          <span>{t('library.tab_saved')}</span>
           <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono-code bg-slate-700 text-slate-300">
             {savedItems.length}
           </span>
@@ -206,7 +208,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           }`}
         >
           <Video className="w-4 h-4" />
-          <span>Created VODs & Highlights</span>
+          <span>{t('library.tab_created_vod')}</span>
           <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono-code bg-slate-700 text-slate-300">
             {createdVods.length}
           </span>
@@ -279,7 +281,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                     <button
                       onClick={(e) => handleDownloadToLocalCache(item, e)}
                       className="p-1.5 rounded-lg bg-[#1b2838] border border-[#2a475e] text-slate-300 hover:text-[#38bdf8] hover:border-[#38bdf8] transition-all"
-                      title="Download for offline playback"
+                      title={t('library.download_title')}
                     >
                       <Download className="w-3.5 h-3.5" />
                     </button>
@@ -287,7 +289,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                   <button
                     onClick={(e) => handleDeleteItem(item.id, e)}
                     className="p-1.5 rounded-lg bg-[#1b2838] border border-[#2a475e] text-slate-400 hover:text-rose-400 hover:border-rose-400 transition-all"
-                    title="Remove from library"
+                    title={t('library.remove_title')}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -302,9 +304,9 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       {currentTabItems.length === 0 && (
         <div className="steam-card rounded-2xl p-12 text-center border border-[#2a475e]">
           <FolderDown className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-white">No items in this tab yet</h3>
+          <h3 className="text-base font-bold text-white">{t('library.empty_title')}</h3>
           <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-            Browse our gaming guides or live stream replays to bookmark and download content for offline viewing.
+            {t('library.empty_desc')}
           </p>
           <div className="mt-4 flex justify-center gap-3">
             {onNavigateToTutorials && (
@@ -312,7 +314,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                 onClick={onNavigateToTutorials}
                 className="px-4 py-2 bg-[#38bdf8] text-[#0b0e14] rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[#66c0f4]"
               >
-                Browse Tutorials
+                {t('library.browse_tutorials_button')}
               </button>
             )}
             {onNavigateToReels && (
@@ -320,7 +322,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                 onClick={onNavigateToReels}
                 className="px-4 py-2 bg-[#1b2838] border border-[#2a475e] text-slate-200 rounded-xl text-xs font-bold hover:border-[#38bdf8]"
               >
-                Watch Reels
+                {t('library.watch_reels_button')}
               </button>
             )}
           </div>

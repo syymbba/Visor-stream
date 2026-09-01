@@ -17,6 +17,11 @@ function trackConsoleErrors(page: import('@playwright/test').Page) {
 test('landing page renders with no console errors', async ({ page }) => {
   const errors = trackConsoleErrors(page);
 
+  // Bypass the splash screen so the screenshot captures the actual page,
+  // not the fixed-position overlay mid-transition.
+  await page.addInitScript(() => {
+    window.localStorage.setItem('visor_splash_seen', 'true');
+  });
   await page.goto('/');
   await expect(page.getByText('VISOR', { exact: false }).first()).toBeVisible();
 
@@ -27,6 +32,9 @@ test('landing page renders with no console errors', async ({ page }) => {
 test('live player view renders with no console errors', async ({ page }) => {
   const errors = trackConsoleErrors(page);
 
+  await page.addInitScript(() => {
+    window.localStorage.setItem('visor_splash_seen', 'true');
+  });
   await page.goto('/');
   await page.getByText('VISOR', { exact: false }).first().waitFor();
 

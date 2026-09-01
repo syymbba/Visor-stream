@@ -277,7 +277,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/40 hover:bg-[#38bdf8]/25 transition-all text-xs font-bold font-mono-code touch-active-state"
               >
                 <LogIn className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sign In</span>
+                <span className="hidden sm:inline">{t('settings.sign_in')}</span>
               </button>
             )}
 

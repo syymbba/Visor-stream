@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '../lib/i18n';
 import {
   Volume2,
   VolumeX,
@@ -40,6 +41,7 @@ export const StreamOverlayWidget: React.FC<StreamOverlayWidgetProps> = ({
   creatorId = 'me',
   isStandaloneOverlay = false,
 }) => {
+  const { t } = useLanguage();
   const [activeAlert, setActiveAlert] = useState<StreamAlertEvent | null>(null);
   const [alertQueue, setAlertQueue] = useState<StreamAlertEvent[]>([]);
   const [ttsEnabled, setTtsEnabled] = useState(true);
@@ -243,7 +245,7 @@ export const StreamOverlayWidget: React.FC<StreamOverlayWidgetProps> = ({
               <Tv className="w-4 h-4" />
               <span>OBS Studio / vMix / TikTok Live Browser Source</span>
             </div>
-            <h3 className="text-lg font-black text-white">Stream Overlay & TTS Alerts</h3>
+            <h3 className="text-lg font-black text-white">{t('overlay.title')}</h3>
             <p className="text-xs text-slate-400">
               Paste this URL into OBS as a Browser Source (1920x1080) for transparent on-screen MoMo tip alerts with AI voice readout.
             </p>
@@ -261,7 +263,7 @@ export const StreamOverlayWidget: React.FC<StreamOverlayWidgetProps> = ({
             ) : (
               <>
                 <Copy className="w-4 h-4" />
-                <span>Copy Overlay URL</span>
+                <span>{t('overlay.copyUrl')}</span>
               </>
             )}
           </button>

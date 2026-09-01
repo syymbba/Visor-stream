@@ -1,5 +1,6 @@
 import React from 'react';
 import { WifiOff, Download, ArrowRight, X, RefreshCw } from 'lucide-react';
+import { useLanguage } from '../lib/i18n';
 
 interface OfflineBannerProps {
   isOffline: boolean;
@@ -12,6 +13,7 @@ export const OfflineBanner: React.FC<OfflineBannerProps> = ({
   onDisableOffline,
   onNavigateToLibrary,
 }) => {
+  const { t } = useLanguage();
   if (!isOffline) return null;
 
   return (
@@ -23,7 +25,7 @@ export const OfflineBanner: React.FC<OfflineBannerProps> = ({
           </div>
           <div>
             <span className="font-bold text-white uppercase tracking-wider">
-              Offline Mode Active:
+              {t('offline.badge')}
             </span>{' '}
             <span className="text-amber-300">
               Streaming disabled. Serving cached matches, VODs & tutorials from local storage.
@@ -46,7 +48,7 @@ export const OfflineBanner: React.FC<OfflineBannerProps> = ({
             title="Switch Back Online"
           >
             <RefreshCw className="w-3 h-3" />
-            <span>Go Online</span>
+            <span>{t('offline.goOnline')}</span>
           </button>
         </div>
       </div>

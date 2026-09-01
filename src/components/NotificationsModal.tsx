@@ -1,5 +1,6 @@
 import React from 'react';
 import { Bell, CheckCircle2, Radio, Trophy, Sparkles, X, DollarSign } from 'lucide-react';
+import { useLanguage } from '../lib/i18n';
 
 interface NotificationsModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   const notifications = [
@@ -61,7 +63,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
             </div>
             <div>
               <h3 className="font-black text-base text-white tracking-tight">
-                Stream Alerts
+                {t('notifications.header.title')}
               </h3>
               <p className="text-xs text-slate-400 font-mono-code">Real-time notifications</p>
             </div>
@@ -102,7 +104,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
             onClick={onClose}
             className="text-xs text-sky-400 font-mono-code font-bold hover:underline"
           >
-            Mark all alerts as read
+            {t('notifications.markAllRead')}
           </button>
         </div>
       </div>

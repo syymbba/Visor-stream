@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { SubscriptionPlan, Currency } from '../types';
 import { SUBSCRIPTION_PLANS, CURRENCY_RATES } from '../data/mockData';
+import { useLanguage } from '../lib/i18n';
 import confetti from 'canvas-confetti';
 import {
   CreditCard,
@@ -12,8 +13,7 @@ import {
   Globe,
   Star,
   Users,
-  Flame,
-  Award
+  Flame
 } from 'lucide-react';
 
 interface PricingViewProps {
@@ -27,6 +27,7 @@ export const PricingView: React.FC<PricingViewProps> = ({
   setCurrentCurrency,
   onSubscribePlan,
 }) => {
+  const { t } = useLanguage();
   const [selectedBilling, setSelectedBilling] = useState<'monthly' | 'yearly'>('monthly');
 
   const rate = CURRENCY_RATES[currentCurrency].rate;
@@ -41,7 +42,7 @@ export const PricingView: React.FC<PricingViewProps> = ({
           <span>ACCESSIBLE CREATOR-FIRST PRICING</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-          Support Creators. Unlock Pro Perks. Level Up.
+          {t('pricing.header.title')}
         </h1>
         <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-2xl mx-auto">
           Priced affordably for gamers across Africa and globally with direct Mobile Money (M-Pesa, MTN, Airtel) and card support. 70% of all subscription fees go directly to your favorite streamers.
@@ -86,13 +87,13 @@ export const PricingView: React.FC<PricingViewProps> = ({
             >
               {isPro && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-xl bg-sky-500 text-slate-950 text-[10px] font-mono-code font-black uppercase tracking-wider shadow-lg">
-                  ★ MOST POPULAR CHOICE
+                  ★ {t('pricing.card.most_popular_badge')}
                 </div>
               )}
 
               {isLegend && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-xl bg-amber-500 text-slate-950 text-[10px] font-mono-code font-black uppercase tracking-wider shadow-lg">
-                  👑 VIP CHAMPION TIER
+                  👑 {t('pricing.card.vip_champion_badge')}
                 </div>
               )}
 
@@ -129,7 +130,7 @@ export const PricingView: React.FC<PricingViewProps> = ({
                 {/* Features List */}
                 <div className="space-y-3 pt-2">
                   <span className="text-xs font-mono-code font-bold uppercase text-slate-400">
-                    What's Included:
+                    {t('pricing.card.whats_included')}
                   </span>
                   <ul className="space-y-2.5 text-xs text-slate-300">
                     {plan.features.map((feat, i) => (
@@ -164,63 +165,6 @@ export const PricingView: React.FC<PricingViewProps> = ({
         })}
       </div>
 
-      {/* Subscription Tier Feature Breakdown Matrix */}
-      <div className="max-w-4xl mx-auto bg-slate-900 rounded-[28px] sm:rounded-[32px] p-6 sm:p-8 border border-slate-800 shadow-2xl space-y-4">
-        <h3 className="font-black text-lg text-white uppercase tracking-wider text-center font-rajdhani">
-          Subscription Tier Comparison
-        </h3>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs font-['Inter']">
-            <thead>
-              <tr className="border-b border-slate-800 text-slate-400 font-mono-code">
-                <th className="pb-3">Perk / Feature</th>
-                <th className="pb-3">Free Tier</th>
-                <th className="pb-3 text-sky-400">Pro Gamer ($5/mo)</th>
-                <th className="pb-3 text-amber-400">Legend Champion ($10/mo)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800 text-slate-300 font-mono-code">
-              <tr>
-                <td className="py-3.5 font-medium text-white">Stream Playback Quality</td>
-                <td className="py-3.5 text-slate-400">720p HD (Data-Saver)</td>
-                <td className="py-3.5 text-sky-300 font-bold">1080p 60FPS</td>
-                <td className="py-3.5 text-amber-300 font-bold">4K UHD / 120 FPS Uncapped</td>
-              </tr>
-              <tr>
-                <td className="py-3.5 font-medium text-white">Chat Emotes & Badges</td>
-                <td className="py-3.5 text-slate-400">Standard Emotes</td>
-                <td className="py-3.5 text-sky-300">Animated Pro Emotes + Sub Badge</td>
-                <td className="py-3.5 text-amber-300">Custom Streamer Emotes + VIP Gold Badge</td>
-              </tr>
-              <tr>
-                <td className="py-3.5 font-medium text-white">Ad-Free Viewing</td>
-                <td className="py-3.5 text-slate-500">Standard</td>
-                <td className="py-3.5 text-emerald-400">✅ 100% Ad-Free</td>
-                <td className="py-3.5 text-emerald-400">✅ 100% Ad-Free</td>
-              </tr>
-              <tr>
-                <td className="py-3.5 font-medium text-white">VOD Access & Offline Download</td>
-                <td className="py-3.5 text-slate-500">Live Only</td>
-                <td className="py-3.5 text-emerald-400">✅ 30-Day VOD Archive</td>
-                <td className="py-3.5 text-emerald-400">✅ Unlimited VODs + Offline Downloads</td>
-              </tr>
-              <tr>
-                <td className="py-3.5 font-medium text-white">Esports Tournament Registration</td>
-                <td className="py-3.5 text-slate-400">Spectator Mode</td>
-                <td className="py-3.5 text-sky-300">Ranked Bracket Access</td>
-                <td className="py-3.5 text-amber-300">Priority Seeding & VIP Team Slots</td>
-              </tr>
-              <tr>
-                <td className="py-3.5 font-medium text-white">Streamer Revenue Share</td>
-                <td className="py-3.5 text-slate-400">—</td>
-                <td className="py-3.5 text-emerald-400 font-bold">70% to Creator</td>
-                <td className="py-3.5 text-emerald-400 font-bold">70% to Creator</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 };

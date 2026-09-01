@@ -9,6 +9,7 @@ import { RevenueSplitChart } from './RevenueSplitChart';
 import { useWalletBalance } from '../hooks/useWalletBalance';
 import { getAuthHeaders } from '../firebase';
 import { createMuxDirectUpload } from '../services/muxService';
+import { useLanguage } from '../lib/i18n';
 import confetti from 'canvas-confetti';
 import {
   LayoutDashboard,
@@ -63,6 +64,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
   currentCurrency,
   onStartBroadcast,
 }) => {
+  const { t } = useLanguage();
   const effectiveStats = propsStats || initialStats || MOCK_CREATOR_DASHBOARD;
   const [stats, setStats] = useState<CreatorDashboardStats>(effectiveStats);
   const [copiedKey, setCopiedKey] = useState(false);
@@ -278,7 +280,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Real-Time Creator Dashboard & Ingest Studio
+                {t('creator.header.title')}
               </h1>
               <p className="text-xs text-slate-400">
                 Live broadcast monitoring, stream telemetry & automated 70/30 mobile money revenue settlements
@@ -295,7 +297,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-red-500/20 transition-transform active:scale-95 cursor-pointer"
             >
               <Radio className="w-4 h-4 text-white animate-pulse" />
-              <span>Launch Live Stream</span>
+              <span>{t('creator.action.launch_live_stream')}</span>
             </button>
           )}
 
@@ -309,7 +311,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 transition-transform active:scale-95 cursor-pointer"
           >
             <DollarSign className="w-4 h-4 text-slate-950" />
-            <span>Request Mobile Money Payout</span>
+            <span>{t('creator.action.request_payout')}</span>
           </button>
         </div>
       </div>
@@ -325,7 +327,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           }`}
         >
           <LayoutDashboard className="w-3.5 h-3.5" />
-          <span>Studio Dashboard</span>
+          <span>{t('creator.tab.dashboard')}</span>
         </button>
 
         <button
@@ -337,7 +339,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           }`}
         >
           <Percent className="w-3.5 h-3.5 text-emerald-400" />
-          <span>70/30 Revenue Split</span>
+          <span>{t('creator.tab.revenue_split')}</span>
         </button>
 
         <button
@@ -349,7 +351,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           }`}
         >
           <Smartphone className="w-3.5 h-3.5 text-amber-400" />
-          <span>Payout Requests</span>
+          <span>{t('creator.tab.payout_requests')}</span>
           {payoutList.length > 0 && (
             <span className="px-1.5 py-0.2 rounded-full bg-slate-950 text-amber-400 text-[10px]">
               {payoutList.length}
@@ -366,7 +368,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           }`}
         >
           <Receipt className="w-3.5 h-3.5" />
-          <span>Customer Orders</span>
+          <span>{t('creator.tab.customer_orders')}</span>
           {wallet.completedOrdersCount > 0 && (
             <span className="px-1.5 py-0.2 rounded-full bg-slate-950 text-emerald-400 text-[10px]">
               {wallet.completedOrdersCount}
@@ -383,7 +385,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           }`}
         >
           <Tv className="w-3.5 h-3.5" />
-          <span>Stream Overlay & Alerts (TTS)</span>
+          <span>{t('creator.tab.stream_overlay')}</span>
         </button>
       </div>
 
@@ -402,7 +404,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           {/* Top Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
-              <span className="text-xs text-slate-400 font-mono-code uppercase font-bold">Available to Cash Out</span>
+              <span className="text-xs text-slate-400 font-mono-code uppercase font-bold">{t('creator.payouts.available_to_cash_out')}</span>
               <div className="my-2 flex items-baseline gap-2">
                 <span className="text-3xl font-bold text-emerald-400 font-rajdhani">
                   {symbol} {(wallet.getBalanceInCurrency(currentCurrency)).toLocaleString()}
@@ -430,7 +432,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
                   className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
                   <Smartphone className="w-4 h-4" />
-                  <span>Request Cashout Now</span>
+                  <span>{t('creator.payouts.request_cashout_now')}</span>
                 </button>
               </div>
               <span className="text-[10px] text-slate-400 font-mono-code">Min: $20.00 USD (75,000 UGX / 2,600 KES)</span>
@@ -466,9 +468,9 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
             ) : payoutList.length === 0 ? (
               <div className="py-12 text-center space-y-3">
                 <Smartphone className="w-8 h-8 text-slate-600 mx-auto" />
-                <p className="text-sm font-semibold text-slate-300">No payout requests yet</p>
+                <p className="text-sm font-semibold text-slate-300">{t('creator.payouts.empty_title')}</p>
                 <p className="text-xs text-slate-500 font-mono-code">
-                  Earn revenue from subs & tips, then request instant mobile money cashouts.
+                  {t('creator.payouts.empty_subtitle')}
                 </p>
                 <button
                   onClick={() => setCashoutModalOpen(true)}
@@ -540,7 +542,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           {/* Metric 1: Concurrent Viewers */}
           <div className="bg-slate-900 p-5 rounded-[24px] border border-slate-800 shadow-lg relative overflow-hidden flex flex-col justify-between">
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">Concurrent Viewers</span>
+              <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">{t('creator.overview.concurrent_viewers')}</span>
               <Eye className="w-4 h-4 text-sky-400" />
             </div>
             <div className="my-3 flex items-baseline gap-2">
@@ -557,7 +559,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           {/* Metric 2: Live Ingest Bitrate */}
           <div className="bg-slate-900 p-5 rounded-[24px] border border-slate-800 shadow-lg relative overflow-hidden flex flex-col justify-between">
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">Live Ingest Bitrate</span>
+              <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">{t('creator.overview.live_ingest_bitrate')}</span>
               <Activity className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="my-3 flex items-baseline gap-2">
@@ -574,7 +576,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
           {/* Metric 3: Active Subscribers */}
           <div className="bg-slate-900 p-5 rounded-[24px] border border-slate-800 shadow-lg relative overflow-hidden flex flex-col justify-between">
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">Paying Subscribers</span>
+              <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">{t('creator.overview.paying_subscribers')}</span>
               <Users className="w-4 h-4 text-indigo-400" />
             </div>
             <div className="my-3 flex items-baseline gap-2">
@@ -759,7 +761,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
                 <div className="flex items-center gap-2">
                   <Download className="w-4 h-4 text-sky-400" />
                   <h3 className="font-black text-xs uppercase text-slate-400 tracking-widest font-mono-code">
-                    Upload Creator VODs to Mux
+                    {t('creator.vod.upload_title')}
                   </h3>
                 </div>
               </div>

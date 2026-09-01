@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLanguage } from '../lib/i18n';
 import confetti from 'canvas-confetti';
 import {
   Trophy,
@@ -27,6 +28,7 @@ export interface BracketMatch {
 }
 
 export const EsportsTournamentBracket: React.FC = () => {
+  const { t } = useLanguage();
   const [selectedGame, setSelectedGame] = useState<'Free Fire' | 'EA FC 24' | 'PUBG Mobile'>('Free Fire');
   const [activeMatchModal, setActiveMatchModal] = useState<BracketMatch | null>(null);
 
@@ -113,7 +115,7 @@ export const EsportsTournamentBracket: React.FC = () => {
             <Trophy className="w-3.5 h-3.5 text-amber-400" />
             <span>Interactive Championship Elimination Tree</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white">Pro Champions Masters Bracket</h2>
+          <h2 className="text-xl sm:text-2xl font-black text-white">{t('bracket.header.title')}</h2>
           <p className="text-xs text-slate-400">
             Click any match box to inspect live team rosters, map vetoes, and real-time kill leaderboards.
           </p>
@@ -155,7 +157,7 @@ export const EsportsTournamentBracket: React.FC = () => {
                 >
                   <div className="flex justify-between text-[10px] font-mono-code text-slate-400">
                     <span>Match #{m.id.toUpperCase()}</span>
-                    <span className="text-emerald-400 font-bold">{m.status}</span>
+                    <span className="text-emerald-400 font-bold">{m.status === 'COMPLETED' ? t('bracket.status.completed') : m.status === 'LIVE' ? t('bracket.status.live') : m.status}</span>
                   </div>
 
                   <div className="space-y-1 text-xs">
@@ -187,7 +189,7 @@ export const EsportsTournamentBracket: React.FC = () => {
                 >
                   <div className="flex justify-between text-[10px] font-mono-code text-slate-400">
                     <span>Match #{m.id.toUpperCase()}</span>
-                    <span className="text-emerald-400 font-bold">{m.status}</span>
+                    <span className="text-emerald-400 font-bold">{m.status === 'COMPLETED' ? t('bracket.status.completed') : m.status === 'LIVE' ? t('bracket.status.live') : m.status}</span>
                   </div>
 
                   <div className="space-y-1.5 text-xs">
@@ -236,7 +238,7 @@ export const EsportsTournamentBracket: React.FC = () => {
                     <span className="text-base text-amber-400 font-mono-code">{m.team1.score}</span>
                   </div>
 
-                  <div className="text-center text-[11px] font-mono-code text-slate-500 font-bold">VS</div>
+                  <div className="text-center text-[11px] font-mono-code text-slate-500 font-bold">{t('bracket.finals.vs')}</div>
 
                   <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-950 border border-slate-800 text-white font-bold">
                     <div className="flex items-center gap-2">
@@ -251,7 +253,7 @@ export const EsportsTournamentBracket: React.FC = () => {
 
                 <div className="text-center pt-2">
                   <span className="text-xs text-purple-400 font-bold hover:underline flex items-center justify-center gap-1">
-                    <span>Watch Match Stream</span>
+                    <span>{t('bracket.finals.watch_stream')}</span>
                     <ChevronRight className="w-4 h-4" />
                   </span>
                 </div>

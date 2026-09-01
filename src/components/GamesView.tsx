@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { GameCategory } from '../types';
+import { useLanguage } from '../lib/i18n';
 import { Gamepad2, Eye, Radio, Flame, Sparkles, Filter, Search } from 'lucide-react';
 
 interface GamesViewProps {
@@ -11,6 +12,7 @@ export const GamesView: React.FC<GamesViewProps> = ({
   games,
   onSelectCategory,
 }) => {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
 
@@ -35,10 +37,10 @@ export const GamesView: React.FC<GamesViewProps> = ({
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Games & Category Hub
+                {t('games.header.title')}
               </h1>
               <p className="text-xs text-slate-400">
-                Explore popular gaming titles, competitive mobile esports & community walkthroughs
+                {t('games.header.subtitle')}
               </p>
             </div>
           </div>
@@ -50,7 +52,7 @@ export const GamesView: React.FC<GamesViewProps> = ({
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Filter games..."
+              placeholder={t('games.filter.placeholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-3.5 py-2 bg-slate-950 border border-slate-800 focus:border-sky-400 rounded-xl text-xs font-mono-code text-white placeholder-slate-500 focus:outline-none"
@@ -68,7 +70,7 @@ export const GamesView: React.FC<GamesViewProps> = ({
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                {plat === 'all' ? 'All Platforms' : plat}
+                {plat === 'all' ? t('games.filter.all_platforms') : plat}
               </button>
             ))}
           </div>

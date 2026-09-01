@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { GamingTutorial } from '../types';
 import { getMuxPlaybackUrl } from '../lib/mux';
 import { createMuxDirectUpload } from '../services/muxService';
+import { useLanguage } from '../lib/i18n';
 import {
   BookOpen,
   Play,
@@ -35,6 +36,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
   onUploadTutorial,
   onOpenSubscribe,
 }) => {
+  const { t } = useLanguage();
   const [selectedGame, setSelectedGame] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
@@ -159,10 +161,10 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
               <span>VISOR GAMING ACADEMY & MISSION GUIDES</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Master Every Mission. Level Up Your Skills.
+              {t('tutorials.hero.title')}
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Step-by-step video tutorials, zero-recoil sensitivity blueprints, frame data breakdowns, and pro meta tactics crafted by top-ranked tournament champions.
+              {t('tutorials.hero.subtitle')}
             </p>
           </div>
 
@@ -172,7 +174,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-950 hover:bg-sky-400 transition-colors font-black text-xs uppercase tracking-widest shadow-lg shadow-sky-500/10"
             >
               <PlusCircle className="w-4 h-4" />
-              <span className="text-slate-950">Publish A Tutorial</span>
+              <span className="text-slate-950">{t('tutorials.action.publish')}</span>
             </button>
 
             <button
@@ -318,7 +320,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-sky-400" />
                 <h3 className="font-black text-xs uppercase text-slate-400 tracking-widest font-mono-code">
-                  Tutorial Chapters
+                  {t('tutorials.chapters.title')}
                 </h3>
               </div>
               <span className="text-[11px] font-mono-code text-sky-400 font-bold">
@@ -372,7 +374,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
           <div>
             <h3 className="font-black text-lg text-white uppercase tracking-wider font-rajdhani flex items-center gap-2">
               <Filter className="w-4 h-4 text-sky-400" />
-              <span>Explore All Gaming Walkthroughs & Missions ({filteredTutorials.length})</span>
+              <span>{t('tutorials.browse.section_title')} ({filteredTutorials.length})</span>
             </h3>
             <p className="text-xs text-slate-400">
               Filter by favorite titles, mission difficulty, and platform
@@ -391,7 +393,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
                     : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
                 }`}
               >
-                {g === 'all' ? 'All Games' : g}
+                {g === 'all' ? t('tutorials.browse.all_games') : g}
               </button>
             ))}
           </div>
@@ -478,7 +480,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
                 </div>
                 <div>
                   <h3 className="font-rajdhani font-bold text-lg text-white">
-                    Publish Gaming Tutorial / Walkthrough
+                    {t('tutorials.upload_modal.title')}
                   </h3>
                   <p className="text-xs text-slate-400">Share your skill & earn creator revenue</p>
                 </div>
@@ -546,10 +548,10 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
                     onChange={(e) => setNewDifficulty(e.target.value as any)}
                     className="w-full px-3 py-2 bg-[#171e2b] border border-white/[0.1] rounded-lg text-xs text-slate-200 focus:outline-none focus:border-[#00B4D8]"
                   >
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Pro">Pro</option>
-                    <option value="Master">Master</option>
+                    <option value="Beginner">{t('tutorials.difficulty.beginner')}</option>
+                    <option value="Intermediate">{t('tutorials.difficulty.intermediate')}</option>
+                    <option value="Pro">{t('tutorials.difficulty.pro')}</option>
+                    <option value="Master">{t('tutorials.difficulty.master')}</option>
                   </select>
                 </div>
               </div>
@@ -586,7 +588,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
                   type="submit"
                   className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#0074e4] to-[#00B4D8] hover:opacity-95 text-white font-rajdhani font-bold text-sm tracking-wider uppercase shadow-lg shadow-[#0074e4]/30 transition-transform active:scale-98"
                 >
-                  Publish Tutorial to Visor Academy
+                  {t('tutorials.upload_modal.submit_button')}
                 </button>
               </div>
             </form>

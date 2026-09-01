@@ -3,6 +3,7 @@ import { EsportsTournament, Currency } from '../types';
 import { CURRENCY_RATES } from '../data/mockData';
 import { EsportsTournamentBracket } from './EsportsTournamentBracket';
 import { EsportsScrimLobby } from './EsportsScrimLobby';
+import { useLanguage } from '../lib/i18n';
 import confetti from 'canvas-confetti';
 import {
   Trophy,
@@ -33,6 +34,7 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
   currentCurrency,
   onOpenLiveTournamentStream,
 }) => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'tournaments' | 'brackets' | 'scrims'>('tournaments');
   const [registeredIds, setRegisteredIds] = useState<string[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<EsportsTournament>(tournaments[0]);
@@ -74,7 +76,7 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
               <span>VISOR PRO ESPORTS CIRCUIT 2026</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Championship Tournaments & Live Showdowns
+              {t('esports.hero.title')}
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
               Compete for over{' '}
@@ -90,7 +92,7 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
             className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-red-600/30 transition-transform active:scale-95 whitespace-nowrap"
           >
             <Radio className="w-4 h-4 animate-pulse" />
-            <span>Watch Grand Finals Live</span>
+            <span>{t('esports.hero.watch_live')}</span>
           </button>
         </div>
       </div>
@@ -106,7 +108,7 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
           }`}
         >
           <Trophy className="w-4 h-4" />
-          <span>Tournaments & PPV Passes</span>
+          <span>{t('esports.tabs.tournaments')}</span>
         </button>
 
         <button
@@ -118,7 +120,7 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
           }`}
         >
           <GitBranch className="w-4 h-4" />
-          <span>Elimination Brackets</span>
+          <span>{t('esports.tabs.brackets')}</span>
         </button>
 
         <button
@@ -130,7 +132,7 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
           }`}
         >
           <Gamepad2 className="w-4 h-4" />
-          <span>Custom Scrim Lobbies</span>
+          <span>{t('esports.tabs.scrims')}</span>
         </button>
       </div>
 
@@ -185,7 +187,7 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
                     <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800">
                       <div className="text-slate-400 flex items-center gap-1.5 mb-1">
                         <Calendar className="w-3.5 h-3.5 text-purple-400" />
-                        <span>Schedule</span>
+                        <span>{t('esports.stats.schedule')}</span>
                       </div>
                       <div className="font-bold text-white">{selectedTournament.startDate}</div>
                     </div>
@@ -193,7 +195,7 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
                     <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800">
                       <div className="text-slate-400 flex items-center gap-1.5 mb-1">
                         <MapPin className="w-3.5 h-3.5 text-sky-400" />
-                        <span>Server Region</span>
+                        <span>{t('esports.stats.server_region')}</span>
                       </div>
                       <div className="font-bold text-white">{selectedTournament.region}</div>
                     </div>
@@ -201,7 +203,7 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
                     <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800">
                       <div className="text-slate-400 flex items-center gap-1.5 mb-1">
                         <Users className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Registered</span>
+                        <span>{t('esports.stats.registered')}</span>
                       </div>
                       <div className="font-bold text-white">
                         {selectedTournament.registeredTeams} / {selectedTournament.maxTeams} Teams
@@ -211,7 +213,7 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
                     <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800">
                       <div className="text-slate-400 flex items-center gap-1.5 mb-1">
                         <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Prize Pool</span>
+                        <span>{t('esports.stats.prize_pool')}</span>
                       </div>
                       <div className="font-bold text-amber-400">
                         ${selectedTournament.prizePoolUSD.toLocaleString()} USD
@@ -224,7 +226,7 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
                   {selectedTournament.isPayPerView ? (
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase font-mono-code block">
-                        PPV Match Ticket
+                        {t('esports.ticket.ppv_label')}
                       </span>
                       <span className="text-sm font-black text-amber-400 font-mono-code">
                         ${selectedTournament.ticketPriceUSD} USD ({symbol}{' '}
@@ -261,8 +263,8 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
                         <Ticket className="w-4 h-4" />
                         <span>
                           {selectedTournament.isPayPerView
-                            ? 'Buy PPV Match Pass'
-                            : 'Register Team Squad'}
+                            ? t('esports.register.buy_ppv_pass')
+                            : t('esports.register.register_team')}
                         </span>
                       </>
                     )}
@@ -274,7 +276,7 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
 
           {/* Tournament Grid */}
           <div className="space-y-4">
-            <h3 className="text-base font-black text-white">Upcoming Circuit Cups</h3>
+            <h3 className="text-base font-black text-white">{t('esports.grid.section_title')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {tournaments.map((t) => (
                 <div

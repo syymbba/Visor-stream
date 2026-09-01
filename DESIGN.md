@@ -207,20 +207,28 @@ spring physics.
 
 ## Known gaps (documented, not silently fixed)
 
-- **i18n coverage is "core surfaces," not full.** `Navbar.tsx`,
-  `SettingsView.tsx`, `CreatorTipJarWidget.tsx`, `LandingPageView.tsx`
-  (nav/hero/section headers/footer chrome), `AuthModal.tsx`,
-  `GoLiveModal.tsx`, and `TipModal.tsx` now render through `t()`. RTL is
-  real and app-wide (`dir="rtl"` on `<html>` when Arabic is selected,
-  set in `src/lib/i18n.tsx`'s `LanguageProvider` — this mirrors every
-  flexbox row automatically, verified visually). Still English-only
-  regardless of language: long-form marketing/testimonial prose on the
-  landing page, and the ~25 remaining components (`LivePlayerView`'s deep
-  chrome, `ReelsView`, `LibraryView`, `CommunityView`, `StoreView`,
-  `EsportsView`, `CreatorStudioView`, `TutorialsView`, etc.) — deliberately
-  scoped out of the first pass rather than rushed. Chat messages, mock
-  social posts, and other user-generated-style *content* (as opposed to UI
-  chrome) are intentionally never translated — that's data, not interface.
+- **i18n covers UI chrome system-wide across 16 languages**, not literally
+  every string. `en, sw, lg, fr, pt, ar, es, de, zh, hi, ru, ja, ha, yo, am,
+  zu` are all fully translated in `src/lib/i18n.tsx` (~235 keys each). Nearly
+  every component now renders its primary headings, nav/tab labels, CTA
+  buttons, empty-states, and core form labels through `t()` — Navbar,
+  Settings, Landing, Auth/GoLive/Tip modals, LivePlayerView, Reels, Library,
+  Community, Store, Esports (+ bracket/scrims), Games, CreatorStudio,
+  Tutorials, Pricing, About, and the smaller payment/payout/overlay/
+  notification widgets. RTL is real and app-wide (`dir="rtl"` on `<html>`
+  when Arabic is selected, set in `LanguageProvider`) — mirrors every
+  flexbox row automatically, verified visually.
+  Deliberately still English-only, by design not oversight: long-form
+  marketing/testimonial prose on the landing page, `FeatureInfoView`'s deep
+  per-feature content blocks, legal page bodies (Privacy/Terms), the mock
+  Gmail client (`GmailView` — an auxiliary demo feature), deep diagnostic/
+  data-table panels (payment gateway diagnostics, revenue chart legends,
+  payout ledger table columns), and — as ever — actual content vs. chrome:
+  chat messages, mock social posts, and other user-generated-style text are
+  never translated, since that's data, not interface. Luganda, Hausa,
+  Yoruba, Amharic, and Zulu translations are best-effort (not
+  native-reviewed) — worth a native speaker's pass before treating them as
+  production-quality.
 - **Icon glyphs don't mirror under RTL.** `ChevronRight`/`ArrowRight` etc.
   keep pointing the same visual direction in Arabic instead of flipping to
   match reading direction — a real but minor polish gap, not a functional

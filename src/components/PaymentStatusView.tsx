@@ -26,6 +26,7 @@ import {
 import { getAuthHeaders } from '../firebase';
 import confetti from 'canvas-confetti';
 import { parsePesapalError, PesapalErrorBreakdown, ErrorCategory } from '../lib/pesapalErrors';
+import { useLanguage } from '../lib/i18n';
 
 export interface MobileMoneyProviderDetails {
   id: 'MTN_MOMO' | 'AIRTEL_MONEY' | 'MPESA' | 'CARD' | 'UNKNOWN';
@@ -212,6 +213,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
   onNavigateLive,
   onTryAgain,
 }) => {
+  const { t } = useLanguage();
   // Extract query params from window.location if not explicitly passed as props
   const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
 
@@ -491,7 +493,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
                 <CheckCircle2 className="w-12 h-12" />
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                Payment Completed Successfully!
+                {t('paymentstatus.completed.title')}
               </h2>
               <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto">
                 Your payment has been fully confirmed by Pesapal and settled with the telecom carrier. Subscriptions, stream badges, and live tip alerts are now active.
@@ -503,7 +505,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
                 <Clock className="w-12 h-12 animate-pulse" />
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                Authorization in Progress
+                {t('paymentstatus.pending.title')}
               </h2>
               <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto">
                 Pesapal has transmitted the USSD prompt to your mobile phone. Please unlock your device and enter your Mobile Money PIN to complete the transaction.
@@ -529,7 +531,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
                   </span>
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Mobile Money Payment Did Not Settle
+                  {t('paymentstatus.failed.title')}
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto">
                   The transaction was declined by the telecom operator or could not be completed on your mobile device.
@@ -778,7 +780,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
                     className="w-full py-3.5 px-4 rounded-2xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-sky-500/20 cursor-pointer"
                   >
                     <Radio className="w-4 h-4 text-slate-950" />
-                    <span>Return to Live Stream</span>
+                    <span>{t('paymentstatus.actions.returnToLive')}</span>
                   </button>
                 )}
                 {onNavigateStudio ? (
@@ -806,7 +808,7 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
                   className="w-full py-3.5 px-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                 >
                   <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                  <span>Check Status Again</span>
+                  <span>{t('paymentstatus.actions.checkStatusAgain')}</span>
                 </button>
                 <button
                   onClick={onNavigateHome}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CommunityPost } from '../types';
 import { TipModal } from './TipModal';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '../lib/i18n';
 import {
   Users,
   MessageSquare,
@@ -27,6 +28,7 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
   posts,
   onOpenSubscribe,
 }) => {
+  const { t } = useLanguage();
   const [feedPosts, setFeedPosts] = useState<CommunityPost[]>(posts);
   const [newPostContent, setNewPostContent] = useState('');
   const [likedPostIds, setLikedPostIds] = useState<string[]>(['p_1', 'p_3']);
@@ -97,10 +99,10 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Visor Community Hub & Discord Squads
+                {t('community.header_title')}
               </h1>
               <p className="text-xs text-slate-400">
-                Connect with clan mates, share clutch clips, and earn Gamipress XP badges
+                {t('community.header_desc')}
               </p>
             </div>
           </div>
@@ -114,7 +116,7 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
           className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#5865F2] hover:bg-[#4752c4] text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-[#5865F2]/25 transition-transform active:scale-95"
         >
           <ExternalLink className="w-4 h-4" />
-          <span>Join Official Discord (12.4K)</span>
+          <span>{t('community.join_discord_button')}</span>
         </a>
       </div>
 
@@ -132,7 +134,7 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
               />
               <textarea
                 rows={2}
-                placeholder="Share a gaming highlight, strategy discussion, or ask for mission help..."
+                placeholder={t('community.post_input_placeholder')}
                 value={newPostContent}
                 onChange={(e) => setNewPostContent(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 focus:border-sky-400 rounded-2xl p-3.5 text-xs text-white placeholder-slate-500 focus:outline-none resize-none font-mono-code"
@@ -143,7 +145,7 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
               <div className="flex items-center gap-2 text-xs text-slate-400 font-mono-code">
                 <button className="flex items-center gap-1.5 hover:text-white px-3 py-1.5 rounded-xl hover:bg-slate-800">
                   <ImageIcon className="w-4 h-4 text-sky-400" />
-                  <span>Attach Clip</span>
+                  <span>{t('community.attach_clip_button')}</span>
                 </button>
               </div>
 
@@ -152,7 +154,7 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
                 className="px-5 py-2.5 rounded-xl bg-white text-slate-950 hover:bg-sky-400 transition-colors font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md active:scale-95"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>Post to Hub</span>
+                <span>{t('community.post_to_hub_button')}</span>
               </button>
             </div>
           </div>
@@ -223,7 +225,7 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
                         }`}
                       >
                         <Heart className={`w-4 h-4 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
-                        <span>{post.likesCount} Likes</span>
+                        <span>{post.likesCount} {t('community.likes_suffix')}</span>
                       </button>
 
                       <button className="flex items-center gap-1.5 hover:text-white transition-colors">
@@ -243,7 +245,7 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
                       title="Tip Creator via Mobile Money Tip Jar"
                     >
                       <Gift className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Tip Creator</span>
+                      <span>{t('community.tip_creator_button')}</span>
                     </button>
                   </div>
                 </div>
@@ -270,7 +272,7 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
               <div className="flex items-center gap-2">
                 <Award className="w-4 h-4 text-amber-400" />
                 <h3 className="font-black text-sm uppercase text-white tracking-wider font-rajdhani">
-                  Gamipress XP Leaderboard
+                  {t('community.leaderboard_title')}
                 </h3>
               </div>
               <span className="text-[10px] font-mono-code text-slate-400 uppercase">Season 4</span>

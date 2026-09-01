@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Currency } from '../types';
 import { CURRENCY_RATES } from '../data/mockData';
+import { useLanguage } from '../lib/i18n';
 import {
   PieChart as RechartsPie,
   Pie,
@@ -43,6 +44,7 @@ export const RevenueSplitChart: React.FC<RevenueSplitChartProps> = ({
   creatorEarningsUSD = 2415,
   platformFeesUSD = 1035,
 }) => {
+  const { t } = useLanguage();
   const [viewMode, setViewMode] = useState<'monthly' | 'channels' | 'projection'>('monthly');
 
   const rate = CURRENCY_RATES[currentCurrency]?.rate || 1;
@@ -170,7 +172,7 @@ export const RevenueSplitChart: React.FC<RevenueSplitChartProps> = ({
           <div className="flex items-center justify-between text-xs font-mono-code text-slate-400 mb-2">
             <span className="flex items-center gap-1.5">
               <DollarSign className="w-3.5 h-3.5 text-sky-400" />
-              Gross Volume
+              {t('revenue.card.grossVolume')}
             </span>
             <span className="text-emerald-400 flex items-center font-bold">
               <ArrowUpRight className="w-3 h-3" /> +28.4%
@@ -190,7 +192,7 @@ export const RevenueSplitChart: React.FC<RevenueSplitChartProps> = ({
           <div className="flex items-center justify-between text-xs font-mono-code text-emerald-400 mb-2">
             <span className="flex items-center gap-1.5 font-bold">
               <Wallet className="w-3.5 h-3.5 text-emerald-400" />
-              Creator Net Share (70%)
+              {t('revenue.card.creatorShare')}
             </span>
             <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-[10px] font-black uppercase tracking-wider">
               70% Payout
@@ -210,7 +212,7 @@ export const RevenueSplitChart: React.FC<RevenueSplitChartProps> = ({
           <div className="flex items-center justify-between text-xs font-mono-code text-slate-400 mb-2">
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-sky-400" />
-              Platform & Edge Fee (30%)
+              {t('revenue.card.platformFee')}
             </span>
             <span className="px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-400 text-[10px] font-mono-code font-bold">
               30% Telco/Infra

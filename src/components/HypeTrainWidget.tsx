@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '../lib/i18n';
 import {
   Flame,
   Zap,
@@ -23,6 +24,7 @@ export const HypeTrainWidget: React.FC<HypeTrainWidgetProps> = ({
   onOpenTip,
   onOpenSubscribe,
 }) => {
+  const { t } = useLanguage();
   const [isActive, setIsActive] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [level, setLevel] = useState(2);
@@ -85,7 +87,7 @@ export const HypeTrainWidget: React.FC<HypeTrainWidgetProps> = ({
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-black text-white uppercase tracking-wider">
-                HYPE TRAIN
+                {t('hype.title')}
               </span>
               <span className="px-1.5 py-0.2 rounded-md bg-amber-500 text-slate-950 font-black text-[10px]">
                 LEVEL {level}
@@ -103,7 +105,7 @@ export const HypeTrainWidget: React.FC<HypeTrainWidgetProps> = ({
             className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-[11px] uppercase tracking-wider shadow-md shadow-amber-500/20 transition-transform active:scale-95 flex items-center gap-1"
           >
             <Zap className="w-3 h-3 fill-current" />
-            <span>Boost</span>
+            <span>{t('hype.boost')}</span>
           </button>
 
           <button

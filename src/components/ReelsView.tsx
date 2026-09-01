@@ -21,6 +21,7 @@ import {
   Music
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '../lib/i18n';
 
 interface ReelsViewProps {
   currentCurrency: Currency;
@@ -33,6 +34,7 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
   onSaveToLibrary,
   onOpenCreator
 }) => {
+  const { t } = useLanguage();
   const [reels, setReels] = useState<ReelClip[]>(MOCK_REELS);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -116,7 +118,7 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
         if (nextSaved && onSaveToLibrary) {
           onSaveToLibrary(item);
         }
-        setToastMessage(nextSaved ? 'Saved to your Library for offline playback!' : 'Removed from saved items');
+        setToastMessage(nextSaved ? t('reels.toast_saved') : t('reels.toast_removed'));
         setTimeout(() => setToastMessage(null), 3000);
         return {
           ...item,
@@ -131,7 +133,7 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
     if (navigator.clipboard) {
       navigator.clipboard.writeText(`https://visorstream.live/reels/${currentClip.id}`);
     }
-    setToastMessage('Clip share link copied to clipboard!');
+    setToastMessage(t('reels.toast_share_copied'));
     setTimeout(() => setToastMessage(null), 3000);
   };
 
@@ -261,7 +263,7 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
                 <Bookmark className={`w-5 h-5 ${currentClip.isSaved ? 'fill-current' : ''}`} />
               </div>
               <span className="text-[11px] font-mono-code font-bold text-white drop-shadow">
-                Save
+                {t('reels.save_label')}
               </span>
             </button>
 
@@ -274,7 +276,7 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
                 <Share2 className="w-5 h-5" />
               </div>
               <span className="text-[11px] font-mono-code font-bold text-white drop-shadow">
-                Share
+                {t('reels.share_label')}
               </span>
             </button>
           </div>
@@ -302,7 +304,7 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
                 }}
                 className="ml-auto px-3 py-1 rounded-lg bg-[#38bdf8] text-[#0b0e14] text-xs font-bold uppercase tracking-wider hover:bg-[#66c0f4] transition-all shadow-md"
               >
-                Follow
+                {t('reels.follow_button')}
               </button>
             </div>
 
@@ -344,7 +346,7 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-[#2a475e]">
               <div className="flex items-center gap-2">
                 <MessageCircle className="w-4 h-4 text-[#38bdf8]" />
-                <h3 className="text-sm font-bold text-white">Comments ({commentsList.length})</h3>
+                <h3 className="text-sm font-bold text-white">{t('reels.comments_title')} ({commentsList.length})</h3>
               </div>
               <button
                 onClick={() => setShowComments(false)}
@@ -371,7 +373,7 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
             <form onSubmit={handleAddComment} className="pt-2 border-t border-[#2a475e] flex gap-2">
               <input
                 type="text"
-                placeholder="Add a comment..."
+                placeholder={t('reels.comment_input_placeholder')}
                 value={commentInput}
                 onChange={(e) => setCommentInput(e.target.value)}
                 className="flex-1 px-3 py-2 bg-[#0b0e14] border border-[#2a475e] rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#38bdf8]"

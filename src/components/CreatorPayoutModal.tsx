@@ -3,6 +3,7 @@ import { Currency } from '../types';
 import { CURRENCY_RATES } from '../data/mockData';
 import { getAuthHeaders } from '../firebase';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '../lib/i18n';
 import {
   Smartphone,
   CheckCircle2,
@@ -36,6 +37,7 @@ export const CreatorPayoutModal: React.FC<CreatorPayoutModalProps> = ({
   currentCurrency,
   onPayoutSuccess,
 }) => {
+  const { t } = useLanguage();
   const [provider, setProvider] = useState<PayoutProvider>('MTN MoMo');
   const [phone, setPhone] = useState('0780123456');
   const [recipientName, setRecipientName] = useState('Visor Pro Creator');
@@ -198,7 +200,7 @@ Status: COMPLETED (Dispatched via Instant Switch)
               <span className="px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-mono-code font-bold uppercase tracking-wider">
                 Payout Dispatched Instantly
               </span>
-              <h2 className="text-2xl font-black text-white">Withdrawal Successful</h2>
+              <h2 className="text-2xl font-black text-white">{t('payout.success.title')}</h2>
               <p className="text-xs text-slate-400">
                 Funds transferred via <strong className="text-slate-200">{completedReceipt.provider}</strong> to <strong className="text-slate-200">{completedReceipt.phone}</strong>.
               </p>
@@ -256,7 +258,7 @@ Status: COMPLETED (Dispatched via Instant Switch)
                 <Smartphone className="w-3.5 h-3.5 text-purple-400" />
                 <span>Instant Mobile Money & Cashout Gateway</span>
               </div>
-              <h2 className="text-2xl font-black text-white tracking-tight">Withdraw Creator Earnings</h2>
+              <h2 className="text-2xl font-black text-white tracking-tight">{t('payout.form.title')}</h2>
               <p className="text-xs text-slate-400">
                 Disburse your live stream super tips and subscriptions directly to Mobile Money or your bank.
               </p>
@@ -265,7 +267,7 @@ Status: COMPLETED (Dispatched via Instant Switch)
             {/* Available Balance Banner */}
             <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-950 border border-slate-800">
               <div className="space-y-0.5">
-                <span className="text-[11px] font-mono-code text-slate-400 uppercase">Available for Payout</span>
+                <span className="text-[11px] font-mono-code text-slate-400 uppercase">{t('payout.form.availableForPayout')}</span>
                 <div className="text-xl font-black text-white">
                   ${availableBalanceUSD.toFixed(2)}{' '}
                   <span className="text-xs font-normal text-purple-400 font-mono-code">

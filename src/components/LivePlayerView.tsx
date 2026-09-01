@@ -13,6 +13,7 @@ import {
   getRandomSimulatedChatter 
 } from '../services/chatService';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '../lib/i18n';
 import {
   Radio,
   Send,
@@ -79,6 +80,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
   onNavigateToLibrary,
   userTier = 'free',
 }) => {
+  const { t } = useLanguage();
   const displayStreams = allStreams || propStreams || [];
   const [isFollowing, setIsFollowing] = useState(false);
   const [likesCount, setLikesCount] = useState(1420);
@@ -343,7 +345,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
           }`}
         >
           <Tv className="w-3.5 h-3.5" />
-          <span>Stream</span>
+          <span>{t('player.tab_stream')}</span>
         </button>
         <button
           onClick={() => setMobileActiveTab('chat')}
@@ -354,7 +356,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
           }`}
         >
           <MessageSquare className="w-3.5 h-3.5" />
-          <span>Chat</span>
+          <span>{t('player.tab_chat')}</span>
         </button>
         <button
           onClick={() => setMobileActiveTab('store')}
@@ -365,7 +367,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
           }`}
         >
           <ShoppingBag className="w-3.5 h-3.5" />
-          <span>Store</span>
+          <span>{t('player.tab_store')}</span>
         </button>
         <button
           onClick={() => setMobileActiveTab('info')}
@@ -376,7 +378,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
           }`}
         >
           <Info className="w-3.5 h-3.5" />
-          <span>Info</span>
+          <span>{t('player.tab_info')}</span>
         </button>
       </div>
 
@@ -389,7 +391,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
               <div className="flex items-center gap-2.5">
                 <WifiOff className="w-4 h-4 text-amber-400 shrink-0" />
                 <span>
-                  <strong>Offline Mode Active:</strong> Live stream playback paused to conserve cellular data. You can watch cached matches in your offline library.
+                  <strong>{t('player.offline_banner_title')}</strong> Live stream playback paused to conserve cellular data. You can watch cached matches in your offline library.
                 </span>
               </div>
               {onNavigateToLibrary && (
@@ -398,7 +400,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                   className="px-3 py-1.5 bg-amber-500 text-slate-950 rounded-xl font-bold uppercase text-[11px] shrink-0 hover:bg-amber-400 transition-colors flex items-center gap-1"
                 >
                   <Download className="w-3 h-3" />
-                  <span>Open Offline Library</span>
+                  <span>{t('player.open_offline_library')}</span>
                 </button>
               )}
             </div>
@@ -420,7 +422,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                   <span className="text-[10px] font-mono-code font-bold uppercase px-2.5 py-0.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/30">
                     {currentStream.game}
                   </span>
-                  <span className="text-xs text-slate-500 font-mono-code">UPTIME: {currentStream.uptime}</span>
+                  <span className="text-xs text-slate-500 font-mono-code">{t('player.uptime_label')} {currentStream.uptime}</span>
                 </div>
                 <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-1.5">
                   {currentStream.title.includes('[GRAND FINALS]') && (
@@ -449,7 +451,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-transform active:scale-95"
                 >
                   <Smartphone className="w-4 h-4 text-slate-950" />
-                  <span>Tip (MoMo / M-Pesa)</span>
+                  <span>{t('player.tip_momo_button')}</span>
                 </button>
 
                 <button
@@ -457,7 +459,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-950 hover:bg-sky-400 transition-colors font-black text-xs uppercase tracking-widest shadow-lg shadow-sky-500/10"
                 >
                   <Sparkles className="w-4 h-4 text-sky-600" />
-                  <span>Subscribe ($5)</span>
+                  <span>{t('player.subscribe_button')}</span>
                 </button>
               </div>
             </div>
@@ -487,7 +489,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                   <div className="flex items-center gap-2 text-xs text-slate-400">
                     <span className="font-mono-code">{currentStream.streamer.handle}</span>
                     <span>•</span>
-                    <span>{currentStream.streamer.subscribers.toLocaleString()} subscribers</span>
+                    <span>{currentStream.streamer.subscribers.toLocaleString()} {t('player.subscribers_suffix')}</span>
                   </div>
                 </div>
               </div>
@@ -500,7 +502,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                     : 'bg-sky-500/15 text-sky-400 border border-sky-500/40 hover:bg-sky-500/25'
                 }`}
               >
-                {isFollowing ? 'Following' : '+ Follow'}
+                {isFollowing ? t('player.following_button') : t('player.follow_button')}
               </button>
             </div>
 
@@ -511,7 +513,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                   <div className="flex items-center gap-1.5 font-bold text-amber-300">
                     <Gift className="w-3.5 h-3.5 text-amber-400" />
                     <span className="flex items-center gap-1">
-                      Active Tip Jar Goal:
+                      {t('player.tipjar_goal_label')}
                       <Mic className="w-3.5 h-3.5 text-amber-400 inline-block" />
                       Studio Mic & Capture Card Upgrade
                     </span>
@@ -530,7 +532,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                 className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shrink-0"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Tip Jar</span>
+                <span>{t('player.tipjar_button')}</span>
               </button>
             </div>
 
@@ -552,7 +554,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
               </div>
               <div>
                 <h2 className="font-black text-xs uppercase tracking-wider text-white">
-                  Live Stream Chat
+                  {t('player.chat_panel_title')}
                 </h2>
                 <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono-code">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -610,7 +612,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                     : 'text-slate-400 hover:text-white border border-transparent'
                 }`}
               >
-                All Messages ({chatMessages.length})
+                {t('player.chat_filter_all')} ({chatMessages.length})
               </button>
               <button
                 onClick={() => setChatFilter('tips')}
@@ -621,12 +623,12 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                 }`}
               >
                 <Gift className="w-3 h-3 text-amber-400" />
-                <span>Super Tips ({chatMessages.filter(m => m.isDonation).length})</span>
+                <span>{t('player.chat_filter_tips')} ({chatMessages.filter(m => m.isDonation).length})</span>
               </button>
             </div>
 
             <span className="text-[10px] text-slate-500">
-              {currentUser ? `@${customGamerTag}` : 'Guest Mode'}
+              {currentUser ? `@${customGamerTag}` : t('player.guest_mode')}
             </span>
           </div>
 
@@ -662,7 +664,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
             {filteredChatMessages.length === 0 ? (
               <div className="py-12 text-center space-y-2 text-slate-500">
                 <MessageSquare className="w-8 h-8 mx-auto opacity-40 text-slate-600" />
-                <p className="text-xs">No messages in this filter yet.</p>
+                <p className="text-xs">{t('player.no_messages_filter')}</p>
                 <button
                   onClick={() => setChatFilter('all')}
                   className="text-xs text-sky-400 font-bold underline"
@@ -788,7 +790,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
               <input
                 ref={inputRef}
                 type="text"
-                placeholder={currentUser ? `Chat as ${customGamerTag}...` : "Send a message in live chat..."}
+                placeholder={currentUser ? `Chat as ${customGamerTag}...` : t('player.chat_input_placeholder')}
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 className="flex-1 px-3.5 py-2.5 bg-slate-900 border border-slate-800 focus:border-sky-400 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none"
@@ -797,7 +799,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                 type="button"
                 onClick={() => setTipModalOpen(true)}
                 className="p-2.5 rounded-xl bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 transition-colors"
-                title="Send Mobile Money Super Tip"
+                title={t('player.send_super_tip_title')}
               >
                 <Coins className="w-4 h-4" />
               </button>
@@ -821,7 +823,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                 className="py-2 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors"
               >
                 <Gift className="w-3.5 h-3.5 text-amber-400" />
-                <span>Super Tip</span>
+                <span>{t('player.super_tip_button')}</span>
               </button>
 
               <button
@@ -829,7 +831,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                 onClick={() => onOpenSubscribe(currentStream.streamer.name)}
                 className="py-2 px-3 bg-white text-slate-950 hover:bg-sky-400 border border-transparent rounded-xl text-[11px] font-black uppercase tracking-wider transition-colors shadow-md"
               >
-                <span>Subscribe ($5)</span>
+                <span>{t('player.subscribe_button')}</span>
               </button>
             </div>
           </div>
@@ -949,7 +951,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
           <div className="flex items-center gap-2.5">
             <Radio className="w-4 h-4 text-red-500 animate-pulse" />
             <h2 className="text-base sm:text-lg font-black text-white uppercase tracking-wider font-rajdhani">
-              Featured Live Streams
+              {t('player.featured_streams_title')}
             </h2>
           </div>
           <span className="text-xs text-sky-400 font-mono-code font-semibold">
@@ -976,10 +978,10 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                 />
                 <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
                   <span className="px-2 py-0.5 rounded-md bg-red-600 text-white font-mono-code font-bold text-[9px] tracking-wider uppercase">
-                    LIVE
+                    {t('player.live_badge')}
                   </span>
                   <span className="px-2 py-0.5 rounded-md bg-slate-950/80 backdrop-blur-md text-white text-[9px] font-mono-code">
-                    {stream.viewersCount.toLocaleString()} viewers
+                    {stream.viewersCount.toLocaleString()} {t('player.viewers_suffix')}
                   </span>
                 </div>
                 <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-slate-950/80 text-[9px] font-mono-code text-slate-300">
