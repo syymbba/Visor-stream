@@ -11,7 +11,11 @@
     "clean": "rm -rf dist server.js",
     "db:push": "drizzle-kit push --config=src/db/drizzle.config.ts",
     "lint": "tsc --noEmit",
-    "grant-admin": "tsx scripts/set-admin-claim.ts"
+    "grant-admin": "tsx scripts/set-admin-claim.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "audit:deps": "npm audit",
+    "security:headers": "tsx scripts/security-headers-check.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -41,6 +45,7 @@
     "vite": "^6.2.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/canvas-confetti": "^1.9.0",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
