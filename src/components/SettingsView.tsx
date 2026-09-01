@@ -506,7 +506,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 className="px-3.5 py-2 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 font-bold text-xs flex items-center gap-1.5 transition-colors"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span>Sign Out</span>
+                <span>{t('settings.sign_out')}</span>
               </button>
             ) : (
               onOpenAuthModal && (
@@ -597,7 +597,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   className="px-4 py-2 rounded-xl bg-[#38bdf8] text-[#0b0e14] hover:bg-[#66c0f4] font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md active:scale-95 disabled:opacity-50 transition-all"
                 >
                   {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                  <span>Save Changes</span>
+                  <span>{isLoading ? t('settings.saving') : t('settings.save')}</span>
                 </button>
               </div>
 

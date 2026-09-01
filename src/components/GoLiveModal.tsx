@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Video, Mic, MicOff, Camera, CameraOff, Radio, Sparkles, X, CheckCircle2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '../lib/i18n';
 
 interface GoLiveModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ export const GoLiveModal: React.FC<GoLiveModalProps> = ({
   onClose,
   onStartBroadcast,
 }) => {
+  const { t } = useLanguage();
   const [streamTitle, setStreamTitle] = useState('🔥 Friday Ranked Grind with Squad! Tips via M-Pesa / MTN MoMo');
   const [selectedGame, setSelectedGame] = useState('Apex Legends Mobile');
   const [resolution, setResolution] = useState('1080p60');
@@ -79,9 +81,9 @@ export const GoLiveModal: React.FC<GoLiveModalProps> = ({
             </div>
             <div>
               <h3 className="font-black text-lg text-white tracking-tight">
-                Visor Broadcaster Studio
+                {t('golive.title')}
               </h3>
-              <p className="text-xs text-slate-400 font-mono-code">Start instant live stream or mobile broadcast</p>
+              <p className="text-xs text-slate-400 font-mono-code">{t('golive.subtitle')}</p>
             </div>
           </div>
           <button
@@ -107,7 +109,7 @@ export const GoLiveModal: React.FC<GoLiveModalProps> = ({
             ) : (
               <div className="text-center space-y-2">
                 <CameraOff className="w-10 h-10 text-slate-600 mx-auto" />
-                <p className="text-xs text-slate-400 font-mono-code">Camera preview is muted</p>
+                <p className="text-xs text-slate-400 font-mono-code">{t('golive.camera_muted')}</p>
               </div>
             )}
 
@@ -136,13 +138,13 @@ export const GoLiveModal: React.FC<GoLiveModalProps> = ({
               </div>
 
               <span className="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-800 backdrop-blur-sm text-[10px] font-mono-code text-emerald-400 font-bold">
-                1080p60 • Ready to Ingest
+                {t('golive.ready_ingest')}
               </span>
             </div>
           </div>
 
           <div className="space-y-1 font-mono-code">
-            <label className="text-xs font-bold text-slate-300">Broadcast Title</label>
+            <label className="text-xs font-bold text-slate-300">{t('golive.label_title')}</label>
             <input
               type="text"
               value={streamTitle}
@@ -154,7 +156,7 @@ export const GoLiveModal: React.FC<GoLiveModalProps> = ({
 
           <div className="grid grid-cols-2 gap-3 font-mono-code">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-300">Category / Game</label>
+              <label className="text-xs font-bold text-slate-300">{t('golive.label_category')}</label>
               <select
                 value={selectedGame}
                 onChange={(e) => setSelectedGame(e.target.value)}
@@ -170,7 +172,7 @@ export const GoLiveModal: React.FC<GoLiveModalProps> = ({
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-300">Stream Resolution</label>
+              <label className="text-xs font-bold text-slate-300">{t('golive.label_resolution')}</label>
               <select
                 value={resolution}
                 onChange={(e) => setResolution(e.target.value)}
@@ -192,12 +194,12 @@ export const GoLiveModal: React.FC<GoLiveModalProps> = ({
               {isLiveActive ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
-                  <span>Connecting to Ingest Relay...</span>
+                  <span>{t('golive.connecting')}</span>
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <Radio className="w-4 h-4" />
-                  <span>Start Live Broadcast</span>
+                  <span>{t('golive.start_broadcast')}</span>
                 </span>
               )}
             </button>

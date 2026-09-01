@@ -43,6 +43,7 @@ import {
   Info
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useLanguage } from '../lib/i18n';
 
 interface LandingPageViewProps {
   isAuthenticated: boolean;
@@ -69,6 +70,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   onNavigateTab,
   onSelectFeature,
 }) => {
+  const { t } = useLanguage();
   const [activeHeroTab, setActiveHeroTab] = useState<'stream' | 'chat'>('stream');
   const [isPlayingHero, setIsPlayingHero] = useState(true);
   const [heroLikes, setHeroLikes] = useState(3842);
@@ -122,38 +124,38 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 onClick={() => scrollToSection('features')}
                 className="hover:text-sky-400 transition-colors py-2"
               >
-                Features
+                {t('landing.nav_features')}
               </button>
               <button
                 onClick={() => scrollToSection('creative-tools')}
                 className="hover:text-sky-400 transition-colors py-2"
               >
-                Studio Tools
+                {t('landing.nav_studio')}
               </button>
               <button
                 onClick={() => scrollToSection('live-streams')}
                 className="hover:text-sky-400 transition-colors py-2 flex items-center gap-1.5"
               >
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                <span>Live Streams</span>
+                <span>{t('landing.nav_live')}</span>
               </button>
               <button
                 onClick={() => scrollToSection('integrations')}
                 className="hover:text-sky-400 transition-colors py-2"
               >
-                Integrations
+                {t('landing.nav_integrations')}
               </button>
               <button
                 onClick={() => scrollToSection('creators')}
                 className="hover:text-sky-400 transition-colors py-2"
               >
-                Monetization
+                {t('landing.nav_monetization')}
               </button>
               <button
                 onClick={() => scrollToSection('about')}
                 className="hover:text-sky-400 transition-colors py-2"
               >
-                About
+                {t('landing.nav_about')}
               </button>
             </nav>
           </div>
@@ -167,7 +169,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-400 to-indigo-500 hover:from-sky-300 hover:to-indigo-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-sky-500/20 transition-all hover:scale-105"
                 >
                   <LayoutDashboard className="w-4 h-4" />
-                  <span>Go to App Dashboard</span>
+                  <span>{t('landing.go_to_dashboard')}</span>
                 </button>
 
                 {userAvatar && (
@@ -185,7 +187,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   className="px-4 py-2 rounded-xl text-xs font-mono-code font-bold uppercase tracking-wider text-slate-200 hover:text-white bg-slate-800/60 hover:bg-slate-800 border border-slate-700/80 transition-all flex items-center gap-1.5"
                 >
                   <LogIn className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Log In</span>
+                  <span>{t('landing.log_in')}</span>
                 </button>
 
                 <button
@@ -193,7 +195,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   className="px-4 sm:px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-sky-500/20 transition-all hover:scale-105"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
-                  <span>Get Started Free</span>
+                  <span>{t('landing.get_started')}</span>
                 </button>
               </div>
             )}
@@ -214,17 +216,17 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-300 text-xs font-mono-code font-bold">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>PREMIER GAMING & ESPORTS STREAMING PLATFORM</span>
+                <span>{t('landing.hero_badge').toUpperCase()}</span>
               </div>
 
               {/* Headline */}
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight font-rajdhani uppercase leading-[1.08]">
-                Stream. Play. Connect. Built for creators and competitive gamers.
+                {t('landing.hero_headline')}
               </h1>
 
               {/* Subheadline */}
               <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto lg:mx-0 font-normal">
-                Next-gen low-latency live streaming, creator tools, community hubs, and game store integrations all in one unified platform.
+                {t('landing.hero_subheadline')}
               </p>
 
               {/* Primary Action Buttons */}
@@ -234,7 +236,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-sky-400 via-sky-500 to-indigo-500 hover:from-sky-300 hover:to-indigo-400 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl shadow-sky-500/25 transition-all hover:scale-105 active:scale-95"
                 >
                   <Radio className="w-4 h-4" />
-                  <span>Start Streaming Free</span>
+                  <span>{t('landing.hero_cta_stream')}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
@@ -243,7 +245,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                   className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700 font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:border-sky-500/50"
                 >
                   <Eye className="w-4 h-4 text-sky-400" />
-                  <span>Explore Stream Hubs</span>
+                  <span>{t('landing.hero_cta_explore')}</span>
                 </button>
               </div>
 
@@ -255,7 +257,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 >
                   <div className="text-sky-400 font-mono-code font-black text-base">&lt; 45ms</div>
                   <div className="text-[10px] text-slate-400 uppercase font-mono-code flex items-center justify-between">
-                    <span>Ultra-Low Latency</span>
+                    <span>{t('landing.metric_latency')}</span>
                     <ChevronRight className="w-3 h-3 text-sky-400/60" />
                   </div>
                 </div>
@@ -265,7 +267,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 >
                   <div className="text-amber-400 font-mono-code font-black text-base">70 / 30</div>
                   <div className="text-[10px] text-slate-400 uppercase font-mono-code flex items-center justify-between">
-                    <span>Creator Split</span>
+                    <span>{t('landing.metric_split')}</span>
                     <ChevronRight className="w-3 h-3 text-amber-400/60" />
                   </div>
                 </div>
@@ -275,7 +277,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 >
                   <div className="text-emerald-400 font-mono-code font-black text-base">Instant</div>
                   <div className="text-[10px] text-slate-400 uppercase font-mono-code flex items-center justify-between">
-                    <span>MTN / M-Pesa Tips</span>
+                    <span>{t('landing.metric_tips')}</span>
                     <ChevronRight className="w-3 h-3 text-emerald-400/60" />
                   </div>
                 </div>
@@ -285,7 +287,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 >
                   <div className="text-purple-400 font-mono-code font-black text-base">120 FPS</div>
                   <div className="text-[10px] text-slate-400 uppercase font-mono-code flex items-center justify-between">
-                    <span>Ultra-HD Ingest</span>
+                    <span>{t('landing.metric_ingest')}</span>
                     <ChevronRight className="w-3 h-3 text-purple-400/60" />
                   </div>
                 </div>
@@ -414,13 +416,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           
           <div className="text-center max-w-3xl mx-auto space-y-3">
             <span className="text-xs font-mono-code font-bold uppercase text-sky-400 tracking-widest px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30">
-              ENGINEERED FOR HIGH PERFORMANCE
+              {t('landing.features_eyebrow').toUpperCase()}
             </span>
             <h2 className="text-3xl sm:text-4xl font-black text-white font-rajdhani uppercase tracking-tight">
-              All-In-One Continental Gaming Infrastructure
+              {t('landing.features_title')}
             </h2>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Click any feature below to inspect detailed architecture specs, encoding benchmarks, and live integration capabilities.
+              {t('landing.features_subtitle')}
             </p>
           </div>
 
@@ -526,10 +528,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
             <div className="space-y-3 max-w-2xl">
               <span className="text-xs font-mono-code font-bold uppercase text-sky-400 tracking-widest px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30">
-                CREATOR STUDIO TOOLS
+                {t('landing.studio_eyebrow').toUpperCase()}
               </span>
               <h2 className="text-3xl sm:text-4xl font-black text-white font-rajdhani uppercase tracking-tight">
-                Built-in Broadcast Automation & Smart Overlays
+                {t('landing.studio_title')}
               </h2>
               <p className="text-sm text-slate-400 leading-relaxed">
                 Streamline your production workflow with AI highlight generation, interactive transparent browser widgets, and live prediction engines.
@@ -541,7 +543,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 onClick={() => handleFeatureClick('creative-tools')}
                 className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 font-mono-code font-bold text-xs uppercase border border-slate-700 flex items-center gap-2"
               >
-                <span>Explore Studio Specs</span>
+                <span>{t('landing.studio_cta')}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -621,10 +623,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <div>
               <div className="flex items-center gap-2 text-xs font-mono-code font-bold uppercase text-red-500">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-                <span>ACTIVE BROADCASTS</span>
+                <span>{t('landing.live_eyebrow').toUpperCase()}</span>
               </div>
               <h2 className="text-3xl font-black text-white font-rajdhani uppercase tracking-tight mt-1">
-                Live Channels Across the Continent
+                {t('landing.live_title')}
               </h2>
             </div>
 
@@ -632,7 +634,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               onClick={onEnterApp}
               className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 font-mono-code font-bold text-xs uppercase tracking-wider border border-slate-700 flex items-center gap-2 shrink-0"
             >
-              <span>View All 48 Live Streams</span>
+              <span>{t('landing.live_cta')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -714,10 +716,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           
           <div className="text-center space-y-2 max-w-2xl mx-auto">
             <span className="text-xs font-mono-code font-bold uppercase text-indigo-400 tracking-widest px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30">
-              UNIFIED BROADCAST & GAMING ECOSYSTEM
+              {t('landing.integrations_eyebrow').toUpperCase()}
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-white font-rajdhani uppercase tracking-tight">
-              Supported Streaming Software & Platforms
+              {t('landing.integrations_title')}
             </h2>
             <p className="text-xs sm:text-sm text-slate-400">
               Seamlessly link your favorite broadcasting apps, gaming libraries, and social networks with zero configuration hassle.
@@ -764,10 +766,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <span className="text-xs font-mono-code font-bold uppercase text-amber-400 tracking-widest px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30">
-              COMMUNITY TESTIMONIALS & TRUST
+              {t('landing.testimonials_eyebrow').toUpperCase()}
             </span>
             <h2 className="text-3xl font-black text-white font-rajdhani uppercase tracking-tight">
-              Loved by Creators & Esports Enthusiasts
+              {t('landing.testimonials_title')}
             </h2>
             <div className="flex items-center justify-center gap-1 text-amber-400 pt-1">
               {[1, 2, 3, 4, 5].map((s) => (
@@ -883,10 +885,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           
           <div className="text-center max-w-3xl mx-auto space-y-3">
             <span className="text-xs font-mono-code font-bold uppercase text-sky-400 tracking-widest px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30">
-              ABOUT VISOR STREAM
+              {t('landing.about_eyebrow').toUpperCase()}
             </span>
             <h2 className="text-3xl sm:text-4xl font-black text-white font-rajdhani uppercase tracking-tight">
-              Democratizing Gaming, Esports & Creator Empowerment
+              {t('landing.about_title')}
             </h2>
             <p className="text-sm text-slate-300 leading-relaxed">
               Visor is a high-performance video streaming and social platform designed specifically for competitive gamers, streamers, and viewers who want more than entertainment. We provide a home to stream gameplay, master mission guides, connect with squads, and earn direct mobile money revenue.
@@ -977,7 +979,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 landing-page content until they actually sign in. */}
             <div className="space-y-3">
               <h4 className="font-bold text-white font-mono-code uppercase tracking-wider text-xs">
-                Platform
+                {t('landing.footer_platform')}
               </h4>
               <ul className="space-y-2 text-slate-400">
                 <li>
@@ -1011,7 +1013,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             {/* Dedicated Feature Pages */}
             <div className="space-y-3">
               <h4 className="font-bold text-white font-mono-code uppercase tracking-wider text-xs">
-                Feature Deep Dives
+                {t('landing.footer_deep_dives')}
               </h4>
               <ul className="space-y-2 text-slate-400">
                 <li>
@@ -1056,7 +1058,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 its own dedicated, standalone page and nothing else. */}
             <div className="space-y-3">
               <h4 className="font-bold text-white font-mono-code uppercase tracking-wider text-xs">
-                Legal & Compliance
+                {t('landing.footer_legal')}
               </h4>
               <ul className="space-y-2 text-slate-400">
                 <li>
@@ -1066,7 +1068,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     className="hover:text-sky-400 transition-colors font-semibold text-slate-300 flex items-center gap-1 text-left"
                   >
                     <Lock className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Privacy Policy</span>
+                    <span>{t('landing.footer_privacy')}</span>
                   </a>
                 </li>
                 <li>
@@ -1076,7 +1078,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     className="hover:text-sky-400 transition-colors font-semibold text-slate-300 flex items-center gap-1 text-left"
                   >
                     <FileText className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Terms of Service</span>
+                    <span>{t('landing.footer_terms')}</span>
                   </a>
                 </li>
                 <li>
@@ -1085,7 +1087,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     onClick={(e) => { e.preventDefault(); onNavigateLegal('about'); }}
                     className="hover:text-white transition-colors"
                   >
-                    About Visor Stream
+                    {t('landing.footer_about')}
                   </a>
                 </li>
                 <li>
@@ -1107,7 +1109,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           {/* Bottom Bar */}
           <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500 font-mono-code">
             <div>
-              © 2026 VISOR STREAM Technologies. All rights reserved.
+              © 2026 VISOR STREAM Technologies. {t('landing.footer_rights')}
             </div>
             <div className="flex items-center gap-4">
               <a href="mailto:syymbba@gmail.com" className="hover:text-slate-300">

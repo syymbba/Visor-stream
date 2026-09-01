@@ -12,6 +12,7 @@ import {
 import { basicGoogleSignIn } from '../services/googleAuth';
 import { syncAuthUserWithFirestore, UserProfile } from '../services/userService';
 import { VisorLogo } from './VisorLogo';
+import { useLanguage } from '../lib/i18n';
 import { User, LogIn, UserPlus, Mail, Lock, Sparkles, Smartphone, ShieldCheck, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -28,6 +29,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onAuthSuccess,
   initialMode = 'login'
 }) => {
+  const { t } = useLanguage();
   const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
 
   // Synchronize when initialMode changes or modal opens
@@ -207,12 +209,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <VisorLogo size="sm" showText={false} animated={true} />
             <div>
               <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                {isForgotPassword ? 'Reset Your Password' : isSignUp ? 'Create Visor Stream Account' : 'Sign In to Visor Stream'}
+                {isForgotPassword ? t('auth.title_reset') : isSignUp ? t('auth.title_signup') : t('auth.title_login')}
               </h2>
               <p className="text-xs text-slate-400">
                 {isForgotPassword
-                  ? "We'll email you a link to reset your password"
-                  : isSignUp ? 'Sync live chat, MoMo tips & streamer rewards' : 'Access your streamer studio & favorites'}
+                  ? t('auth.subtitle_reset')
+                  : isSignUp ? t('auth.subtitle_signup') : t('auth.subtitle_login')}
               </p>
             </div>
           </div>
@@ -243,7 +245,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             ) : (
               <form onSubmit={handleForgotPassword} className="space-y-3.5 font-sans">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-300 font-mono-code">Email Address</label>
+                  <label className="text-xs font-bold text-slate-300 font-mono-code">{t('auth.label_email')}</label>
                   <input
                     type="email"
                     placeholder="you@domain.com"
@@ -258,7 +260,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   disabled={isLoading}
                   className="w-full py-3.5 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-2xl text-xs font-black uppercase tracking-wider transition-colors shadow-lg shadow-sky-500/20 disabled:opacity-50"
                 >
-                  {isLoading ? 'Sending...' : 'Send Reset Link'}
+                  {isLoading ? t('auth.sending') : t('auth.send_reset_link')}
                 </button>
               </form>
             )}
@@ -272,7 +274,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 }}
                 className="text-xs text-sky-400 hover:underline font-mono-code font-bold"
               >
-                Back to Sign In
+                {t('auth.back_to_signin')}
               </button>
             </div>
           </>
@@ -303,12 +305,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
             />
           </svg>
-          <span>Continue with Google</span>
+          <span>{t('auth.google_continue')}</span>
         </button>
 
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-slate-800"></div>
-          <span className="text-[10px] uppercase font-mono-code font-bold text-slate-500">Or with Email</span>
+          <span className="text-[10px] uppercase font-mono-code font-bold text-slate-500">{t('auth.or_email')}</span>
           <div className="flex-1 h-px bg-slate-800"></div>
         </div>
 
@@ -316,7 +318,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-3.5 font-sans">
           {isSignUp && (
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-300 font-mono-code">Gamer Handle</label>
+              <label className="text-xs font-bold text-slate-300 font-mono-code">{t('auth.label_handle')}</label>
               <div className="relative">
                 <input
                   type="text"
@@ -331,7 +333,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-300 font-mono-code">Email Address</label>
+            <label className="text-xs font-bold text-slate-300 font-mono-code">{t('auth.label_email')}</label>
             <div className="relative">
               <input
                 type="email"
@@ -345,7 +347,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-300 font-mono-code">Password</label>
+            <label className="text-xs font-bold text-slate-300 font-mono-code">{t('auth.label_password')}</label>
             <div className="relative">
               <input
                 type="password"
@@ -363,7 +365,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   onClick={() => { setIsForgotPassword(true); setErrorMsg(null); setSuccessMsg(null); }}
                   className="text-[11px] text-sky-400 hover:underline font-mono-code"
                 >
-                  Forgot password?
+                  {t('auth.forgot_password')}
                 </button>
               </div>
             )}
@@ -371,7 +373,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {isSignUp && (
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-300 font-mono-code">Default Mobile Money Provider</label>
+              <label className="text-xs font-bold text-slate-300 font-mono-code">{t('auth.label_momo_provider')}</label>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
@@ -410,7 +412,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               disabled={isLoading}
               className="w-full py-3.5 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-2xl text-xs font-black uppercase tracking-wider transition-colors shadow-lg shadow-sky-500/20 disabled:opacity-50"
             >
-              {isLoading ? 'Processing...' : isSignUp ? 'Create Visor Account' : 'Sign In to Account'}
+              {isLoading ? t('auth.processing') : isSignUp ? t('auth.create_account') : t('auth.sign_in_account')}
             </button>
           </div>
         </form>
@@ -426,7 +428,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             }}
             className="text-xs text-sky-400 hover:underline font-mono-code font-bold"
           >
-            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+            {isSignUp ? t('auth.toggle_to_login') : t('auth.toggle_to_signup')}
           </button>
         </div>
         </>

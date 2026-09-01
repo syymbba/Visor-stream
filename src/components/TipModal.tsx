@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Smartphone, CheckCircle2, ShieldCheck, Zap, X, Gift, Sparkles, Loader2, ArrowRight, ExternalLink } from 'lucide-react';
 import { usePesapalCheckout } from '../hooks/usePesapalCheckout';
 import { auth } from '../firebase';
+import { useLanguage } from '../lib/i18n';
 
 interface TipModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const TipModal: React.FC<TipModalProps> = ({
   streamerName,
   onSuccess
 }) => {
+  const { t } = useLanguage();
   const [provider, setProvider] = useState<'mtn' | 'airtel' | 'mpesa' | 'card'>('mtn');
   const [amount, setAmount] = useState('5000');
   const [phone, setPhone] = useState('0780123456');
@@ -83,10 +85,10 @@ export const TipModal: React.FC<TipModalProps> = ({
             </div>
             <div>
               <h3 className="font-black text-white tracking-tight flex items-center gap-2">
-                <span>Super Tip Streamer</span>
+                <span>{t('tip.title')}</span>
               </h3>
               <p className="text-xs text-slate-400">
-                To <span className="text-white font-bold">{streamerName}</span> • 100% direct creator tip
+                <span className="text-white font-bold">{streamerName}</span> • {t('tip.to_creator')}
               </p>
             </div>
           </div>
@@ -110,7 +112,7 @@ export const TipModal: React.FC<TipModalProps> = ({
             {/* Payment Method Selector */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono-code">
-                Select Mobile Money Network
+                {t('tip.select_network')}
               </label>
               <div className="grid grid-cols-4 gap-2">
                 <button
@@ -175,7 +177,7 @@ export const TipModal: React.FC<TipModalProps> = ({
             {/* Quick Preset Buttons */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono-code">
-                Amount ({currencyMap[provider]})
+                {t('tip.amount_label')} ({currencyMap[provider]})
               </label>
               <div className="grid grid-cols-4 gap-2">
                 {presetAmounts[provider].map((preset) => (
@@ -214,7 +216,7 @@ export const TipModal: React.FC<TipModalProps> = ({
             {/* Phone Number Input for Mobile Money */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono-code">
-                Mobile Number (MoMo / SMS)
+                {t('tip.mobile_number')}
               </label>
               <div className="relative">
                 <Smartphone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -232,7 +234,7 @@ export const TipModal: React.FC<TipModalProps> = ({
             {/* Gamer Name & Shoutout */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono-code">
-                Your Gamer Tag & On-Screen Shoutout
+                {t('tip.gamer_tag_shoutout')}
               </label>
               <input
                 type="text"
@@ -246,7 +248,7 @@ export const TipModal: React.FC<TipModalProps> = ({
                 rows={2}
                 value={shoutout}
                 onChange={(e) => setShoutout(e.target.value)}
-                placeholder="Write a message to appear on the stream HUD..."
+                placeholder={t('tip.shoutout_placeholder')}
                 className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 resize-none text-xs"
                 required
               />
@@ -254,7 +256,7 @@ export const TipModal: React.FC<TipModalProps> = ({
 
             <div className="flex items-center gap-2 p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px] text-slate-400">
               <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>256-Bit Bank-Grade Security. Direct instant payment gateway.</span>
+              <span>{t('tip.security_note')}</span>
             </div>
 
             <div className="pt-2">
@@ -266,11 +268,11 @@ export const TipModal: React.FC<TipModalProps> = ({
                 {loading ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-                    <span>Connecting to Secure Gateway...</span>
+                    <span>{t('tip.connecting_gateway')}</span>
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    <span>PAY {amount} {currencyMap[provider]}</span>
+                    <span>{t('tip.pay')} {amount} {currencyMap[provider]}</span>
                     <ExternalLink className="w-4 h-4" />
                   </span>
                 )}
