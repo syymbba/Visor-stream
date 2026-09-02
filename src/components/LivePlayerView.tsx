@@ -5,14 +5,14 @@ import { StreamPlayer } from './StreamPlayer';
 import { TipModal } from './TipModal';
 import { HypeTrainWidget } from './HypeTrainWidget';
 import { LiveMatchPredictionsWidget } from './LiveMatchPredictionsWidget';
-import { auth, getAuthHeaders, onAuthStateChanged, User as FirebaseUser } from '../firebase';
-import { 
-  subscribeToStreamChat, 
-  sendStreamChatMessage, 
+import { getAuthHeaders } from '../firebase';
+import { useAuth } from '../hooks/useAuth';
+import {
+  subscribeToStreamChat,
+  sendStreamChatMessage,
   getLocalChatMessages,
-  getRandomSimulatedChatter 
 } from '../services/chatService';
-import confetti from 'canvas-confetti';
+import { useLiveViewerCount } from '../hooks/useLiveViewerCount';
 import { useLanguage } from '../lib/i18n';
 import {
   Radio,
@@ -37,13 +37,15 @@ import {
   Pin,
   Flame,
   Mic,
-  Zap,
   ArrowDown,
   Filter,
   Check,
   WifiOff,
   Download,
-  Lock
+  Lock,
+  PartyPopper,
+  X,
+  Star
 } from 'lucide-react';
 
 interface LivePlayerViewProps {
@@ -68,6 +70,78 @@ const SUBSCRIBER_EXCLUSIVE_EMOTES = [
   { emote: '🏆', label: 'Champion', minTier: 'pro' as const },
 ];
 
+// One card in the "Featured Live Streams" grid. Pulled out of the parent's
+// render loop because it needs its own `useLiveViewerCount` poll per stream
+// (viewer counts can't be batched into one hook call inside a `.map`).
+const FeaturedStreamCard: React.FC<{
+  stream: LiveStream;
+  isActive: boolean;
+  onSelect: (stream: LiveStream) => void;
+  t: (key: string) => string;
+}> = ({ stream, isActive, onSelect, t }) => {
+  const { viewerCount } = useLiveViewerCount(stream.streamer.id);
+  const displayViewersCount = viewerCount ?? stream.viewersCount;
+
+  return (
+    <div
+      onClick={() => onSelect(stream)}
+      className={`group bg-slate-900 rounded-2xl overflow-hidden border cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${
+        isActive
+          ? 'border-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.25)]'
+          : 'border-slate-800 hover:border-slate-700'
+      }`}
+    >
+      <div className="relative aspect-video overflow-hidden">
+        <img
+          src={stream.thumbnail}
+          alt={stream.title}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+          <span className="px-2 py-0.5 rounded-md bg-red-600 text-white font-mono-code font-bold text-[9px] tracking-wider uppercase">
+            {t('player.live_badge')}
+          </span>
+          <span className="px-2 py-0.5 rounded-md bg-slate-950/80 backdrop-blur-md text-white text-[9px] font-mono-code">
+            {displayViewersCount.toLocaleString()} {t('player.viewers_suffix')}
+          </span>
+          {stream.isDemo && (
+            <span className="px-2 py-0.5 rounded-md bg-amber-500/90 text-slate-950 font-mono-code font-bold text-[9px] tracking-wider uppercase">
+              {t('common.demo_content_badge')}
+            </span>
+          )}
+        </div>
+        <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-slate-950/80 text-[9px] font-mono-code text-slate-300">
+          {stream.resolution}
+        </div>
+      </div>
+
+      <div className="p-3.5 space-y-2.5">
+        <div className="flex items-start gap-2.5">
+          <img
+            src={stream.streamer.avatar}
+            alt={stream.streamer.name}
+            className="w-8 h-8 rounded-xl object-cover border border-sky-500/40"
+          />
+          <div className="min-w-0 flex-1">
+            <h3 className="text-xs font-bold text-white line-clamp-1 group-hover:text-sky-400 transition-colors">
+              {stream.title}
+            </h3>
+            <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+              <span>{stream.streamer.name}</span>
+              <span>{stream.streamer.countryFlag}</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800">
+          <span className="text-sky-400 font-mono-code font-semibold">{stream.game}</span>
+          <span className="font-mono-code">{stream.uptime}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
   currentStream,
   allStreams,
@@ -86,20 +160,28 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
   const [likesCount, setLikesCount] = useState(1420);
   const [hasLiked, setHasLiked] = useState(false);
 
+  // Real concurrent-viewer count for the stream currently playing, polled
+  // straight from Mux (see useLiveViewerCount). `streamer.id` doubles as the
+  // creator's Firebase uid for real broadcasts built from
+  // `GET /api/streams/live` (see App.tsx) - mock/demo entries use synthetic
+  // ids like 'str_1' that Mux has no record of, so the hook degrades to
+  // `null` and we fall back to the static mock `viewersCount` field below.
+  const { viewerCount: liveViewerCount } = useLiveViewerCount(currentStream.streamer.id);
+  const currentStreamViewersCount = liveViewerCount ?? currentStream.viewersCount;
+
   // Mobile Tabbed Interface: 'stream' | 'chat' | 'store' | 'info'
   const [mobileActiveTab, setMobileActiveTab] = useState<'stream' | 'chat' | 'store' | 'info'>('stream');
 
   // Real-time Chat State (Firestore + Local fallback)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => getLocalChatMessages(currentStream.id));
   const [inputMessage, setInputMessage] = useState('');
-  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const { currentUser } = useAuth();
   const [customGamerTag, setCustomGamerTag] = useState('You (Gamer)');
   const [customAvatar, setCustomAvatar] = useState('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&auto=format&fit=crop&q=80');
 
   // Chat settings & filters
   const [chatFilter, setChatFilter] = useState<'all' | 'tips'>('all');
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [isLiveHypeActive, setIsLiveHypeActive] = useState(true);
   const [pinnedNoticeOpen, setPinnedNoticeOpen] = useState(true);
   const [showEmotePicker, setShowEmotePicker] = useState(false);
   
@@ -111,25 +193,21 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Track Firebase Auth user & profile
+  // Sync gamer tag / avatar off the shared auth context's currentUser
+  // (Firebase auth state itself is now owned by AuthProvider/useAuth).
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      if (user) {
-        setCustomGamerTag(user.displayName || user.email?.split('@')[0] || 'GamerPro');
-        if (user.photoURL) {
-          setCustomAvatar(user.photoURL);
-        }
-      } else {
-        try {
-          const savedTag = localStorage.getItem('visor_user_gamertag');
-          if (savedTag) setCustomGamerTag(savedTag);
-        } catch (e) {}
+    if (currentUser) {
+      setCustomGamerTag(currentUser.displayName || currentUser.email?.split('@')[0] || 'GamerPro');
+      if (currentUser.photoURL) {
+        setCustomAvatar(currentUser.photoURL);
       }
-    });
-
-    return () => unsubAuth();
-  }, []);
+    } else {
+      try {
+        const savedTag = localStorage.getItem('visor_user_gamertag');
+        if (savedTag) setCustomGamerTag(savedTag);
+      } catch (e) {}
+    }
+  }, [currentUser]);
 
   // Web Audio chime for sound notifications
   const playChatChime = (isSuperTip = false) => {
@@ -177,33 +255,6 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
     };
   }, [currentStream.id]);
 
-  // Live Community Chatter Simulation for realistic broadcast hype
-  useEffect(() => {
-    if (!isLiveHypeActive) return;
-
-    const interval = setInterval(() => {
-      const randomChatter = getRandomSimulatedChatter();
-      const now = new Date();
-      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      
-      const newMsg: ChatMessage = {
-        id: 'sim_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-        sender: randomChatter.sender,
-        avatar: randomChatter.avatar,
-        badge: randomChatter.badge,
-        text: randomChatter.text,
-        timestamp: timeStr
-      };
-
-      setChatMessages(prev => {
-        const next = [...prev.slice(-60), newMsg];
-        return next;
-      });
-    }, 12000);
-
-    return () => clearInterval(interval);
-  }, [isLiveHypeActive, currentStream.id]);
-
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, chatFilter]);
@@ -248,12 +299,6 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
       msg: tipDetails.message
     });
 
-    confetti({
-      particleCount: 50,
-      spread: 60,
-      origin: { y: 0.6 }
-    });
-
     setTimeout(() => {
       setActiveTipAlert(null);
     }, 7000);
@@ -266,11 +311,6 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
     } else {
       setLikesCount(prev => prev + 1);
       setHasLiked(true);
-      confetti({
-        particleCount: 35,
-        spread: 50,
-        origin: { y: 0.8 }
-      });
     }
   };
 
@@ -322,8 +362,8 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
               <Gift className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <p className="text-[10px] uppercase font-mono-code font-bold tracking-wider text-amber-400">
-                🎉 LIVE SUPER TIP DISPATCHED!
+              <p className="text-[10px] uppercase font-mono-code font-bold tracking-wider text-amber-400 flex items-center gap-1">
+                <PartyPopper className="w-3 h-3" /> LIVE SUPER TIP DISPATCHED!
               </p>
               <p className="font-bold text-xs text-white">
                 {activeTipAlert.sender} tipped <span className="text-amber-300 font-mono-code">{activeTipAlert.amount}</span>!
@@ -408,7 +448,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
 
           {/* HLS Adaptive Stream Player */}
           <StreamPlayer
-            stream={currentStream}
+            stream={{ ...currentStream, viewersCount: currentStreamViewersCount }}
             userTier={userTier}
             onOpenSubscribe={() => onOpenSubscribe(currentStream.streamer.name)}
             onOpenTip={() => setTipModalOpen(true)}
@@ -563,7 +603,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
               </div>
             </div>
 
-            {/* Chat Controls: Sound Mute & Live Hype Toggle */}
+            {/* Chat Controls: Sound Mute */}
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setSoundEnabled(!soundEnabled)}
@@ -575,19 +615,6 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                 title={soundEnabled ? 'Mute Chat Sound Effects' : 'Enable Chat Sound Effects'}
               >
                 {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-              </button>
-
-              <button
-                onClick={() => setIsLiveHypeActive(!isLiveHypeActive)}
-                className={`px-2 py-1 rounded-lg text-[10px] font-mono-code font-bold border transition-all flex items-center gap-1 ${
-                  isLiveHypeActive
-                    ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                    : 'bg-slate-800 text-slate-400 border-slate-700'
-                }`}
-                title="Toggle simulated community live chat hype"
-              >
-                <Zap className="w-3 h-3 text-amber-400" />
-                <span>{isLiveHypeActive ? 'HYPE ON' : 'HYPE PAUSED'}</span>
               </button>
             </div>
           </div>
@@ -639,7 +666,8 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                 <Pin className="w-3.5 h-3.5 text-indigo-400 mt-0.5 shrink-0" />
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-1 text-[10px] font-mono-code font-bold text-indigo-300">
-                    <span>📌 PINNED BY {currentStream.streamer.name.toUpperCase()}</span>
+                    <Pin className="w-3 h-3" />
+                    <span>PINNED BY {currentStream.streamer.name.toUpperCase()}</span>
                   </div>
                   <p className="text-[11px] text-slate-300 leading-snug">
                     Welcome to the broadcast! Sub goal 500. Tips via MTN MoMo, M-Pesa & Card will show on live overlay!
@@ -651,7 +679,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                 className="text-slate-500 hover:text-white text-xs p-1"
                 title="Dismiss Notice"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
@@ -688,8 +716,8 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
                         <Gift className="w-3.5 h-3.5 text-amber-400" />
                         SUPER TIP: {msg.donationAmount}
                       </span>
-                      <span className="text-[9px] px-2 py-0.5 bg-amber-500/20 text-amber-200 rounded font-bold uppercase">
-                        ★ SUPER CHAT
+                      <span className="text-[9px] px-2 py-0.5 bg-amber-500/20 text-amber-200 rounded font-bold uppercase flex items-center gap-1">
+                        <Star className="w-2.5 h-2.5 fill-current" /> SUPER CHAT
                       </span>
                     </div>
                   )}
@@ -961,58 +989,13 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {displayStreams.map((stream) => (
-            <div
+            <FeaturedStreamCard
               key={stream.id}
-              onClick={() => onSelectStream(stream)}
-              className={`group bg-slate-900 rounded-2xl overflow-hidden border cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${
-                currentStream.id === stream.id
-                  ? 'border-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.25)]'
-                  : 'border-slate-800 hover:border-slate-700'
-              }`}
-            >
-              <div className="relative aspect-video overflow-hidden">
-                <img
-                  src={stream.thumbnail}
-                  alt={stream.title}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                  <span className="px-2 py-0.5 rounded-md bg-red-600 text-white font-mono-code font-bold text-[9px] tracking-wider uppercase">
-                    {t('player.live_badge')}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-md bg-slate-950/80 backdrop-blur-md text-white text-[9px] font-mono-code">
-                    {stream.viewersCount.toLocaleString()} {t('player.viewers_suffix')}
-                  </span>
-                </div>
-                <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-slate-950/80 text-[9px] font-mono-code text-slate-300">
-                  {stream.resolution}
-                </div>
-              </div>
-
-              <div className="p-3.5 space-y-2.5">
-                <div className="flex items-start gap-2.5">
-                  <img
-                    src={stream.streamer.avatar}
-                    alt={stream.streamer.name}
-                    className="w-8 h-8 rounded-xl object-cover border border-sky-500/40"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-xs font-bold text-white line-clamp-1 group-hover:text-sky-400 transition-colors">
-                      {stream.title}
-                    </h3>
-                    <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
-                      <span>{stream.streamer.name}</span>
-                      <span>{stream.streamer.countryFlag}</span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800">
-                  <span className="text-sky-400 font-mono-code font-semibold">{stream.game}</span>
-                  <span className="font-mono-code">{stream.uptime}</span>
-                </div>
-              </div>
-            </div>
+              stream={stream}
+              isActive={currentStream.id === stream.id}
+              onSelect={onSelectStream}
+              t={t}
+            />
           ))}
         </div>
       </div>

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import confetti from 'canvas-confetti';
 import { useLanguage } from '../lib/i18n';
 import {
   Volume2,
@@ -148,13 +147,6 @@ export const StreamOverlayWidget: React.FC<StreamOverlayWidgetProps> = ({
 
       // Play Sound Chime
       playAlertChime(next.type);
-
-      // Trigger Confetti
-      confetti({
-        particleCount: next.type === 'tip' ? 60 : 100,
-        spread: 80,
-        origin: { y: 0.3 },
-      });
 
       // TTS Message Readout (after short delay for chime)
       if (next.message && ttsEnabled) {

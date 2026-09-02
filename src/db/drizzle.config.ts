@@ -28,12 +28,35 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "postgresql",
   schemaFilter: ["public"],
+  // Restrict introspection/push to the tables this Drizzle schema actually
+  // owns. Without this, drizzle-kit also tries to introspect
+  // supabase/client_schema.sql's separate, RLS-owned objects (profiles,
+  // streams, streams_public, videos, transactions) living in the same
+  // `public` schema - which it doesn't manage and shouldn't alter, and
+  // whose `transactions` view (security_invoker option) currently crashes
+  // drizzle-kit's introspection outright (a drizzle-kit/pg version bug
+  // unrelated to this schema).
+  tablesFilter: [
+    "users",
+    "tips",
+    "creator_stats",
+    "pesapal_orders",
+    "payout_requests",
+    "scrim_lobbies",
+    "live_predictions",
+    "mux_live_streams",
+  ],
   dbCredentials: {
     host: sqlHost,
     user: user,
     password: password,
     database: sqlDbName,
-    ssl: process.env.SQL_SSL === "false" ? false : true,
+    ssl: process.env.SQL_SSL === "false"
+      ? false
+      : {
+          rejectUnauthorized: true,
+          ...(process.env.SQL_CA_CERT ? { ca: process.env.SQL_CA_CERT } : {}),
+        },
   },
   verbose: true,
 });

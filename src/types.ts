@@ -31,7 +31,6 @@ export interface CreatorTipJarConfig {
   bannerHeadline: string;
   thankYouMessage: string;
   soundAlertEnabled: boolean;
-  confettiEnabled: boolean;
   activeGoal: CreatorTipGoal;
   recentTips: CreatorTipItem[];
 }
@@ -163,6 +162,15 @@ export interface LiveStream {
   subscriberOnlyChat?: boolean;
   tierRequirement?: 'free' | 'fan' | 'pro' | 'legend';
   description: string;
+  /**
+   * True for the still-mock/placeholder catalog entries in
+   * `MOCK_LIVE_STREAMS` (src/data/mockData.ts). Undefined/false for real
+   * streams built from `GET /api/streams/live`. Lets viewer-facing
+   * components (StreamPlayer's diagnostics HUD, the live feed's section
+   * headers) tell real Mux-backed broadcasts apart from demo content
+   * without guessing from URL shape.
+   */
+  isDemo?: boolean;
 }
 
 export interface TutorialChapter {

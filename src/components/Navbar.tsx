@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { VisorLogo } from './VisorLogo';
 import { Currency } from '../types';
 import { CURRENCY_RATES, REGIONAL_SERVER_NODES } from '../data/mockData';
-import { auth, onAuthStateChanged, type User as FirebaseUser } from '../firebase';
+import { useAuth } from '../hooks/useAuth';
+import { PROTECTED_TABS } from '../lib/protectedTabs';
 import { useLanguage } from '../lib/i18n';
 import { useClickOutside } from '../hooks/useClickOutside';
 import {
@@ -77,15 +78,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const [activeServer] = useState(REGIONAL_SERVER_NODES[0]);
-  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const { currentUser } = useAuth();
   const currencySwitcherRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-    });
-    return () => unsub();
-  }, []);
 
   const { t } = useLanguage();
 
@@ -105,6 +99,10 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'pricing', label: t('nav.pricing'), icon: CreditCard },
     { id: 'about', label: 'About', icon: Info },
   ];
+
+  // Guests never see nav items that lead to a protected tab — simpler and
+  // more honest than letting them click through to a redirect.
+  const visibleNavItems = currentUser ? navItems : navItems.filter((item) => !PROTECTED_TABS.has(item.id));
 
   const rate = CURRENCY_RATES[currentCurrency]?.rate || 1;
   const symbol = CURRENCY_RATES[currentCurrency]?.symbol || '$';
@@ -303,7 +301,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Secondary Desktop Horizontal Navigation Bar */}
         <nav className="hidden md:flex items-center space-x-1 lg:space-x-1.5 pt-2.5 mt-2 overflow-x-auto no-scrollbar border-t border-[#2a475e]/60">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
@@ -387,7 +385,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Mobile Navigation Grid */}
           <div className="grid grid-cols-2 gap-1.5 pt-1">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
               return (

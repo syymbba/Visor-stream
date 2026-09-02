@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Smartphone, CheckCircle2, ShieldCheck, Zap, X, Gift, Sparkles, Loader2, ArrowRight, ExternalLink } from 'lucide-react';
+import { Smartphone, CheckCircle2, ShieldCheck, Zap, X, Gift, Sparkles, Loader2, ArrowRight, ExternalLink, CreditCard } from 'lucide-react';
 import { usePesapalCheckout } from '../hooks/usePesapalCheckout';
 import { auth } from '../firebase';
 import { useLanguage } from '../lib/i18n';
@@ -169,7 +169,7 @@ export const TipModal: React.FC<TipModalProps> = ({
                       : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'
                   }`}
                 >
-                  💳 Card
+                  <CreditCard className="w-3.5 h-3.5 inline mr-1" /> Card
                 </button>
               </div>
             </div>

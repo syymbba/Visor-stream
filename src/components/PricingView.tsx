@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { SubscriptionPlan, Currency } from '../types';
 import { SUBSCRIPTION_PLANS, CURRENCY_RATES } from '../data/mockData';
 import { useLanguage } from '../lib/i18n';
-import confetti from 'canvas-confetti';
 import {
   CreditCard,
   CheckCircle2,
@@ -13,7 +12,8 @@ import {
   Globe,
   Star,
   Users,
-  Flame
+  Flame,
+  Crown
 } from 'lucide-react';
 
 interface PricingViewProps {
@@ -86,14 +86,14 @@ export const PricingView: React.FC<PricingViewProps> = ({
               }`}
             >
               {isPro && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-xl bg-sky-500 text-slate-950 text-[10px] font-mono-code font-black uppercase tracking-wider shadow-lg">
-                  ★ {t('pricing.card.most_popular_badge')}
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-xl bg-sky-500 text-slate-950 text-[10px] font-mono-code font-black uppercase tracking-wider shadow-lg inline-flex items-center gap-1">
+                  <Star className="w-3 h-3 fill-current" /> {t('pricing.card.most_popular_badge')}
                 </div>
               )}
 
               {isLegend && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-xl bg-amber-500 text-slate-950 text-[10px] font-mono-code font-black uppercase tracking-wider shadow-lg">
-                  👑 {t('pricing.card.vip_champion_badge')}
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-xl bg-amber-500 text-slate-950 text-[10px] font-mono-code font-black uppercase tracking-wider shadow-lg inline-flex items-center gap-1">
+                  <Crown className="w-3 h-3 fill-current" /> {t('pricing.card.vip_champion_badge')}
                 </div>
               )}
 

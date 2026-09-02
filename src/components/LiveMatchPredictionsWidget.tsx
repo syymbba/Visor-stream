@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import confetti from 'canvas-confetti';
 import {
   HelpCircle,
   Coins,
@@ -79,8 +78,6 @@ export const LiveMatchPredictionsWidget: React.FC<LiveMatchPredictionsWidgetProp
       poolB: choice === 'B' ? prev.poolB + wagerAmount : prev.poolB,
       totalVoters: prev.totalVoters + 1,
     }));
-
-    confetti({ particleCount: 50, spread: 60 });
   };
 
   const formatTime = (secs: number) => {
@@ -97,7 +94,6 @@ export const LiveMatchPredictionsWidget: React.FC<LiveMatchPredictionsWidgetProp
       const payoutOdds = winner === 'A' ? parseFloat(oddsA) : parseFloat(oddsB);
       const winnings = Math.round(wagerAmount * payoutOdds);
       setUserLoyaltyPoints((pts) => pts + winnings);
-      confetti({ particleCount: 100, spread: 90, origin: { y: 0.5 } });
     }
   };
 

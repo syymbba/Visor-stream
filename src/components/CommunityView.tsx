@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { CommunityPost } from '../types';
 import { TipModal } from './TipModal';
-import confetti from 'canvas-confetti';
 import { useLanguage } from '../lib/i18n';
 import {
   Users,
@@ -74,7 +73,6 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
     setFeedPosts([created, ...feedPosts]);
     setLikedPostIds([...likedPostIds, created.id]);
     setNewPostContent('');
-    confetti({ particleCount: 40, spread: 60 });
   };
 
   const toggleLike = (postId: string) => {
@@ -84,7 +82,6 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
     } else {
       setLikedPostIds([...likedPostIds, postId]);
       setFeedPosts(feedPosts.map(p => p.id === postId ? { ...p, likesCount: p.likesCount + 1 } : p));
-      confetti({ particleCount: 20, spread: 40 });
     }
   };
 
@@ -98,9 +95,14 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                {t('community.header_title')}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  {t('community.header_title')}
+                </h1>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[9px] font-mono-code font-bold uppercase tracking-wider">
+                  {t('common.demo_content_badge')}
+                </span>
+              </div>
               <p className="text-xs text-slate-400">
                 {t('community.header_desc')}
               </p>

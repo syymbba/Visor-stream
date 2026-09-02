@@ -20,7 +20,6 @@ import {
   CheckCircle2,
   Music
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { useLanguage } from '../lib/i18n';
 
 interface ReelsViewProps {
@@ -95,11 +94,6 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
       if (idx === currentIndex) {
         const nextLiked = !item.isLiked;
         if (nextLiked) {
-          confetti({
-            particleCount: 40,
-            spread: 60,
-            origin: { x: 0.5, y: 0.6 }
-          });
         }
         return {
           ...item,

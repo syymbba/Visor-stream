@@ -6,21 +6,36 @@ import {
   updateProfile,
   signOut,
   sendPasswordResetEmail,
-  sendEmailVerification,
-  fetchSignInMethodsForEmail
+  sendEmailVerification
 } from '../firebase';
 import { basicGoogleSignIn } from '../services/googleAuth';
 import { syncAuthUserWithFirestore, UserProfile } from '../services/userService';
 import { VisorLogo } from './VisorLogo';
+import { MomoProviderPicker } from './MomoProviderPicker';
 import { useLanguage } from '../lib/i18n';
+import { describeAuthError } from '../lib/authErrors';
 import { User, LogIn, UserPlus, Mail, Lock, Sparkles, Smartphone, ShieldCheck, X, CheckCircle2, AlertCircle } from 'lucide-react';
-import confetti from 'canvas-confetti';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAuthSuccess: (profile: UserProfile) => void;
+  /**
+   * `isNewUser` is true only on a user's very first-ever sign-in (derived
+   * from Firebase's `user.metadata.creationTime === user.metadata.lastSignInTime`),
+   * so callers can route brand-new signups into onboarding while returning
+   * users land on their normal destination.
+   */
+  onAuthSuccess: (profile: UserProfile, isNewUser: boolean) => void;
   initialMode?: 'login' | 'signup';
+}
+
+/**
+ * True only on a user's very first sign-in ever — Firebase sets
+ * `creationTime` and `lastSignInTime` to the same instant on that first
+ * sign-in and never again, so no separate Firestore flag is needed.
+ */
+function isFirstEverSignIn(user: import('../firebase').User): boolean {
+  return user.metadata.creationTime === user.metadata.lastSignInTime;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -56,45 +71,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
   if (!isOpen) return null;
-
-  /**
-   * Describes an auth error, including a special case for
-   * `auth/account-exists-with-different-credential`: this fires when someone
-   * tries to sign in with a provider (e.g. Google) using an email that's
-   * already registered via a different provider (e.g. password). Firebase
-   * doesn't auto-link these, so without this the user would see a raw,
-   * confusing error with no path forward. We look up which method(s) the
-   * email is actually registered with and tell them explicitly.
-   */
-  const describeAuthError = async (err: any, attemptedEmail: string): Promise<string> => {
-    if (err.code === 'auth/account-exists-with-different-credential') {
-      try {
-        const methods = await fetchSignInMethodsForEmail(auth, attemptedEmail);
-        if (methods.includes('password')) {
-          return 'This email is already registered with a password. Please sign in with your email and password instead, then link Google from Settings.';
-        }
-        if (methods.length > 0) {
-          return `This email is already registered via ${methods.join(', ')}. Please sign in that way instead.`;
-        }
-      } catch {
-        // fall through to generic message below
-      }
-      return 'This email is already registered with a different sign-in method. Please use the method you originally signed up with.';
-    }
-    if (err.code === 'auth/email-already-in-use') {
-      return 'This email is already registered. Please sign in instead.';
-    }
-    if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
-      return 'Invalid email or password. Please try again.';
-    }
-    if (err.code === 'auth/user-not-found') {
-      return 'No account found with this email. Please sign up.';
-    }
-    if (err.code === 'auth/too-many-requests') {
-      return 'Too many attempts. Please wait a moment and try again.';
-    }
-    return err.message || 'Authentication failed. Please check credentials.';
-  };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,20 +121,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           networkProvider,
           mobileNumber: phone
         });
+        const isNewUser = isFirstEverSignIn(userCred.user);
 
-        confetti({ particleCount: 50, spread: 60 });
         setSuccessMsg(`Welcome to VISOR, ${displayName}! Check your inbox to verify your email.`);
         setTimeout(() => {
-          onAuthSuccess(profile);
+          onAuthSuccess(profile, isNewUser);
           onClose();
         }, 1500);
       } else {
         const userCred = await signInWithEmailAndPassword(auth, email, password);
         const profile = await syncAuthUserWithFirestore(userCred.user);
-        
+        const isNewUser = isFirstEverSignIn(userCred.user);
+
         setSuccessMsg(`Welcome back, ${profile.displayName}!`);
         setTimeout(() => {
-          onAuthSuccess(profile);
+          onAuthSuccess(profile, isNewUser);
           onClose();
         }, 1000);
       }
@@ -177,10 +154,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const res = await basicGoogleSignIn();
       if (res && res.user) {
         const profile = await syncAuthUserWithFirestore(res.user);
-        confetti({ particleCount: 50, spread: 60 });
+        const isNewUser = isFirstEverSignIn(res.user);
         setSuccessMsg(`Signed in as ${profile.displayName}`);
         setTimeout(() => {
-          onAuthSuccess(profile);
+          onAuthSuccess(profile, isNewUser);
           onClose();
         }, 1000);
       }
@@ -372,38 +349,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
 
           {isSignUp && (
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-300 font-mono-code">{t('auth.label_momo_provider')}</label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setNetworkProvider('mtn')}
-                  className={`py-2 px-1 rounded-xl text-[11px] font-bold border transition-all ${
-                    networkProvider === 'mtn' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500' : 'bg-slate-800 text-slate-400 border-slate-700'
-                  }`}
-                >
-                  🇺🇬 MTN MoMo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNetworkProvider('airtel')}
-                  className={`py-2 px-1 rounded-xl text-[11px] font-bold border transition-all ${
-                    networkProvider === 'airtel' ? 'bg-red-500/20 text-red-400 border-red-500' : 'bg-slate-800 text-slate-400 border-slate-700'
-                  }`}
-                >
-                  🔴 Airtel Money
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNetworkProvider('mpesa')}
-                  className={`py-2 px-1 rounded-xl text-[11px] font-bold border transition-all ${
-                    networkProvider === 'mpesa' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500' : 'bg-slate-800 text-slate-400 border-slate-700'
-                  }`}
-                >
-                  🇰🇪 M-Pesa
-                </button>
-              </div>
-            </div>
+            <MomoProviderPicker
+              provider={networkProvider}
+              onProviderChange={setNetworkProvider}
+            />
           )}
 
           <div className="pt-2">

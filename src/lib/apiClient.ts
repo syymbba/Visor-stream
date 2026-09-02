@@ -28,3 +28,21 @@ export async function authedGetFetcher<T = any>(url: string): Promise<T> {
   }
   return data as T;
 }
+
+/**
+ * Shared fetcher for public GET requests that need no auth header (e.g.
+ * `GET /api/streams/live`) - same error-handling conventions as
+ * `authedGetFetcher` above, just without attaching a Firebase auth header.
+ */
+export async function plainGetFetcher<T = any>(url: string): Promise<T> {
+  const res = await fetch(url);
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new ApiError(`Unexpected non-JSON response (${res.status})`, res.status);
+  }
+  const data = await res.json();
+  if (!res.ok || data?.error) {
+    throw new ApiError(data?.error || `Request failed (${res.status})`, res.status);
+  }
+  return data as T;
+}

@@ -149,7 +149,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                 onClick={() => setErrorMessage(null)}
                 className="text-red-300 hover:text-white text-xs font-bold"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
@@ -220,7 +220,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                         : 'bg-slate-950 text-slate-400 border-slate-800'
                     }`}
                   >
-                    💳 Visa / Mastercard
+                    <CreditCard className="w-3.5 h-3.5 inline mr-1" /> Visa / Mastercard
                   </button>
                   <button
                     type="button"
@@ -231,7 +231,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
                         : 'bg-slate-950 text-slate-400 border-slate-800'
                     }`}
                   >
-                    ⚡ Mobile Money & Wallets
+                    <Zap className="w-3.5 h-3.5 inline mr-1" /> Mobile Money & Wallets
                   </button>
                 </div>
               </div>

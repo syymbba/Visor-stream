@@ -7,15 +7,16 @@ import { PaymentHistory } from './PaymentHistory';
 import { StreamOverlayWidget } from './StreamOverlayWidget';
 import { RevenueSplitChart } from './RevenueSplitChart';
 import { useWalletBalance } from '../hooks/useWalletBalance';
+import { useAuth } from '../hooks/useAuth';
+import { useMyStream } from '../hooks/useMyStream';
+import { useLiveViewerCount } from '../hooks/useLiveViewerCount';
 import { getAuthHeaders } from '../firebase';
 import { createMuxDirectUpload } from '../services/muxService';
 import { useLanguage } from '../lib/i18n';
-import confetti from 'canvas-confetti';
 import {
   LayoutDashboard,
   Activity,
   DollarSign,
-  TrendingUp,
   Users,
   Eye,
   Key,
@@ -38,7 +39,10 @@ import {
   Tv,
   Percent,
   Download,
-  FileCheck
+  FileCheck,
+  Lock,
+  X,
+  Globe
 } from 'lucide-react';
 import {
   AreaChart,
@@ -69,11 +73,22 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
   const [stats, setStats] = useState<CreatorDashboardStats>(effectiveStats);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedIngest, setCopiedIngest] = useState(false);
+  const [isRegeneratingKey, setIsRegeneratingKey] = useState(false);
   const [selectedIngestServer, setSelectedIngestServer] = useState(REGIONAL_SERVER_NODES[0].id);
   const [activeTab, setActiveTab] = useState<'overview' | 'split' | 'payouts' | 'payments' | 'overlay'>('overview');
 
   // Live Wallet Balance Hook
   const wallet = useWalletBalance({ enabled: true });
+
+  // Real Mux live stream (RTMP credentials + status), replacing the old
+  // Firestore-seeded mock fields and client-side fake key generator.
+  const { currentUser } = useAuth();
+  const myStream = useMyStream({ enabled: true });
+
+  // Real concurrent viewer count, polled client-side from Mux's stats
+  // endpoint via a short-lived signed token. Returns null (rendered as "—")
+  // when Mux viewer-count signing isn't configured yet.
+  const { viewerCount, isLoading: isViewerCountLoading } = useLiveViewerCount(currentUser?.uid);
 
   // Payout Requests State
   const [payoutList, setPayoutList] = useState<any[]>([]);
@@ -148,39 +163,29 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
     { time: '20:30', viewers: 3750, bitrate: 6580 },
   ]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Simulate real-time stream pulse
-      const jitterBitrate = Math.floor(6450 + (Math.random() * 200 - 100));
-      const jitterViewers = Math.floor(stats.currentViewers + (Math.random() * 20 - 10));
-
-      setStats(prev => ({
-        ...prev,
-        liveBitrateKbps: jitterBitrate,
-        currentViewers: Math.max(3000, jitterViewers),
-        fps: Math.random() > 0.1 ? 60 : 59,
-      }));
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, [stats.currentViewers]);
-
   const handleCopyStreamKey = () => {
-    navigator.clipboard.writeText(stats.streamKey);
+    if (!myStream.stream) return;
+    navigator.clipboard.writeText(myStream.stream.muxStreamKey);
     setCopiedKey(true);
     setTimeout(() => setCopiedKey(false), 2000);
   };
 
   const handleCopyIngest = () => {
-    navigator.clipboard.writeText(stats.serverIngestUrl);
+    if (!myStream.stream) return;
+    navigator.clipboard.writeText(myStream.stream.rtmpUrl);
     setCopiedIngest(true);
     setTimeout(() => setCopiedIngest(false), 2000);
   };
 
-  const handleRegenerateKey = () => {
-    const newKey = 'live_vsr_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 10);
-    setStats(prev => ({ ...prev, streamKey: newKey }));
-    confetti({ particleCount: 30, spread: 50 });
+  const handleRegenerateKey = async () => {
+    setIsRegeneratingKey(true);
+    try {
+      await myStream.regenerateKey();
+    } catch (err) {
+      console.error('Failed to regenerate stream key:', err);
+    } finally {
+      setIsRegeneratingKey(false);
+    }
   };
 
   const handleVodUpload = async (file: File) => {
@@ -225,11 +230,6 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
 
       if (data.success) {
         setCashoutModalOpen(false);
-        confetti({
-          particleCount: 100,
-          spread: 80,
-          origin: { y: 0.6 },
-        });
 
         setCashoutSuccessAlert(
           `Instant payout of $${cashoutAmountUSD} USD dispatched to ${cashoutPhone} via ${cashoutMethod}! Receipt: ${data.receiptNumber || data.reference}`
@@ -539,7 +539,10 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
       {/* Tab 1: Studio Dashboard (Overview) */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Metric 1: Concurrent Viewers */}
+          {/* Metric 1: Concurrent Viewers - real count from Mux, polled
+              client-side via useLiveViewerCount(). Shows "—" instead of a
+              fabricated number when viewer-count signing isn't configured
+              (e.g. MUX_SIGNING_KEY_ID/PRIVATE missing) or no data yet. */}
           <div className="bg-slate-900 p-5 rounded-[24px] border border-slate-800 shadow-lg relative overflow-hidden flex flex-col justify-between">
             <div className="flex items-center justify-between text-xs text-slate-400">
               <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">{t('creator.overview.concurrent_viewers')}</span>
@@ -547,29 +550,37 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
             </div>
             <div className="my-3 flex items-baseline gap-2">
               <span className="text-3xl sm:text-4xl font-bold text-white font-rajdhani">
-                {stats.currentViewers.toLocaleString()}
-              </span>
-              <span className="text-xs text-emerald-400 font-mono-code font-bold flex items-center">
-                <TrendingUp className="w-3.5 h-3.5 mr-0.5" /> +14.2%
+                {isViewerCountLoading && viewerCount === null ? '…' : viewerCount === null ? '—' : viewerCount.toLocaleString()}
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-mono-code">Peak session: {stats.peakViewers.toLocaleString()}</p>
           </div>
 
-          {/* Metric 2: Live Ingest Bitrate */}
+          {/* Metric 2: Broadcast Status - real Live/Idle state sourced from
+              streams.status via GET /api/streams/me. Mux doesn't expose a
+              simple polling bitrate/FPS the way it does viewer counts, so
+              rather than fabricate a second fake number, this shows only
+              the real on-air state. */}
           <div className="bg-slate-900 p-5 rounded-[24px] border border-slate-800 shadow-lg relative overflow-hidden flex flex-col justify-between">
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">{t('creator.overview.live_ingest_bitrate')}</span>
+              <span className="font-mono-code text-[11px] uppercase font-bold tracking-wider">Broadcast Status</span>
               <Activity className="w-4 h-4 text-emerald-400" />
             </div>
-            <div className="my-3 flex items-baseline gap-2">
-              <span className="text-3xl sm:text-4xl font-bold text-emerald-400 font-rajdhani font-mono-code">
-                {stats.liveBitrateKbps} <span className="text-sm text-slate-400">Kbps</span>
-              </span>
-              <span className="text-xs text-slate-300 font-mono-code">{stats.fps} FPS</span>
+            <div className="my-3 flex items-center gap-2">
+              {myStream.stream?.status === 'active' ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-black font-mono-code uppercase">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                  Live
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 text-sm font-black font-mono-code uppercase">
+                  <span className="w-2 h-2 rounded-full bg-slate-500"></span>
+                  Idle
+                </span>
+              )}
             </div>
-            <p className="text-[11px] text-emerald-400 font-mono-code flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Health: {stats.streamHealth} (0.08% drops)
+            <p className="text-[11px] text-slate-400 font-mono-code">
+              {myStream.isLoading ? 'Checking stream status…' : 'Sourced from Mux live stream status'}
             </p>
           </div>
 
@@ -675,8 +686,8 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
                   Broadcaster RTMP Credentials (OBS / Streamlabs / Mobile)
                 </h3>
               </div>
-              <span className="text-[10px] text-amber-400 font-bold font-mono-code bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                🔒 SECRET KEY
+              <span className="text-[10px] text-amber-400 font-bold font-mono-code bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5" /> SECRET KEY
               </span>
             </div>
 
@@ -708,19 +719,24 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
                 </div>
               </div>
 
-              {/* Stream URL */}
+              {/* Stream URL - real RTMP ingest URL from GET /api/streams/me
+                  (get-or-creates the creator's persistent Mux live stream).
+                  Mux uses a single global RTMP endpoint, so this doesn't
+                  vary by the regional node selected above - that selector
+                  is purely a client-side preference display. */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300 uppercase font-mono-code">Server Ingest URL</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     readOnly
-                    value={stats.serverIngestUrl}
+                    value={myStream.isLoading ? 'Loading…' : myStream.stream?.rtmpUrl || '—'}
                     className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono-code text-slate-300 focus:outline-none"
                   />
                   <button
                     onClick={handleCopyIngest}
-                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-white border border-slate-700 flex items-center gap-1.5 transition-colors"
+                    disabled={!myStream.stream}
+                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-white border border-slate-700 flex items-center gap-1.5 transition-colors disabled:opacity-50"
                   >
                     <Copy className="w-3.5 h-3.5" />
                     <span>{copiedIngest ? 'Copied!' : 'Copy'}</span>
@@ -728,29 +744,33 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
                 </div>
               </div>
 
-              {/* Stream Key */}
+              {/* Stream Key - real secret key from GET /api/streams/me;
+                  "Regenerate Key" now calls POST /api/streams/me/regenerate-key
+                  instead of a client-side Math.random() fake key. */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300 uppercase font-mono-code">Primary Stream Key</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="password"
                     readOnly
-                    value={stats.streamKey}
+                    value={myStream.isLoading ? 'Loading…' : myStream.stream?.muxStreamKey || '—'}
                     className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono-code text-slate-300 focus:outline-none tracking-widest"
                   />
                   <button
                     onClick={handleCopyStreamKey}
-                    className="px-4 py-2.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 rounded-xl text-xs font-bold text-sky-400 flex items-center gap-1.5 transition-colors"
+                    disabled={!myStream.stream}
+                    className="px-4 py-2.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 rounded-xl text-xs font-bold text-sky-400 flex items-center gap-1.5 transition-colors disabled:opacity-50"
                   >
                     <Copy className="w-3.5 h-3.5" />
                     <span>{copiedKey ? 'Copied!' : 'Copy Key'}</span>
                   </button>
                   <button
                     onClick={handleRegenerateKey}
-                    className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 hover:text-white border border-slate-700 transition-colors"
+                    disabled={!myStream.stream || isRegeneratingKey}
+                    className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 hover:text-white border border-slate-700 transition-colors disabled:opacity-50"
                     title="Regenerate Stream Key"
                   >
-                    <RefreshCw className="w-3.5 h-3.5" />
+                    <RefreshCw className={`w-3.5 h-3.5 ${isRegeneratingKey ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
               </div>
@@ -914,7 +934,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
                 onClick={() => setCashoutModalOpen(false)}
                 className="text-slate-400 hover:text-white p-1"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -957,7 +977,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
                       cashoutMethod === 'PayPal' ? 'bg-blue-500/20 text-blue-400 border-blue-500' : 'bg-[#171e2b] text-slate-300 border-white/[0.08]'
                     }`}
                   >
-                    🌍 Global PayPal / Stripe
+                    <Globe className="w-3.5 h-3.5 inline mr-1" /> Global PayPal / Stripe
                   </button>
                 </div>
               </div>
@@ -1012,7 +1032,7 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
               </div>
 
               <div className="p-3 bg-[#0d141f] rounded-lg border border-white/[0.04] text-[11px] text-slate-400 space-y-1">
-                <span className="text-emerald-400 font-bold">⚡ Instant Settlement:</span>
+                <span className="text-emerald-400 font-bold inline-flex items-center gap-1"><Zap className="w-3 h-3" /> Instant Settlement:</span>
                 <p>Funds are pushed directly through Flutterwave / Paystack mobile money gateway within 60 seconds.</p>
               </div>
 

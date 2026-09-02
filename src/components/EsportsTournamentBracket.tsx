@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../lib/i18n';
-import confetti from 'canvas-confetti';
 import {
   Trophy,
   Users,

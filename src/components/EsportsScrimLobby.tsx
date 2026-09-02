@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import confetti from 'canvas-confetti';
 import { useLanguage } from '../lib/i18n';
 import {
   Users,
@@ -127,7 +126,6 @@ export const EsportsScrimLobby: React.FC = () => {
 
     setLobbies([newLobby, ...lobbies]);
     setCreateModalOpen(false);
-    confetti({ particleCount: 70, spread: 60 });
   };
 
   const handleJoinLobby = (lobby: ScrimLobbyItem) => {
@@ -144,7 +142,6 @@ export const EsportsScrimLobby: React.FC = () => {
         return l;
       })
     );
-    confetti({ particleCount: 60, spread: 70 });
   };
 
   const copyLobbyCode = (code: string) => {

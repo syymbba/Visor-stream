@@ -2,21 +2,23 @@ import React, { useState, useEffect, useRef } from 'react';
 import { REGIONAL_SERVER_NODES, PLATFORM_FAQS, MOCK_CONNECTED_ACCOUNTS, MOCK_USER_BADGES, MOCK_ACHIEVEMENTS, CURRENCY_RATES } from '../data/mockData';
 import { Currency, ConnectedThirdPartyAccount, UserBadge, Achievement } from '../types';
 import { ToggleSwitch } from './ToggleSwitch';
+import { AccountDeletionPanel } from './AccountDeletionPanel';
+import { LinkedAccountsPanel } from './LinkedAccountsPanel';
 import { useLanguage, SUPPORTED_LANGUAGES, Language } from '../lib/i18n';
 import {
   auth,
   signOut,
-  onAuthStateChanged,
-  getAuthHeaders,
-  type User as FirebaseUser
+  getAuthHeaders
 } from '../firebase';
-import { 
+import { useAuth } from '../hooks/useAuth';
+import {
   fetchUserProfile, 
   saveUserProfile, 
   DEFAULT_USER_PROFILE, 
   UserProfile 
 } from '../services/userService';
 import { useWalletBalance } from '../hooks/useWalletBalance';
+import { useMyStream } from '../hooks/useMyStream';
 import {
   Settings,
   User,
@@ -59,7 +61,6 @@ import {
   Languages,
   Check
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 
 interface SettingsViewProps {
   currentCurrency: Currency;
@@ -89,7 +90,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   // Mobile Drilldown state: when on small screens and a category is chosen
   const [mobileDrilldownOpen, setMobileDrilldownOpen] = useState(false);
 
-  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(auth.currentUser);
+  const { currentUser } = useAuth();
+  // Real Mux live stream (RTMP URL + secret stream key + status), backed by
+  // GET /api/streams/me - shared with CreatorStudioView and GoLiveModal via
+  // the same useMyStream() hook, replacing the Firestore-seeded mock fields
+  // (`profile.streamKey`/`profile.rtmpServer`) that used to populate this tab.
+  const myStream = useMyStream({ enabled: Boolean(currentUser) });
+  const [isRegeneratingKey, setIsRegeneratingKey] = useState(false);
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
   const [isLoading, setIsLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -122,10 +129,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [blockedUsers, setBlockedUsers] = useState<string[]>(DEFAULT_USER_PROFILE.blockedUsers || ['toxic_troll99', 'spambot_ke']);
   const [newBlockedUser, setNewBlockedUser] = useState('');
 
-  // Streaming & Ingest Fields
-  const [streamKey, setStreamKey] = useState(DEFAULT_USER_PROFILE.streamKey || '');
+  // Streaming & Ingest Fields. streamKey/rtmpServer are no longer
+  // Firestore-seeded mock fields - they're rendered straight from
+  // myStream.stream (GET /api/streams/me) below. bitrateCap/lowLatency
+  // remain client-side OBS preferences, unrelated to the real Mux key.
   const [showStreamKey, setShowStreamKey] = useState(false);
-  const [rtmpServer, setRtmpServer] = useState(DEFAULT_USER_PROFILE.rtmpServer || 'rtmp://nbo-ingest.visorstream.com/live');
   const [bitrateCap, setBitrateCap] = useState(DEFAULT_USER_PROFILE.bitrateCapKbps || 6500);
   const [lowLatency, setLowLatency] = useState(DEFAULT_USER_PROFILE.lowLatencyMode ?? true);
   const [copiedStreamKey, setCopiedStreamKey] = useState(false);
@@ -147,11 +155,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
+    let cancelled = false;
+    (async () => {
+      const user = currentUser;
       if (user) {
         setIsLoading(true);
         const fetched = await fetchUserProfile(user.uid);
+        if (cancelled) return;
         if (fetched) {
           setProfile(fetched);
           setUsername(fetched.displayName || '');
@@ -165,8 +175,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           setProfileVisibility(fetched.privacyProfileVisibility || 'public');
           setDirectMessages(fetched.privacyDirectMessages || 'everyone');
           setBlockedUsers(fetched.blockedUsers || ['toxic_troll99', 'spambot_ke']);
-          setStreamKey(fetched.streamKey || '');
-          setRtmpServer(fetched.rtmpServer || 'rtmp://nbo-ingest.visorstream.com/live');
           setBitrateCap(fetched.bitrateCapKbps || 6500);
           setLowLatency(fetched.lowLatencyMode ?? true);
         } else {
@@ -178,10 +186,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       } else {
         setProfile(DEFAULT_USER_PROFILE);
       }
-    });
+    })();
 
-    return () => unsub();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser]);
 
   // Load the real, backend-authoritative 2FA status whenever the signed-in
   // user changes (separate from the Firestore profile fetch above, since 2FA
@@ -244,7 +254,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       setTwoFactorEnabled(true);
       setTwoFactorSetup(null);
       setTwoFactorCodeInput('');
-      confetti({ particleCount: 40, spread: 55 });
       showToast('Two-factor authentication enabled! Payouts now require a code from your authenticator app.');
     } catch (err: any) {
       setTwoFactorError(err.message || 'Invalid verification code');
@@ -299,7 +308,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         const saved = await saveUserProfile(updated);
         if (saved) {
           setProfile(updated);
-          confetti({ particleCount: 30, spread: 50 });
           showToast('Profile photo updated and synced!');
         } else {
           showToast('Could not save your photo right now. Please try again.');
@@ -327,8 +335,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       privacyProfileVisibility: profileVisibility,
       privacyDirectMessages: directMessages,
       blockedUsers,
-      streamKey,
-      rtmpServer,
       bitrateCapKbps: bitrateCap,
       lowLatencyMode: lowLatency,
       showBalanceInHeader
@@ -339,7 +345,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     if (saved) {
       setProfile(updated);
       setSaveSuccess(true);
-      confetti({ particleCount: 35, spread: 50 });
       showToast('Settings saved and synchronized with Cloud database!');
       setTimeout(() => setSaveSuccess(false), 3500);
     } else {
@@ -353,10 +358,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     showToast('Signed out successfully.');
   };
 
-  const handleRegenerateKey = () => {
-    const newKey = 'live_vsr_' + Math.random().toString(36).substring(2, 12) + '_' + Date.now().toString(36);
-    setStreamKey(newKey);
-    showToast('New stream key generated!');
+  const handleRegenerateKey = async () => {
+    setIsRegeneratingKey(true);
+    try {
+      await myStream.regenerateKey();
+      showToast('New stream key generated!');
+    } catch (err: any) {
+      showToast(err?.message || 'Could not regenerate stream key. Please try again.');
+    } finally {
+      setIsRegeneratingKey(false);
+    }
   };
 
   const handleCopy = (text: string, type: 'key' | 'rtmp') => {
@@ -720,7 +731,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         type="button"
                         onClick={() => {
                           setLanguage(langOption.code);
-                          confetti({ particleCount: 25, spread: 45 });
                           showToast(`${t('settings.lang_applied')} ${langOption.nativeName}`);
                         }}
                         className={`p-2.5 rounded-xl border text-left flex items-center gap-2 transition-all ${
@@ -764,7 +774,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       key={langOption.code}
                       onClick={() => {
                         setLanguage(langOption.code);
-                        confetti({ particleCount: 35, spread: 50 });
                         showToast(`${t('settings.lang_applied')} ${langOption.nativeName}`);
                       }}
                       className={`p-4 rounded-2xl border cursor-pointer transition-all ${
@@ -925,7 +934,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       <option value="mtn">🇺🇬 MTN Mobile Money (Uganda)</option>
                       <option value="airtel">🔴 Airtel Money (Mobile Wallet)</option>
                       <option value="mpesa">🇰🇪 Safaricom M-Pesa (Kenya)</option>
-                      <option value="card">💳 International Cards</option>
+                      <option value="card">International Cards</option>
                     </select>
                   </div>
                   <div className="space-y-1">
@@ -955,9 +964,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
                 <button
                   onClick={handleRegenerateKey}
-                  className="px-3 py-1.5 rounded-xl bg-[#1b2838] border border-[#2a475e] hover:border-[#38bdf8] text-xs font-bold text-slate-200 flex items-center gap-1.5 transition-all"
+                  disabled={!myStream.stream || isRegeneratingKey}
+                  className="px-3 py-1.5 rounded-xl bg-[#1b2838] border border-[#2a475e] hover:border-[#38bdf8] text-xs font-bold text-slate-200 flex items-center gap-1.5 transition-all disabled:opacity-50"
                 >
-                  <RefreshCw className="w-3.5 h-3.5 text-[#38bdf8]" />
+                  <RefreshCw className={`w-3.5 h-3.5 text-[#38bdf8] ${isRegeneratingKey ? 'animate-spin' : ''}`} />
                   <span>Regenerate Key</span>
                 </button>
               </div>
@@ -978,14 +988,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <div className="flex items-center gap-2">
                   <input
                     type={showStreamKey ? 'text' : 'password'}
-                    value={streamKey}
+                    value={myStream.isLoading ? 'Loading…' : myStream.stream?.muxStreamKey || '—'}
                     readOnly
                     className="flex-1 px-3.5 py-2.5 bg-[#0b0e14] border border-[#2a475e] rounded-xl text-xs text-white focus:outline-none"
                   />
                   <button
                     type="button"
-                    onClick={() => handleCopy(streamKey, 'key')}
-                    className="px-4 py-2.5 bg-[#38bdf8] text-[#0b0e14] rounded-xl font-bold text-xs hover:bg-[#66c0f4] flex items-center gap-1.5"
+                    onClick={() => handleCopy(myStream.stream?.muxStreamKey || '', 'key')}
+                    disabled={!myStream.stream}
+                    className="px-4 py-2.5 bg-[#38bdf8] text-[#0b0e14] rounded-xl font-bold text-xs hover:bg-[#66c0f4] flex items-center gap-1.5 disabled:opacity-50"
                   >
                     <Copy className="w-3.5 h-3.5" />
                     <span>{copiedStreamKey ? 'Copied' : 'Copy'}</span>
@@ -993,20 +1004,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               </div>
 
-              {/* RTMP Server URL */}
+              {/* RTMP Server URL - real Mux ingest URL from GET
+                  /api/streams/me. Mux uses one fixed global RTMP endpoint,
+                  so this is now read-only rather than freely editable. */}
               <div className="space-y-2 font-mono-code">
                 <label className="text-xs font-bold text-slate-300">Primary Ingest Server URL</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
-                    value={rtmpServer}
-                    onChange={(e) => setRtmpServer(e.target.value)}
+                    readOnly
+                    value={myStream.isLoading ? 'Loading…' : myStream.stream?.rtmpUrl || '—'}
                     className="flex-1 px-3.5 py-2.5 bg-[#0b0e14] border border-[#2a475e] rounded-xl text-xs text-white focus:outline-none focus:border-[#38bdf8]"
                   />
                   <button
                     type="button"
-                    onClick={() => handleCopy(rtmpServer, 'rtmp')}
-                    className="px-4 py-2.5 bg-[#1b2838] border border-[#2a475e] hover:border-[#38bdf8] text-slate-200 rounded-xl font-bold text-xs flex items-center gap-1.5"
+                    onClick={() => handleCopy(myStream.stream?.rtmpUrl || '', 'rtmp')}
+                    disabled={!myStream.stream}
+                    className="px-4 py-2.5 bg-[#1b2838] border border-[#2a475e] hover:border-[#38bdf8] text-slate-200 rounded-xl font-bold text-xs flex items-center gap-1.5 disabled:opacity-50"
                   >
                     <Copy className="w-3.5 h-3.5 text-[#38bdf8]" />
                     <span>{copiedRtmp ? 'Copied' : 'Copy'}</span>
@@ -1221,9 +1235,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     onChange={(e) => setProfileVisibility(e.target.value as any)}
                     className="w-full px-3 py-2 bg-[#171a21] border border-[#2a475e] rounded-xl text-xs text-white focus:outline-none focus:border-[#38bdf8]"
                   >
-                    <option value="public">🌐 Public (Visible to all viewers and search engines)</option>
-                    <option value="friends">👥 Followers & Clan Members Only</option>
-                    <option value="private">🔒 Private (Hidden profile)</option>
+                    <option value="public">Public (Visible to all viewers and search engines)</option>
+                    <option value="friends">Followers & Clan Members Only</option>
+                    <option value="private">Private (Hidden profile)</option>
                   </select>
                 </div>
 
@@ -1294,6 +1308,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     <span>Export JSON</span>
                   </button>
                 </div>
+
+                {/* Linked Sign-In Methods (Google / Apple link-unlink) */}
+                <LinkedAccountsPanel />
+
+                {/* Account Deletion (Danger Zone) */}
+                <AccountDeletionPanel onNavigateToTab={onNavigateToTab} />
               </div>
             </div>
           )}

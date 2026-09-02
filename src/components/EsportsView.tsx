@@ -4,7 +4,6 @@ import { CURRENCY_RATES } from '../data/mockData';
 import { EsportsTournamentBracket } from './EsportsTournamentBracket';
 import { EsportsScrimLobby } from './EsportsScrimLobby';
 import { useLanguage } from '../lib/i18n';
-import confetti from 'canvas-confetti';
 import {
   Trophy,
   Calendar,
@@ -20,7 +19,9 @@ import {
   Award,
   Gamepad2,
   GitBranch,
-  X
+  X,
+  Smartphone,
+  CreditCard
 } from 'lucide-react';
 
 interface EsportsViewProps {
@@ -49,7 +50,6 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
       setTicketModalOpen(true);
     } else {
       setRegisteredIds((prev) => [...prev, t.id]);
-      confetti({ particleCount: 50, spread: 60 });
     }
   };
 
@@ -57,11 +57,6 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
     e.preventDefault();
     setTicketModalOpen(false);
     setRegisteredIds((prev) => [...prev, selectedTournament.id]);
-    confetti({
-      particleCount: 90,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
   };
 
   return (
@@ -71,9 +66,14 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-purple-500/10 text-purple-300 border border-purple-500/30 text-xs font-mono-code font-bold uppercase tracking-wider">
-              <Trophy className="w-3.5 h-3.5 text-amber-400" />
-              <span>VISOR PRO ESPORTS CIRCUIT 2026</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-purple-500/10 text-purple-300 border border-purple-500/30 text-xs font-mono-code font-bold uppercase tracking-wider">
+                <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                <span>VISOR PRO ESPORTS CIRCUIT 2026</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[9px] font-mono-code font-bold uppercase tracking-wider">
+                {t('common.demo_content_badge')}
+              </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               {t('esports.hero.title')}
@@ -159,8 +159,8 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
                     >
                       {selectedTournament.status}
                     </span>
-                    <span className="px-2.5 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md text-amber-400 font-mono-code font-bold text-xs border border-amber-500/30">
-                      🏆 {selectedTournament.prizePoolFormatted}
+                    <span className="px-2.5 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md text-amber-400 font-mono-code font-bold text-xs border border-amber-500/30 inline-flex items-center gap-1">
+                      <Trophy className="w-3 h-3" /> {selectedTournament.prizePoolFormatted}
                     </span>
                   </div>
 
@@ -290,8 +290,8 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
                 >
                   <div className="aspect-video rounded-xl overflow-hidden relative">
                     <img src={t.banner} alt={t.title} className="w-full h-full object-cover" />
-                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-lg bg-slate-950/80 backdrop-blur-md text-[10px] font-mono-code text-amber-400 font-bold border border-amber-500/30">
-                      🏆 {t.prizePoolFormatted}
+                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-lg bg-slate-950/80 backdrop-blur-md text-[10px] font-mono-code text-amber-400 font-bold border border-amber-500/30 inline-flex items-center gap-1">
+                      <Trophy className="w-2.5 h-2.5" /> {t.prizePoolFormatted}
                     </div>
                   </div>
 
@@ -359,11 +359,11 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
               <div className="space-y-1">
                 <label className="font-semibold text-slate-300">Payment Option</label>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2.5 rounded-xl border border-purple-500 bg-purple-500/10 text-white font-semibold flex items-center justify-center text-center">
-                    📱 Mobile Money (MTN / M-Pesa)
+                  <div className="p-2.5 rounded-xl border border-purple-500 bg-purple-500/10 text-white font-semibold flex items-center justify-center text-center gap-1.5">
+                    <Smartphone className="w-3.5 h-3.5" /> Mobile Money (MTN / M-Pesa)
                   </div>
-                  <div className="p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 flex items-center justify-center text-center">
-                    💳 Card / PayPal
+                  <div className="p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 flex items-center justify-center text-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5" /> Card / PayPal
                   </div>
                 </div>
               </div>

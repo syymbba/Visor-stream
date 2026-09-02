@@ -4,6 +4,8 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import Mux from "@mux/mux-node";
 import { requireAuth, type AuthRequest } from "./src/middleware/auth.ts";
+import { adminAuth } from "./src/lib/firebase-admin.ts";
+import { getFirestore } from "firebase-admin/firestore";
 import {
   getOrCreateUser,
   getUserProfile,
@@ -18,7 +20,16 @@ import { db } from "./src/db/index.ts";
 import { tips, creatorStats, pesapalOrders, payoutRequests } from "./src/db/schema.ts";
 import { applyCompletedOrderToCreatorStats, getOrBackfillCreatorStats } from "./src/db/creatorStats.ts";
 import { markOrderCompletedAndCredit } from "./src/db/completeOrder.ts";
-import { availableBalanceUsd, reservePayoutAndInsert } from "./src/db/payouts.ts";
+import { availableBalanceUsd, reservePayoutAndInsert, releaseReservedPayout } from "./src/db/payouts.ts";
+import { deleteAccountData } from "./src/db/accountDeletion.ts";
+import {
+  getCreatorStreamByUid,
+  createCreatorStream,
+  updateStreamStatus,
+  updateStreamKey,
+  updateStreamMeta,
+} from "./src/db/streams.ts";
+import { streams, users } from "./src/db/schema.ts";
 import { and, desc, eq, or } from "drizzle-orm";
 import {
   submitPesapalOrder,
@@ -137,6 +148,7 @@ async function startServer() {
   app.use("/api/payouts", sensitiveLimiter);
   app.use("/api/auth", sensitiveLimiter);
   app.use("/api/mux/direct-upload", sensitiveLimiter);
+  app.use("/api/streams/me/regenerate-key", sensitiveLimiter);
   // Generous, non-fail-closed limiter on the Pesapal webhook aliases: these
   // are unauthenticated by design (external callbacks), so without any
   // throttle they're an open flood vector that each trigger an outbound
@@ -148,6 +160,63 @@ async function startServer() {
     app.use(path, webhookLimiter);
   }
   app.use("/api", createCorsMiddleware());
+
+  // Mux live-stream status webhook. Registered here, ahead of the global
+  // express.json() below, with its own express.raw() so the exact bytes
+  // Mux signed are available for verifySignature() - Express runs
+  // middleware/routes in registration order, and this handler always ends
+  // the response itself, so the global express.json() a few lines down
+  // never runs for this path. Unlike Pesapal's IPN webhook (which
+  // SECURITY.md documents as look-up-only: its payload is never trusted
+  // directly, only used as a hint to go re-check status with Pesapal),
+  // Mux webhooks are cryptographically signed, so once verifySignature()
+  // passes, this payload can drive our stream status directly.
+  app.post(
+    "/api/mux/webhook",
+    express.raw({ type: "application/json", limit: "1mb" }),
+    async (req, res) => {
+      if (!mux) {
+        return res.status(500).json({ error: "Mux is not configured" });
+      }
+      const webhookSecret = process.env.MUX_WEBHOOK_SECRET;
+      if (!webhookSecret) {
+        // Never process an unverified webhook payload - fail closed rather
+        // than skipping verification when the secret isn't set.
+        return res.status(503).json({ error: "Mux webhook verification is not configured" });
+      }
+
+      const rawBody = Buffer.isBuffer(req.body) ? req.body.toString("utf8") : "";
+      try {
+        mux.webhooks.verifySignature(rawBody, req.headers, webhookSecret);
+      } catch (err) {
+        console.error("[MUX WEBHOOK] Signature verification failed:", err);
+        return res.status(400).json({ error: "Invalid Mux webhook signature" });
+      }
+
+      let payload: { type?: string; data?: { id?: string } };
+      try {
+        payload = JSON.parse(rawBody);
+      } catch (err) {
+        return res.status(400).json({ error: "Invalid JSON payload" });
+      }
+
+      const liveStreamId = payload?.data?.id;
+      switch (payload?.type) {
+        case "video.live_stream.active":
+          if (liveStreamId) await updateStreamStatus(liveStreamId, "active");
+          break;
+        case "video.live_stream.idle":
+        case "video.live_stream.disconnected":
+          if (liveStreamId) await updateStreamStatus(liveStreamId, "idle");
+          break;
+        default:
+          // Ignore event types we don't act on.
+          break;
+      }
+
+      return res.status(200).json({ received: true });
+    }
+  );
 
   app.use(express.json({ limit: "100kb" }));
   app.disable("x-powered-by");
@@ -248,6 +317,183 @@ async function startServer() {
       duration: asset.duration,
       createdAt: asset.created_at,
     });
+  });
+
+  // ==========================================
+  // MUX LIVE STREAMS (creator broadcasting)
+  // ==========================================
+
+  const MUX_RTMP_URL = "rtmps://global-live.mux.com/app";
+
+  // Get-or-create the requesting creator's persistent live stream. Owner-
+  // scoped by construction: looked up by req.user.uid from the verified
+  // auth token, with no ID parameter accepted from the client, so there's
+  // no IDOR surface here (this is the fix pattern the existing Mux-asset
+  // IDOR finding in SECURITY.md should have used - don't repeat that
+  // mistake with a client-supplied ID instead).
+  app.get("/api/streams/me", requireAuth, async (req: AuthRequest, res) => {
+    if (!mux) {
+      return res.status(500).json({ error: "Mux is not configured" });
+    }
+
+    try {
+      const uid = req.user!.uid;
+      let stream = await getCreatorStreamByUid(uid);
+
+      if (!stream) {
+        const liveStream = await mux.video.liveStreams.create({
+          playback_policy: ["public"],
+          new_asset_settings: { playback_policy: ["public"] },
+        });
+        stream = await createCreatorStream(uid, {
+          muxLiveStreamId: liveStream.id,
+          muxStreamKey: liveStream.stream_key,
+          muxPlaybackId: liveStream.playback_ids?.[0]?.id ?? null,
+        });
+      }
+
+      return res.json({
+        muxLiveStreamId: stream.muxLiveStreamId,
+        muxStreamKey: stream.muxStreamKey,
+        muxPlaybackId: stream.muxPlaybackId,
+        status: stream.status,
+        rtmpUrl: MUX_RTMP_URL,
+        title: stream.title,
+        game: stream.game,
+      });
+    } catch (err) {
+      console.error("Failed to get or create creator stream:", err);
+      return res.status(500).json({ error: "Failed to load stream" });
+    }
+  });
+
+  // Regenerate the creator's RTMP stream key. `sensitiveLimiter` is applied
+  // above (mirrors the existing /api/mux/direct-upload route) since this
+  // immediately invalidates the old key.
+  app.post("/api/streams/me/regenerate-key", requireAuth, async (req: AuthRequest, res) => {
+    if (!mux) {
+      return res.status(500).json({ error: "Mux is not configured" });
+    }
+
+    try {
+      const uid = req.user!.uid;
+      const stream = await getCreatorStreamByUid(uid);
+      if (!stream) {
+        return res.status(404).json({ error: "No stream found for this creator. Call GET /api/streams/me first." });
+      }
+
+      const liveStream = await mux.video.liveStreams.resetStreamKey(stream.muxLiveStreamId);
+      const updated = await updateStreamKey(uid, liveStream.stream_key);
+      return res.json({ muxStreamKey: updated.muxStreamKey });
+    } catch (err) {
+      console.error("Failed to regenerate stream key:", err);
+      return res.status(500).json({ error: "Failed to regenerate stream key" });
+    }
+  });
+
+  // Update stream metadata (title/game). Never echoes back the stream key.
+  app.patch("/api/streams/me", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user!.uid;
+      const title = typeof req.body?.title === "string" ? req.body.title.slice(0, 200) : undefined;
+      const game = typeof req.body?.game === "string" ? req.body.game.slice(0, 100) : undefined;
+
+      const existing = await getCreatorStreamByUid(uid);
+      if (!existing) {
+        return res.status(404).json({ error: "No stream found for this creator. Call GET /api/streams/me first." });
+      }
+
+      const updated = await updateStreamMeta(uid, { title, game });
+      return res.json({
+        muxLiveStreamId: updated.muxLiveStreamId,
+        muxPlaybackId: updated.muxPlaybackId,
+        status: updated.status,
+        title: updated.title,
+        game: updated.game,
+      });
+    } catch (err) {
+      console.error("Failed to update stream metadata:", err);
+      return res.status(500).json({ error: "Failed to update stream" });
+    }
+  });
+
+  // Public status lookup for a creator's stream (e.g. viewer-facing "is
+  // this creator live" checks). Never returns the stream key.
+  app.get("/api/streams/:creatorUid/status", async (req, res) => {
+    try {
+      const stream = await getCreatorStreamByUid(req.params.creatorUid);
+      if (!stream) {
+        return res.status(404).json({ error: "No stream found for this creator" });
+      }
+      return res.json({
+        isLive: stream.status === "active",
+        muxPlaybackId: stream.muxPlaybackId,
+        title: stream.title,
+        game: stream.game,
+      });
+    } catch (err) {
+      console.error("Failed to load stream status:", err);
+      return res.status(500).json({ error: "Failed to load stream status" });
+    }
+  });
+
+  // Short-lived signed JWT so the client can poll Mux's viewer-count stats
+  // endpoint (stats.mux.com/counts) directly, instead of proxying every
+  // tick through our server.
+  app.get("/api/streams/:creatorUid/viewer-token", async (req, res) => {
+    const keyId = process.env.MUX_SIGNING_KEY_ID;
+    const keySecret = process.env.MUX_SIGNING_KEY_PRIVATE;
+    if (!mux) {
+      return res.status(500).json({ error: "Mux is not configured" });
+    }
+    if (!keyId || !keySecret) {
+      return res.status(503).json({ error: "Viewer count signing not configured" });
+    }
+
+    try {
+      const stream = await getCreatorStreamByUid(req.params.creatorUid);
+      if (!stream) {
+        return res.status(404).json({ error: "No stream found for this creator" });
+      }
+
+      const token = await mux.jwt.signViewerCounts(stream.muxLiveStreamId, {
+        type: "live_stream",
+        keyId,
+        keySecret,
+        expiration: "5m",
+      });
+      return res.json({ token });
+    } catch (err) {
+      console.error("Failed to sign viewer count token:", err);
+      return res.status(500).json({ error: "Failed to sign viewer count token" });
+    }
+  });
+
+  // Real live-feed data source: every creator currently broadcasting,
+  // joined with users for display info. Not yet wired into the frontend -
+  // that's a later phase.
+  app.get("/api/streams/live", async (_req, res) => {
+    try {
+      const rows = await db
+        .select({
+          creatorUid: streams.creatorUid,
+          muxPlaybackId: streams.muxPlaybackId,
+          title: streams.title,
+          game: streams.game,
+          lastLiveAt: streams.lastLiveAt,
+          displayName: users.displayName,
+          photoUrl: users.photoUrl,
+          gamerTag: users.gamerTag,
+        })
+        .from(streams)
+        .innerJoin(users, eq(streams.creatorUid, users.uid))
+        .where(eq(streams.status, "active"));
+
+      return res.json(rows);
+    } catch (err) {
+      console.error("Failed to load live streams:", err);
+      return res.status(500).json({ error: "Failed to load live streams" });
+    }
   });
 
   // ==========================================
@@ -1105,7 +1351,7 @@ async function startServer() {
           status: "PENDING",
           kycTier: "Tier 2 (Verified Instant Settlement)",
           receiptNumber,
-          notes: safeNotes || `Direct Mobile Money Push to ${safePayoutPhone} via Pesapal/Telco Switch`,
+          notes: safeNotes || `Payout request received for ${safePayoutPhone}. Funds reserved; disbursement is processed manually by the Visor team.`,
         },
       });
 
@@ -1116,7 +1362,7 @@ async function startServer() {
 
       res.json({
         success: true,
-        message: "Payout request received and awaiting settlement",
+        message: "Payout request received. Funds reserved; disbursement is processed manually by the Visor team.",
         payout: insertedRecord,
         receiptNumber,
         reference,
@@ -1171,6 +1417,82 @@ async function startServer() {
     } catch (error: any) {
       console.error("Fetch Payout History Error:", error);
       res.status(500).json({ error: error.message || "Failed to fetch payout history" });
+    }
+  });
+
+  // Admin-only: move a payout through its manual disbursement lifecycle.
+  // Payouts are never auto-disbursed (see /api/payouts/request) - an admin
+  // sends the money manually off-platform, then records the outcome here so
+  // the ledger reservation is released on failure and the record reflects
+  // reality. Gated identically to /api/payments/simulate-ipn: 404 (not 403)
+  // for non-admins so the route's existence isn't confirmed to them.
+  const PAYOUT_FORWARD_TRANSITIONS: Record<string, string[]> = {
+    PENDING: ["PROCESSING", "FAILED"],
+    PROCESSING: ["COMPLETED", "FAILED"],
+  };
+
+  app.post("/api/payouts/:reference/admin-update", requireAuth, async (req: AuthRequest, res) => {
+    if (req.user?.admin !== true) {
+      return res.status(404).json({ error: "Not found" });
+    }
+    try {
+      const { reference } = req.params;
+      const { status, receiptNumber, notes } = req.body || {};
+
+      if (!["PROCESSING", "COMPLETED", "FAILED"].includes(status)) {
+        return res.status(400).json({ error: "status must be one of PROCESSING, COMPLETED, FAILED" });
+      }
+
+      const existingRows = await db
+        .select()
+        .from(payoutRequests)
+        .where(eq(payoutRequests.reference, reference))
+        .limit(1);
+      const existing = existingRows[0];
+      if (!existing) {
+        return res.status(404).json({ error: "Payout not found" });
+      }
+
+      const allowedNextStatuses = PAYOUT_FORWARD_TRANSITIONS[existing.status] || [];
+      if (!allowedNextStatuses.includes(status)) {
+        return res.status(400).json({
+          error: `Cannot transition payout from ${existing.status} to ${status}`,
+        });
+      }
+
+      if (status === "FAILED") {
+        const release = await releaseReservedPayout({
+          userId: existing.userId,
+          amountUSD: parseFloat(existing.amountUsd) || 0,
+        });
+        if (release.ok === false) {
+          return res.status(500).json({ error: release.error });
+        }
+      }
+
+      const updateValues: Partial<typeof payoutRequests.$inferInsert> = {
+        status,
+        updatedAt: new Date(),
+      };
+      if (typeof receiptNumber === "string" && receiptNumber.trim()) {
+        updateValues.receiptNumber = receiptNumber.trim().slice(0, 100);
+      }
+      if (typeof notes === "string" && notes.trim()) {
+        updateValues.notes = notes.trim().slice(0, 500);
+      }
+
+      const updatedRows = await db
+        .update(payoutRequests)
+        .set(updateValues)
+        .where(eq(payoutRequests.reference, reference))
+        .returning();
+
+      auditAdminAction(req, `payout_status_update reference=${reference} ${existing.status}->${status}`);
+
+      res.json({ success: true, payout: updatedRows[0] });
+    } catch (error: any) {
+      console.error("Admin Payout Update Error:", error);
+      res.status(500).json({ error: error.message || "Failed to update payout" });
     }
   });
 
@@ -1327,6 +1649,62 @@ async function startServer() {
       console.error("Update profile error:", error);
       res.status(500).json({ error: error.message || "Failed to update profile" });
     }
+  });
+
+  // Permanently delete the caller's account: Postgres rows, Firestore
+  // profile doc, then the Firebase Auth user itself. The client only reaches
+  // this endpoint after a fresh re-authentication (Firebase's own
+  // `deleteUser` on the client SDK enforces `auth/requires-recent-login`,
+  // but re-auth happens client-side before this call - this endpoint trusts
+  // the caller's verified ID token the same way every other requireAuth
+  // route does). Deletion order matters: Postgres cleanup first (reversible
+  // in principle, just data), Firebase Auth user deletion last (genuinely
+  // irreversible), and only proceeds once the earlier steps succeeded.
+  app.post("/api/account/delete", requireAuth, async (req: AuthRequest, res) => {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    try {
+      const result = await deleteAccountData(uid);
+      if (result.ok === false) {
+        if (result.error === "pending_payout") {
+          return res.status(409).json({
+            error: "You have a payout request in progress. Please wait for it to complete before deleting your account.",
+          });
+        }
+        console.error(`[ACCOUNT DELETE] Postgres cleanup failed uid=${uid} error=${result.error}`);
+        return res.status(500).json({ error: "Failed to delete account data. Please try again." });
+      }
+    } catch (error: any) {
+      console.error("Account deletion (Postgres cleanup) error:", error);
+      return res.status(500).json({ error: error.message || "Failed to delete account data" });
+    }
+
+    // From here on, Postgres data is gone. Firestore profile + Firebase Auth
+    // user go last since deleting the Auth user is the irreversible step.
+    try {
+      const firestore = getFirestore();
+      await firestore.collection("users").doc(uid).delete();
+    } catch (firestoreErr) {
+      // Non-fatal: log loudly and keep going. An orphaned Firestore doc for
+      // a since-deleted uid is recoverable manually; leaving the Auth user
+      // (and therefore login access) alive because of it would not be.
+      console.error(`[ACCOUNT DELETE] Firestore profile delete failed uid=${uid}:`, firestoreErr);
+    }
+
+    try {
+      await adminAuth.deleteUser(uid);
+    } catch (authErr: any) {
+      console.error(
+        `[ACCOUNT DELETE] PARTIAL FAILURE - Postgres/Firestore data for uid=${uid} was deleted but Firebase Auth user deletion failed:`,
+        authErr,
+      );
+      return res.status(500).json({
+        error: "Account data was deleted, but we couldn't finish removing your login credentials. Please contact support.",
+      });
+    }
+
+    res.json({ success: true });
   });
 
   // Stream tips endpoint

@@ -24,7 +24,6 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { getAuthHeaders } from '../firebase';
-import confetti from 'canvas-confetti';
 import { parsePesapalError, PesapalErrorBreakdown, ErrorCategory } from '../lib/pesapalErrors';
 import { useLanguage } from '../lib/i18n';
 
@@ -341,11 +340,6 @@ export const PaymentStatusView: React.FC<PaymentStatusViewProps> = ({
         });
 
         if (finalStatus === 'COMPLETED') {
-          confetti({
-            particleCount: 120,
-            spread: 80,
-            origin: { y: 0.4 },
-          });
         }
       }
     } catch (err) {

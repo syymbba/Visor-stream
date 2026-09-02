@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { StoreMerchItem, Currency } from '../types';
 import { CURRENCY_RATES } from '../data/mockData';
 import { useLanguage } from '../lib/i18n';
-import confetti from 'canvas-confetti';
 import {
   ShoppingBag,
   Star,
@@ -45,11 +44,6 @@ export const StoreView: React.FC<StoreViewProps> = ({
   const handleConfirmOrder = (e: React.FormEvent) => {
     e.preventDefault();
     setOrderComplete(true);
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
 
     setTimeout(() => {
       setCheckoutItem(null);
@@ -67,9 +61,14 @@ export const StoreView: React.FC<StoreViewProps> = ({
               <ShoppingBag className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                {t('store.header.title')}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  {t('store.header.title')}
+                </h1>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[9px] font-mono-code font-bold uppercase tracking-wider">
+                  {t('common.demo_content_badge')}
+                </span>
+              </div>
               <p className="text-xs text-slate-400">
                 {t('store.header.subtitle')}
               </p>

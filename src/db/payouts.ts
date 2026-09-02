@@ -87,3 +87,45 @@ export async function reservePayoutAndInsert(args: {
     return { ok: true as const, inserted: rows[0] };
   });
 }
+
+// Inverse of reservePayoutAndInsert's reservation bookkeeping: decrements
+// totalReservedPayoutUsdCents when a payout transitions to FAILED, so the
+// creator's available balance reflects that the reserved funds never left
+// the platform. Never call this for COMPLETED payouts - those funds stay
+// reserved permanently since they've actually been disbursed (see the
+// schema comment on creatorStats.totalReservedPayoutUsdCents).
+export async function releaseReservedPayout(args: {
+  userId: string;
+  amountUSD: number;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const releasedCents = usdToCents(args.amountUSD);
+  if (releasedCents <= 0) {
+    return { ok: false, error: 'Invalid payout amount.' };
+  }
+
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT 1 FROM creator_stats WHERE user_id = ${args.userId} FOR UPDATE`);
+
+    const locked = await tx
+      .select()
+      .from(creatorStats)
+      .where(eq(creatorStats.userId, args.userId))
+      .limit(1);
+    const stats = locked[0];
+    if (!stats) {
+      return { ok: false as const, error: 'Unable to lock creator earnings ledger.' };
+    }
+
+    await tx
+      .update(creatorStats)
+      .set({
+        // GREATEST guards against ever going negative, mirroring the
+        // Math.max(0, ...) clamp used when computing available balance.
+        totalReservedPayoutUsdCents: sql`GREATEST(0, ${creatorStats.totalReservedPayoutUsdCents} - ${releasedCents})`,
+        updatedAt: new Date(),
+      })
+      .where(eq(creatorStats.userId, args.userId));
+
+    return { ok: true as const };
+  });
+}

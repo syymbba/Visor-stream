@@ -23,7 +23,6 @@ import {
 import { CreatorTipJarConfig, CreatorTipGoal, Currency } from '../types';
 import { MOCK_CREATOR_TIP_JAR, CURRENCY_RATES } from '../data/mockData';
 import { useLanguage } from '../lib/i18n';
-import confetti from 'canvas-confetti';
 
 interface CreatorTipJarWidgetProps {
   currentCurrency: Currency;
@@ -66,17 +65,11 @@ export const CreatorTipJarWidget: React.FC<CreatorTipJarWidgetProps> = ({
     setGoal(updated);
     setTipJarConfig(prev => ({ ...prev, activeGoal: updated }));
     setIsEditingGoal(false);
-    confetti({ particleCount: 30, spread: 50 });
     showToast('Tip Jar Goal updated and published!');
   };
 
   const handleTestAlert = () => {
     setShowAlertTest(true);
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
 
     // Play a friendly synthesized chime using Web Audio API
     try {

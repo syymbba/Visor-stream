@@ -1,17 +1,25 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { 
-  getAuth, 
-  signInWithPopup, 
-  GoogleAuthProvider, 
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
   signOut,
-  onAuthStateChanged, 
+  onAuthStateChanged,
   sendPasswordResetEmail,
   sendEmailVerification,
   fetchSignInMethodsForEmail,
-  User 
+  reload,
+  linkWithPopup,
+  unlink,
+  OAuthProvider,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
+  deleteUser,
+  User
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -131,7 +139,15 @@ export {
   onAuthStateChanged,
   sendPasswordResetEmail,
   sendEmailVerification,
-  fetchSignInMethodsForEmail
+  fetchSignInMethodsForEmail,
+  reload,
+  linkWithPopup,
+  unlink,
+  OAuthProvider,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
+  deleteUser
 };
 
 export type { User };

@@ -19,7 +19,8 @@ import {
   Sparkles,
   CheckCircle2,
   ChevronDown,
-  X
+  X,
+  Save
 } from 'lucide-react';
 import { LiveStream } from '../types';
 import { canAccessStreamQuality, getTierConfig, ProTier } from '../services/subscriptionService';
@@ -70,6 +71,16 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
   const isSubscriber = userTier !== 'free';
   const [showPrerollAd, setShowPrerollAd] = useState(!isSubscriber);
   const [adCountdown, setAdCountdown] = useState(4);
+
+  // `stream.isDemo` (set on the still-mock catalog in mockData.ts, unset for
+  // real streams built from GET /api/streams/live) is the only signal this
+  // component has for "is this telemetry real or a demo placeholder." Mux
+  // doesn't give us client-observed latency/bitrate/dropped-frame numbers
+  // without deeper player instrumentation, so for real streams the HUD
+  // below shows "unavailable" instead of a fabricated reading. For demo
+  // streams the quality-tier-driven placeholder numbers are kept, since
+  // they're clearly scoped to non-real content.
+  const isRealMuxStream = !stream.isDemo;
 
   const [latencyMs, setLatencyMs] = useState(14);
   const [currentBitrate, setCurrentBitrate] = useState('4.8 Mbps');
@@ -239,8 +250,8 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
 
           {/* Live Data Savings Tracker Meter */}
           <div className="mt-4 px-4 py-2 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs font-mono-code flex items-center gap-3">
-            <span className="text-amber-400 font-bold">
-              💾 Saved {dataSavedMB} MB
+            <span className="text-amber-400 font-bold inline-flex items-center gap-1">
+              <Save className="w-3.5 h-3.5" /> Saved {dataSavedMB} MB
             </span>
             <span className="text-slate-500">•</span>
             <span className="text-emerald-400">92% Bandwidth Reduced</span>
@@ -278,9 +289,9 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
             </div>
             <button
               onClick={() => setShowPrerollAd(false)}
-              className="text-[10px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-mono-code font-bold transition-colors"
+              className="text-[10px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-mono-code font-bold transition-colors inline-flex items-center gap-1"
             >
-              {adCountdown > 0 ? `Skip in ${adCountdown}s` : 'Skip Ad ✕'}
+              {adCountdown > 0 ? `Skip in ${adCountdown}s` : <>Skip Ad <X className="w-2.5 h-2.5" /></>}
             </button>
           </div>
           <p className="text-[11px] text-slate-300 leading-snug">
@@ -355,10 +366,12 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
             <Eye className="w-3.5 h-3.5 text-sky-400" />
             <span>{stream.viewersCount.toLocaleString()}</span>
           </span>
-          <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md text-emerald-400 text-xs font-mono-code border border-emerald-500/30">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>{latencyMs}ms • NAIROBI EDGE</span>
-          </span>
+          {!isRealMuxStream && (
+            <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md text-emerald-400 text-xs font-mono-code border border-emerald-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>{latencyMs}ms • NAIROBI EDGE</span>
+            </span>
+          )}
           {isSubscriber && (
             <span className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono-code font-bold">
               <CheckCircle2 className="w-3 h-3 text-emerald-400" />
@@ -457,7 +470,7 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
           </div>
           <div className="flex justify-between">
             <span className="text-slate-400">Stream Bitrate:</span>
-            <span className="text-emerald-400 font-bold">{currentBitrate}</span>
+            <span className="text-emerald-400 font-bold">{isRealMuxStream ? '—' : currentBitrate}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-400">Frame Rate:</span>
@@ -465,11 +478,11 @@ export const StreamPlayer: React.FC<StreamPlayerProps> = ({
           </div>
           <div className="flex justify-between">
             <span className="text-slate-400">Dropped Frames:</span>
-            <span className="text-emerald-400">{droppedFrames} (0.00%)</span>
+            <span className="text-emerald-400">{isRealMuxStream ? '—' : `${droppedFrames} (0.00%)`}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-400">CDN Relay Edge:</span>
-            <span className="text-cyan-300">Cloudflare Nairobi-EAT</span>
+            <span className="text-cyan-300">{isRealMuxStream ? 'Mux Global Delivery' : 'Cloudflare Nairobi-EAT'}</span>
           </div>
         </div>
       )}

@@ -137,6 +137,33 @@ export const scrimLobbies = pgTable('scrim_lobbies', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// Creator Live Streams (Mux Live Streams backend). One persistent live
+// stream per creator (created once via GET /api/streams/me, key
+// regenerable) rather than a new stream resource per broadcast.
+//
+// Table name is `mux_live_streams`, NOT `streams` - a pre-existing,
+// differently-shaped `public.streams` table (uuid PK, user_id/stream_key
+// columns, RLS policies) already exists in this database from
+// supabase/client_schema.sql, a separate, currently-unwired direct-client
+// schema. Keeping this JS export named `streams` for code ergonomics since
+// nothing in this codebase imports the client_schema.sql tables.
+export const streams = pgTable('mux_live_streams', {
+  id: serial('id').primaryKey(),
+  creatorUid: text('creator_uid').notNull().unique(),
+  muxLiveStreamId: text('mux_live_stream_id').notNull().unique(),
+  // Server-only secret, never returned except to the owning creator.
+  muxStreamKey: text('mux_stream_key').notNull(),
+  muxPlaybackId: text('mux_playback_id'),
+  status: text('status').notNull().default('idle'), // 'idle' | 'active' | 'disabled'
+  title: text('title'),
+  game: text('game'),
+  lastLiveAt: timestamp('last_live_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => [
+  index('mux_live_streams_status_idx').on(table.status),
+]);
+
 // Live Match Community Predictions
 export const livePredictions = pgTable('live_predictions', {
   id: serial('id').primaryKey(),

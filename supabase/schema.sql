@@ -147,6 +147,24 @@ create table if not exists public.live_predictions (
   created_at timestamp default now()
 );
 
+-- Creator Live Streams (Mux Live Streams backend). Named mux_live_streams,
+-- NOT streams - a differently-shaped public.streams table (uuid PK,
+-- user_id/stream_key columns, RLS-owned) already exists via
+-- client_schema.sql's separate direct-client schema; keep the two apart.
+create table if not exists public.mux_live_streams (
+  id serial primary key,
+  creator_uid text not null unique,
+  mux_live_stream_id text not null unique,
+  mux_stream_key text not null,
+  mux_playback_id text,
+  status text not null default 'idle',
+  title text,
+  game text,
+  last_live_at timestamp,
+  created_at timestamp default now(),
+  updated_at timestamp default now()
+);
+
 create index if not exists pesapal_orders_user_id_idx on public.pesapal_orders (user_id);
 create index if not exists pesapal_orders_creator_id_idx on public.pesapal_orders (creator_id);
 create index if not exists pesapal_orders_user_created_idx on public.pesapal_orders (user_id, created_at);
@@ -156,6 +174,7 @@ create index if not exists payout_requests_creator_id_idx on public.payout_reque
 create index if not exists payout_requests_creator_status_idx on public.payout_requests (creator_id, status);
 create index if not exists payout_requests_user_created_idx on public.payout_requests (user_id, created_at);
 create index if not exists tips_stream_created_idx on public.tips (stream_id, created_at);
+create index if not exists mux_live_streams_status_idx on public.mux_live_streams (status);
 
 -- Keep direct Supabase API access isolated to the authenticated owner.
 alter table public.users enable row level security;
@@ -165,6 +184,7 @@ alter table public.pesapal_orders enable row level security;
 alter table public.payout_requests enable row level security;
 alter table public.scrim_lobbies enable row level security;
 alter table public.live_predictions enable row level security;
+alter table public.mux_live_streams enable row level security;
 
 create policy users_owner_select on public.users
   for select using (uid = auth.uid()::text);
@@ -189,3 +209,6 @@ create policy scrim_lobbies_authenticated_read on public.scrim_lobbies
   for select to authenticated using (true);
 create policy live_predictions_authenticated_read on public.live_predictions
   for select to authenticated using (true);
+
+create policy mux_live_streams_owner_read on public.mux_live_streams
+  for select using (creator_uid = auth.uid()::text);

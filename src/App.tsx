@@ -1,26 +1,99 @@
-import React, { lazy, Suspense, useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
+import useSWR from 'swr';
 import {
   MOCK_LIVE_STREAMS,
   MOCK_TUTORIALS,
+  MOCK_CREATOR_DASHBOARD,
+  SUBSCRIPTION_PLANS
+} from './data/mockData';
+import {
   MOCK_GAMES,
   MOCK_TOURNAMENTS,
   MOCK_COMMUNITY_POSTS,
   MOCK_STORE_ITEMS,
-  MOCK_CREATOR_DASHBOARD,
-  SUBSCRIPTION_PLANS
-} from './data/mockData';
+} from './data/placeholderContent';
 import { LiveStream, GamingTutorial, Currency, SubscriptionPlan, ReelClip, UserLibraryItem } from './types';
 import { Navbar } from './components/Navbar';
 import { OfflineBanner } from './components/OfflineBanner';
-import { SplashScreen } from './components/SplashScreen';
 import { useWalletBalance } from './hooks/useWalletBalance';
 import { useOfflineManager } from './hooks/useOfflineManager';
 import type { FeatureId } from './components/FeatureInfoView';
-import { auth, onAuthStateChanged, User } from './firebase';
-import { getUserProfile, UserProfile } from './services/userService';
-import confetti from 'canvas-confetti';
+import { AuthProvider, useAuth } from './hooks/useAuth';
+import { PROTECTED_TABS } from './lib/protectedTabs';
+import { plainGetFetcher } from './lib/apiClient';
+import { getMuxPlaybackUrl, getMuxPosterUrl } from './lib/mux';
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+
+// Shape returned by GET /api/streams/live (server.ts) - one row per
+// currently-active creator stream, joined against the users table for
+// display name/avatar. No viewer count, resolution, fps, bitrate, or tags
+// yet on the backend, so mapApiStreamToLiveStream below fills those with
+// honest placeholders rather than fabricated numbers (viewer count in
+// particular is deliberately NOT set here - it's polled live per-card via
+// useLiveViewerCount instead of being a static field on the fetched object).
+interface LiveStreamApiRow {
+  creatorUid: string;
+  muxPlaybackId: string | null;
+  title: string | null;
+  game: string | null;
+  lastLiveAt: string | null;
+  displayName: string | null;
+  photoUrl: string | null;
+  gamerTag: string | null;
+}
+
+const DEFAULT_STREAM_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+const DEFAULT_STREAM_THUMBNAIL = 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80';
+
+function formatUptimeSince(lastLiveAt: string | null): string {
+  if (!lastLiveAt) return '00:00:00';
+  const startMs = new Date(lastLiveAt).getTime();
+  if (!Number.isFinite(startMs)) return '00:00:00';
+  const elapsedSec = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+  const h = Math.floor(elapsedSec / 3600);
+  const m = Math.floor((elapsedSec % 3600) / 60);
+  const s = elapsedSec % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+function mapApiStreamToLiveStream(row: LiveStreamApiRow): LiveStream {
+  const name = row.displayName || row.gamerTag || 'Visor Creator';
+  return {
+    id: `live_${row.creatorUid}`,
+    title: row.title || `${name} is live now`,
+    streamer: {
+      id: row.creatorUid,
+      name,
+      handle: row.gamerTag ? `@${row.gamerTag}` : `@${row.creatorUid.slice(0, 10)}`,
+      avatar: row.photoUrl || DEFAULT_STREAM_AVATAR,
+      verified: false,
+      country: '',
+      countryCode: '',
+      countryFlag: '',
+      subscribers: 0,
+      bio: '',
+      mobileMoneySupported: true,
+    },
+    game: row.game || 'Live Broadcast',
+    gameId: 'live_broadcast',
+    thumbnail: getMuxPosterUrl(row.muxPlaybackId) || DEFAULT_STREAM_THUMBNAIL,
+    videoPreviewUrl: getMuxPlaybackUrl(row.muxPlaybackId) || '',
+    // Static fallback only - LivePlayerView/StreamPlayer poll the real,
+    // per-stream count live via useLiveViewerCount(streamer.id).
+    viewersCount: 0,
+    isLive: true,
+    resolution: '1080p60',
+    bitrate: '—',
+    fps: 30,
+    uptime: formatUptimeSince(row.lastLiveAt),
+    tags: ['Live'],
+    description: `${name} is live now on Visor Stream.`,
+    isDemo: false,
+  };
+}
 
 const LandingPageView = lazy(() => import('./components/LandingPageView').then(({ LandingPageView }) => ({ default: LandingPageView })));
 const LivePlayerView = lazy(() => import('./components/LivePlayerView').then(({ LivePlayerView }) => ({ default: LivePlayerView })));
@@ -45,6 +118,7 @@ const PaymentHistory = lazy(() => import('./components/PaymentHistory').then(({ 
 const GoLiveModal = lazy(() => import('./components/GoLiveModal').then(({ GoLiveModal }) => ({ default: GoLiveModal })));
 const NotificationsModal = lazy(() => import('./components/NotificationsModal').then(({ NotificationsModal }) => ({ default: NotificationsModal })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(({ AuthModal }) => ({ default: AuthModal })));
+const OnboardingWizard = lazy(() => import('./components/OnboardingWizard').then(({ OnboardingWizard }) => ({ default: OnboardingWizard })));
 
 function PageLoader() {
   return <div className="min-h-[12rem]" aria-busy="true" />;
@@ -64,6 +138,7 @@ type AppTab =
   | 'overlay'
   | 'pricing'
   | 'settings'
+  | 'onboarding'
   | 'about'
   | 'terms'
   | 'privacy'
@@ -78,6 +153,14 @@ type AppTab =
   | 'features-ai-clips';
 
 export function App() {
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
+  );
+}
+
+function AppShell() {
   // Parse initial route from URL path or hash
   const getInitialTabFromUrl = (): AppTab => {
     const path = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
@@ -119,9 +202,7 @@ export function App() {
   };
 
   const [activeTab, setActiveTab] = useState<AppTab>(getInitialTabFromUrl());
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [authChecked, setAuthChecked] = useState(false);
+  const { currentUser, userProfile, refreshProfile, authChecked } = useAuth();
 
   // Real-Time Dynamic Wallet Balance Hook
   const wallet = useWalletBalance({ userId: currentUser?.uid, enabled: Boolean(currentUser) });
@@ -138,10 +219,58 @@ export function App() {
     setUserBalanceUSD(wallet.balanceUSD);
   }, [wallet.balanceUSD]);
 
-  const [liveStreams, setLiveStreams] = useState<LiveStream[]>(MOCK_LIVE_STREAMS);
+  // Real live-feed data, fetched from the public GET /api/streams/live
+  // endpoint (no auth header needed - plainGetFetcher, not authedGetFetcher).
+  // Polls on the same cadence as the other SWR hooks in this app
+  // (useWalletBalance/useLiveViewerCount) so the feed self-refreshes as
+  // creators go live/offline without a manual reload.
+  const { data: liveStreamsData } = useSWR<LiveStreamApiRow[]>(
+    '/api/streams/live',
+    plainGetFetcher,
+    { refreshInterval: 20000, revalidateOnFocus: true, dedupingInterval: 5000 }
+  );
+  const realLiveStreams = useMemo(
+    () => (liveStreamsData || []).map(mapApiStreamToLiveStream),
+    [liveStreamsData]
+  );
+
+  // Local-only broadcasts started via GoLiveModal this session, shown
+  // immediately (optimistically) before the next /api/streams/live poll
+  // picks up the same stream for real - see handleStartBroadcast. Dropped
+  // once the real feed reports the same creator, to avoid a duplicate card.
+  const [manualBroadcasts, setManualBroadcasts] = useState<LiveStream[]>([]);
+
+  // The live feed is real-streams-first: any creator actually broadcasting
+  // (plus this session's own just-started broadcast) is shown before the
+  // still-mock catalog in mockData.ts. Mock entries stay in the feed rather
+  // than disappearing entirely - each is tagged `isDemo: true` and renders
+  // with a "Demo Content" badge (FeaturedStreamCard in LivePlayerView.tsx),
+  // the same convention GamesView/EsportsView/CommunityView/StoreView use
+  // for their placeholder catalogs - so during early rollout with zero (or
+  // few) real creators live, the feed doesn't collapse into an empty grid,
+  // but nothing masquerades as a real broadcast.
+  const liveStreams = useMemo<LiveStream[]>(() => {
+    const realCreatorUids = new Set(realLiveStreams.map((s) => s.streamer.id));
+    const pendingManualBroadcasts = manualBroadcasts.filter((s) => !realCreatorUids.has(s.streamer.id));
+    return [...pendingManualBroadcasts, ...realLiveStreams, ...MOCK_LIVE_STREAMS];
+  }, [manualBroadcasts, realLiveStreams]);
+
   const [tutorials, setTutorials] = useState<GamingTutorial[]>(MOCK_TUTORIALS);
   const [selectedStream, setSelectedStream] = useState<LiveStream>(MOCK_LIVE_STREAMS[0]);
   const [selectedTutorial, setSelectedTutorial] = useState<GamingTutorial>(MOCK_TUTORIALS[0]);
+
+  // Once the real feed has loaded at least one live creator, default the
+  // player to the first real stream instead of the initial mock fallback -
+  // but only the first time data arrives, so it never overrides a viewer's
+  // (or GoLiveModal's) own stream selection afterward.
+  const hasAutoSelectedRealStream = useRef(false);
+  useEffect(() => {
+    if (hasAutoSelectedRealStream.current) return;
+    if (realLiveStreams.length > 0) {
+      setSelectedStream(realLiveStreams[0]);
+      hasAutoSelectedRealStream.current = true;
+    }
+  }, [realLiveStreams]);
 
   // Modals state
   const [isGoLiveOpen, setIsGoLiveOpen] = useState(false);
@@ -196,11 +325,6 @@ export function App() {
 
         if (paymentStatus === 'success') {
           setPaymentNotice({ status: 'success', orderId, amount, currency });
-          confetti({
-            particleCount: 100,
-            spread: 80,
-            origin: { y: 0.6 },
-          });
         } else if (paymentStatus === 'pending') {
           setPaymentNotice({ status: 'pending', orderId, amount, currency });
         } else if (paymentStatus === 'error' || paymentStatus === 'failed' || paymentStatus === 'cancelled') {
@@ -213,40 +337,37 @@ export function App() {
   }, []);
 
 
-  // Listen to Firebase Auth state
+  // Returning authenticated user on root URL `/` -> auto-bypass landing page
+  // and go to live feed. (Firebase auth state itself is now owned by
+  // AuthProvider/useAuth — this effect just reacts to it.)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) {
-        try {
-          const profile = await getUserProfile(user.uid);
-          setUserProfile(profile);
-        } catch (err) {
-          console.error('Error loading user profile:', err);
-        }
+    if (!authChecked || !currentUser) return;
+    const path = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
+    const hash = window.location.hash.toLowerCase().replace(/^#/, '');
+    if (path === '/' || path === '' || hash === '') {
+      setActiveTab((prev) => (prev === 'landing' ? 'live' : prev));
+    }
+  }, [currentUser, authChecked]);
 
-        // Returning authenticated user on root URL `/` -> auto-bypass landing page and go to live feed
-        const path = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
-        const hash = window.location.hash.toLowerCase().replace(/^#/, '');
-        if ((path === '/' || path === '' || hash === '') && activeTab === 'landing') {
-          setActiveTab('live');
-        }
-      } else {
-        setUserProfile(null);
-        // If guest on root URL, ensure landing page is shown
-        const path = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
-        if (path === '/' && activeTab === 'landing') {
-          setActiveTab('landing');
-        }
-      }
-      setAuthChecked(true);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  // Route guard: guests may never render a protected tab. Catches direct URL
+  // entry / page reloads where getInitialTabFromUrl() resolves straight to a
+  // protected tab before authChecked has flipped true.
+  useEffect(() => {
+    if (authChecked && !currentUser && PROTECTED_TABS.has(activeTab)) {
+      setIsAuthModalOpen(true);
+    }
+  }, [activeTab, authChecked, currentUser]);
 
   // Sync URL history state when tab changes
   const handleNavigateTab = (tab: AppTab) => {
+    // Guests never even flash a protected view on click — open the auth
+    // modal in place instead of navigating.
+    if (PROTECTED_TABS.has(tab) && !currentUser) {
+      setAuthModalMode('login');
+      setIsAuthModalOpen(true);
+      return;
+    }
+
     setActiveTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -302,9 +423,10 @@ export function App() {
       uptime: '00:00:15',
       tags: ['Live', streamData.game, 'Mobile Money'],
       description: 'Live broadcast active. Tips via MTN MoMo and M-Pesa enabled.',
+      isDemo: false,
     };
 
-    setLiveStreams([newBroadcast, ...liveStreams]);
+    setManualBroadcasts((prev) => [newBroadcast, ...prev]);
     setSelectedStream(newBroadcast);
     handleNavigateTab('live');
   };
@@ -316,10 +438,7 @@ export function App() {
   };
 
   const handleSubscriptionSuccess = (plan: SubscriptionPlan) => {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-    });
+    // Subscription success is surfaced via the payment notice banner.
   };
 
   const openAuthLogin = () => {
@@ -359,7 +478,6 @@ export function App() {
 
   return (
     <>
-      <SplashScreen />
       <Suspense fallback={<div className="min-h-screen bg-[#0b0e14]" />}>
       <div className="min-h-screen bg-[#0b0e14] text-slate-200 flex flex-col font-sans selection:bg-[#38bdf8] selection:text-[#0b0e14] steam-grid-bg">
 
@@ -486,7 +604,13 @@ export function App() {
                         : 'bg-red-500/20 text-red-400'
                     }`}
                   >
-                    {paymentNotice.status === 'success' ? '✓' : paymentNotice.status === 'pending' ? '⏳' : '✕'}
+                    {paymentNotice.status === 'success' ? (
+                      <CheckCircle2 className="w-5 h-5" />
+                    ) : paymentNotice.status === 'pending' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <XCircle className="w-5 h-5" />
+                    )}
                   </div>
                   <div>
                     <h4 className="font-black text-sm text-white flex items-center gap-2">
@@ -595,7 +719,7 @@ export function App() {
                 />
               )}
 
-              {activeTab === 'creator' && (
+              {activeTab === 'creator' && currentUser && (
                 <CreatorStudioView
                   stats={MOCK_CREATOR_DASHBOARD}
                   currentCurrency={currentCurrency}
@@ -611,7 +735,7 @@ export function App() {
                 />
               )}
 
-              {activeTab === 'settings' && (
+              {activeTab === 'settings' && currentUser && (
                 <SettingsView
                   currentCurrency={currentCurrency}
                   setCurrentCurrency={setCurrentCurrency}
@@ -623,7 +747,11 @@ export function App() {
                 />
               )}
 
-              {activeTab === 'payments' && (
+              {activeTab === 'onboarding' && currentUser && (
+                <OnboardingWizard onComplete={() => handleNavigateTab('live')} />
+              )}
+
+              {activeTab === 'payments' && currentUser && (
                 <PaymentHistory
                   currentCurrency={currentCurrency}
                   userId={currentUser?.uid}
@@ -660,10 +788,17 @@ export function App() {
             isOpen
             initialMode={authModalMode}
             onClose={() => setIsAuthModalOpen(false)}
-            onAuthSuccess={(profile) => {
-              setUserProfile(profile);
+            onAuthSuccess={(_profile, isNewUser) => {
+              // AuthProvider's onAuthStateChanged subscription already picks
+              // up the freshly signed-in user and (re)fetches its profile;
+              // refreshProfile() here just avoids waiting on that async race.
+              refreshProfile();
               setIsAuthModalOpen(false);
-              if (activeTab === 'landing') {
+              if (isNewUser) {
+                // Brand-new signups (first-ever sign-in) go through the
+                // onboarding wizard before landing on the live dashboard.
+                handleNavigateTab('onboarding');
+              } else if (activeTab === 'landing') {
                 handleNavigateTab('live');
               }
             }}

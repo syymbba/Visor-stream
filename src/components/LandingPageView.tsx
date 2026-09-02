@@ -42,7 +42,6 @@ import {
   TrendingUp,
   Info
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { useLanguage } from '../lib/i18n';
 
 interface LandingPageViewProps {
@@ -88,11 +87,6 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
     if (!hasLikedHero) {
       setHeroLikes(prev => prev + 1);
       setHasLikedHero(true);
-      confetti({
-        particleCount: 30,
-        spread: 50,
-        origin: { y: 0.7 }
-      });
     }
   };
 
@@ -341,8 +335,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         <Gift className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <div className="text-[11px] font-black uppercase font-mono-code">
-                          ★ SUPER TIP: 25,000 UGX (MTN MoMo)
+                        <div className="text-[11px] font-black uppercase font-mono-code flex items-center gap-1">
+                          <Star className="w-3 h-3 fill-current" /> SUPER TIP: 25,000 UGX (MTN MoMo)
                         </div>
                         <div className="text-[10px] font-bold text-slate-900">
                           Kampala_Gamer: "Insane clutch on Site B! 🔥🔥"

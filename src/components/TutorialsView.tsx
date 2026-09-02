@@ -21,9 +21,10 @@ import {
   Sparkles,
   PlusCircle,
   X,
-  Share2
+  Share2,
+  Check,
+  Lightbulb
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 
 interface TutorialsViewProps {
   tutorials: GamingTutorial[];
@@ -70,7 +71,6 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
       setBookmarkedIds(bookmarkedIds.filter(b => b !== id));
     } else {
       setBookmarkedIds([...bookmarkedIds, id]);
-      confetti({ particleCount: 20, spread: 40 });
     }
   };
 
@@ -125,7 +125,6 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
     }
     setActiveTutorial(created);
     setUploadModalOpen(false);
-    confetti({ particleCount: 70, spread: 60 });
   };
 
   const handleMuxVideoUpload = async (file: File) => {
@@ -287,7 +286,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
                 <ul className="space-y-1.5 text-xs text-slate-300">
                   {activeTutorial.keyTakeaways.map((item, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <span className="text-sky-400 font-bold">✓</span>
+                      <Check className="w-3.5 h-3.5 text-sky-400 font-bold shrink-0 mt-0.5" />
                       <span>{item}</span>
                     </li>
                   ))}
@@ -303,7 +302,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
                 <ul className="space-y-1.5 text-xs text-slate-300">
                   {activeTutorial.recommendedLoadout.map((item, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <span className="text-amber-400 font-bold">★</span>
+                      <Star className="w-3.5 h-3.5 text-amber-400 font-bold shrink-0 mt-0.5 fill-current" />
                       <span>{item}</span>
                     </li>
                   ))}
@@ -489,7 +488,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
                 onClick={() => setUploadModalOpen(false)}
                 className="text-slate-400 hover:text-white p-1"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -579,7 +578,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
               </div>
 
               <div className="p-3 bg-[#0d141f] rounded-lg border border-white/[0.04] text-[11px] text-slate-400 space-y-1">
-                <span className="text-[#00B4D8] font-bold">💡 Creator Tip:</span>
+                <span className="text-[#00B4D8] font-bold inline-flex items-center gap-1"><Lightbulb className="w-3.5 h-3.5" /> Creator Tip:</span>
                 <p>Tutorials on Visor earn 70% share from subscription views and are eligible for monthly Visor Creator Grants.</p>
               </div>
 

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import confetti from 'canvas-confetti';
 import { useLanguage } from '../lib/i18n';
 import {
   Flame,
@@ -63,7 +62,6 @@ export const HypeTrainWidget: React.FC<HypeTrainWidgetProps> = ({
       const next = prev + 18;
       if (next >= 100) {
         setLevel((l) => Math.min(5, l + 1));
-        confetti({ particleCount: 70, spread: 80 });
         return next - 100;
       }
       return next;

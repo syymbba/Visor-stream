@@ -20,7 +20,6 @@ import {
   Share2,
   X
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { useLanguage } from '../lib/i18n';
 
 interface LibraryViewProps {
@@ -72,7 +71,6 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         isOfflineAvailable: true,
       }
     ]);
-    confetti({ particleCount: 35, spread: 60 });
     showToast(`"${item.title.substring(0, 30)}..." cached for offline play!`);
   };
 

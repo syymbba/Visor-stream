@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Currency } from '../types';
 import { CURRENCY_RATES } from '../data/mockData';
 import { getAuthHeaders } from '../firebase';
-import confetti from 'canvas-confetti';
 import { useLanguage } from '../lib/i18n';
 import {
   Smartphone,
@@ -121,7 +120,7 @@ export const CreatorPayoutModal: React.FC<CreatorPayoutModalProps> = ({
           feeUSD,
           netPayoutUSD,
           twoFactorToken: twoFactorToken || undefined,
-          notes: provider === 'Bank Transfer' ? `${bankDetails.bankName} - ${bankDetails.swiftCode}` : 'Instant Mobile Money Disbursal'
+          notes: provider === 'Bank Transfer' ? `${bankDetails.bankName} - ${bankDetails.swiftCode}` : 'Mobile Money payout requested — pending manual processing'
         }),
       });
 
@@ -132,7 +131,6 @@ export const CreatorPayoutModal: React.FC<CreatorPayoutModalProps> = ({
       }
 
       setCompletedReceipt(data.payout);
-      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
       if (onPayoutSuccess) {
         onPayoutSuccess(data.payout);
       }
@@ -162,7 +160,7 @@ Gross Amount: $${completedReceipt.amountUsd} (${completedReceipt.currency} ${par
 Processing Fee (1.5%): $${completedReceipt.feeUsd}
 Net Disbursed: $${completedReceipt.netPayoutUsd} (${completedReceipt.currency} ${Math.round(parseFloat(completedReceipt.netPayoutUsd) * rate).toLocaleString()})
 
-Status: COMPLETED (Dispatched via Instant Switch)
+Status: ${completedReceipt.status || 'PENDING'} (Funds reserved; disbursed manually by the Visor team)
 ========================================
     Powered by Visor Stream Direct Ingest
 ========================================
@@ -198,11 +196,11 @@ Status: COMPLETED (Dispatched via Instant Switch)
 
             <div className="space-y-1">
               <span className="px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-mono-code font-bold uppercase tracking-wider">
-                Payout Dispatched Instantly
+                Payout Request Reserved
               </span>
               <h2 className="text-2xl font-black text-white">{t('payout.success.title')}</h2>
               <p className="text-xs text-slate-400">
-                Funds transferred via <strong className="text-slate-200">{completedReceipt.provider}</strong> to <strong className="text-slate-200">{completedReceipt.phone}</strong>.
+                Funds reserved for payout via <strong className="text-slate-200">{completedReceipt.provider}</strong> to <strong className="text-slate-200">{completedReceipt.phone}</strong>. Disbursement is processed manually by the Visor team.
               </p>
             </div>
 
@@ -229,7 +227,7 @@ Status: COMPLETED (Dispatched via Instant Switch)
               <div className="flex justify-between text-slate-400 pt-2 border-t border-slate-800">
                 <span>Status:</span>
                 <span className="text-emerald-400 flex items-center gap-1 font-bold">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> COMPLETED
+                  <CheckCircle2 className="w-3.5 h-3.5" /> {completedReceipt.status || 'PENDING'}
                 </span>
               </div>
             </div>
@@ -256,11 +254,11 @@ Status: COMPLETED (Dispatched via Instant Switch)
             <div className="space-y-1">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-purple-500/10 text-purple-300 text-xs font-mono-code font-bold uppercase tracking-wider">
                 <Smartphone className="w-3.5 h-3.5 text-purple-400" />
-                <span>Instant Mobile Money & Cashout Gateway</span>
+                <span>Mobile Money & Bank Cashout</span>
               </div>
               <h2 className="text-2xl font-black text-white tracking-tight">{t('payout.form.title')}</h2>
               <p className="text-xs text-slate-400">
-                Disburse your live stream super tips and subscriptions directly to Mobile Money or your bank.
+                Request a withdrawal of your live stream super tips and subscriptions to Mobile Money or your bank. Funds are reserved immediately; disbursement is processed manually by the Visor team.
               </p>
             </div>
 
@@ -451,12 +449,12 @@ Status: COMPLETED (Dispatched via Instant Switch)
               {loading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Transmitting to {provider}...</span>
+                  <span>Submitting request to {provider}...</span>
                 </div>
               ) : (
                 <>
                   <Zap className="w-4 h-4 text-amber-300" />
-                  <span>Confirm Instant Payout (${netPayoutUSD.toFixed(2)})</span>
+                  <span>Confirm Payout Request (${netPayoutUSD.toFixed(2)})</span>
                 </>
               )}
             </button>
