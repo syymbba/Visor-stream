@@ -511,8 +511,8 @@ async function startServer() {
   });
 
   // Real live-feed data source: every creator currently broadcasting,
-  // joined with users for display info. Not yet wired into the frontend -
-  // that's a later phase.
+  // joined with users for display info. Consumed by App.tsx's liveStreams
+  // useSWR, merged with placeholder demo streams and badged accordingly.
   app.get("/api/streams/live", async (_req, res) => {
     try {
       const rows = await db
