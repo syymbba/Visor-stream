@@ -9,7 +9,7 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "db:push": "drizzle-kit push --config=src/db/drizzle.config.ts",
+    "db:push": "drizzle-kit push --config=src/db/drizzle.config.ts && tsx scripts/restore-rls-policies.ts",
     "lint": "tsc --noEmit",
     "grant-admin": "tsx scripts/set-admin-claim.ts",
     "test:e2e": "playwright test",

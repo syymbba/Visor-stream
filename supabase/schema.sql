@@ -160,6 +160,7 @@ create table if not exists public.mux_live_streams (
   status text not null default 'idle',
   title text,
   game text,
+  latency_mode text default 'standard', -- 'low' | 'reduced' | 'standard'
   last_live_at timestamp,
   created_at timestamp default now(),
   updated_at timestamp default now()
