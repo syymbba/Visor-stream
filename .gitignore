@@ -9,3 +9,4 @@ coverage/
 supabase/.temp/
 test-results/
 playwright-report/
+.vercel
