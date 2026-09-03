@@ -301,10 +301,17 @@ export const CreatorStudioView: React.FC<CreatorStudioViewProps> = ({
             </button>
           )}
 
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono-code font-bold">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-            <span>BROADCASTING LIVE</span>
-          </div>
+          {myStream.stream?.status === 'active' ? (
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono-code font-bold">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+              <span>BROADCASTING LIVE</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 text-xs font-mono-code font-bold">
+              <span className="w-2 h-2 rounded-full bg-slate-500"></span>
+              <span>IDLE</span>
+            </div>
+          )}
 
           <button
             onClick={() => setCashoutModalOpen(true)}

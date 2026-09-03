@@ -29,8 +29,6 @@ export interface UserProfile {
   blockedUsers?: string[];
   streamKey?: string;
   rtmpServer?: string;
-  bitrateCapKbps?: number;
-  lowLatencyMode?: boolean;
   userLevel?: number;
   userXp?: number;
   chatFlair?: string;
@@ -57,8 +55,6 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
   blockedUsers: ['toxic_troll99', 'spambot_ke'],
   streamKey: '',
   rtmpServer: 'rtmp://nbo-ingest.visorstream.com/live',
-  bitrateCapKbps: 6500,
-  lowLatencyMode: true,
   userLevel: 24,
   userXp: 4850,
   chatFlair: '🔥 PRO CLUTCH',
@@ -71,10 +67,15 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
  * UserProfile: they represent real money / paid-tier entitlements and are only
  * ever set by the trusted backend. `twoFactorEnabled` is also excluded because
  * it is now backend-authoritative (see /api/auth/2fa/*) rather than a client
- * boolean, so it must never be written from the browser. `streamKey`,
- * `rtmpServer`, `bitrateCapKbps`, and `lowLatencyMode` are stream ingest
- * credentials and server-side configuration; they must not be browser-writable.
- * `userLevel` and `userXp` gate creator rank/unlocks and are backend-authoritative.
+ * boolean, so it must never be written from the browser. `streamKey` and
+ * `rtmpServer` are legacy stream ingest fields superseded by the real Mux
+ * `mux_live_streams` row (see GET/PATCH /api/streams/me); they stay out of
+ * this list. The Adaptive Bitrate Cap control was removed entirely (Mux's
+ * API has no way to cap a creator's outgoing OBS bitrate) and Ultra
+ * Low-Latency Mode now maps to Mux's real per-stream `latencyMode`
+ * (fetched/updated via useMyStream()), so neither lives on this profile
+ * object anymore. `userLevel` and `userXp` gate creator rank/unlocks and are
+ * backend-authoritative.
  */
 const CLIENT_WRITABLE_PROFILE_FIELDS: readonly (keyof UserProfile)[] = [
   'uid', 'displayName', 'email', 'photoURL', 'bio', 'networkProvider',

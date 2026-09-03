@@ -157,6 +157,11 @@ export const streams = pgTable('mux_live_streams', {
   status: text('status').notNull().default('idle'), // 'idle' | 'active' | 'disabled'
   title: text('title'),
   game: text('game'),
+  // Real, Mux-backed per-live-stream latency setting (LiveStreamUpdateParams
+  // `latency_mode`), applied via mux.video.liveStreams.update() in PATCH
+  // /api/streams/me. Unlike a client-side OBS bitrate cap, this genuinely
+  // changes stream playback behavior on Mux's side.
+  latencyMode: text('latency_mode').default('standard'), // 'low' | 'reduced' | 'standard'
   lastLiveAt: timestamp('last_live_at'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),

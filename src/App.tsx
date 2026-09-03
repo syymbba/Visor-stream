@@ -195,6 +195,7 @@ function AppShell() {
     if (path === '/creator' || hash === 'creator') return 'creator';
     if (path === '/pricing' || hash === 'pricing') return 'pricing';
     if (path === '/settings' || hash === 'settings') return 'settings';
+    if (path === '/onboarding' || hash === 'onboarding') return 'onboarding';
     if (path === '/landing' || hash === 'landing') return 'landing';
 
     // Default root path: start as landing until auth state verifies
@@ -218,6 +219,17 @@ function AppShell() {
   useEffect(() => {
     setUserBalanceUSD(wallet.balanceUSD);
   }, [wallet.balanceUSD]);
+
+  // Re-hydrate showBalanceInHeader from the fetched Firestore profile
+  // whenever it loads/changes, so the toggle persisted by SettingsView
+  // (saveUserProfile -> CLIENT_WRITABLE_PROFILE_FIELDS) actually sticks
+  // across reloads/sessions instead of always starting from the
+  // hardcoded default above.
+  useEffect(() => {
+    if (userProfile && typeof userProfile.showBalanceInHeader === 'boolean') {
+      setShowBalanceInHeader(userProfile.showBalanceInHeader);
+    }
+  }, [userProfile]);
 
   // Real live-feed data, fetched from the public GET /api/streams/live
   // endpoint (no auth header needed - plainGetFetcher, not authedGetFetcher).
@@ -264,8 +276,15 @@ function AppShell() {
   // but only the first time data arrives, so it never overrides a viewer's
   // (or GoLiveModal's) own stream selection afterward.
   const hasAutoSelectedRealStream = useRef(false);
+  // Set once a creator manually starts their own broadcast this session
+  // (handleStartBroadcast below) - prevents the auto-select effect from
+  // yanking them away to some other creator's stream the first time the
+  // real feed populates, which would otherwise fire because that effect
+  // hadn't run yet (e.g. the creator started broadcasting before any real
+  // stream had ever loaded).
+  const hasManuallyStartedBroadcast = useRef(false);
   useEffect(() => {
-    if (hasAutoSelectedRealStream.current) return;
+    if (hasAutoSelectedRealStream.current || hasManuallyStartedBroadcast.current) return;
     if (realLiveStreams.length > 0) {
       setSelectedStream(realLiveStreams[0]);
       hasAutoSelectedRealStream.current = true;
@@ -394,7 +413,25 @@ function AppShell() {
   }, []);
 
   // Handle stream broadcast launch
-  const handleStartBroadcast = (streamData: { title: string; game: string; resolution: string }) => {
+  const handleStartBroadcast = (streamData: {
+    title: string;
+    game: string;
+    resolution: string;
+    muxPlaybackId: string | null;
+    muxLiveStreamId: string;
+  }) => {
+    // Build the REAL HLS playback URL from the creator's own Mux live
+    // stream (fetched by GoLiveModal via useMyStream/GET /api/streams/me),
+    // instead of the old hardcoded Big Buck Bunny sample clip that used to
+    // masquerade as the creator's real broadcast for ~20s until the next
+    // /api/streams/live poll replaced it. Mux can still be finishing
+    // playback provisioning right as the RTMP push goes live, so
+    // muxPlaybackId may briefly be null - fall back to an empty preview
+    // URL/neutral thumbnail (never fake content) until the next poll of
+    // /api/streams/live picks up the fully-ready real stream.
+    const playbackUrl = getMuxPlaybackUrl(streamData.muxPlaybackId);
+    const posterUrl = getMuxPosterUrl(streamData.muxPlaybackId);
+
     const newBroadcast: LiveStream = {
       id: 'stream_user_' + Date.now(),
       title: streamData.title,
@@ -414,18 +451,23 @@ function AppShell() {
         mobileMoneySupported: true,
       },
       viewersCount: 1,
-      thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80',
-      videoPreviewUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      thumbnail: posterUrl || DEFAULT_STREAM_THUMBNAIL,
+      videoPreviewUrl: playbackUrl || '',
       isLive: true,
       resolution: (streamData.resolution as any) || '1080p60',
       bitrate: '6000 Kbps',
       fps: 60,
       uptime: '00:00:15',
       tags: ['Live', streamData.game, 'Mobile Money'],
-      description: 'Live broadcast active. Tips via MTN MoMo and M-Pesa enabled.',
+      description: playbackUrl
+        ? 'Live broadcast active. Tips via MTN MoMo and M-Pesa enabled.'
+        : 'Your broadcast is starting - video will appear as soon as Mux finishes processing your stream.',
+      // This is always real (Mux-backed) content, never demo/placeholder -
+      // even while playbackUrl is momentarily empty above.
       isDemo: false,
     };
 
+    hasManuallyStartedBroadcast.current = true;
     setManualBroadcasts((prev) => [newBroadcast, ...prev]);
     setSelectedStream(newBroadcast);
     handleNavigateTab('live');

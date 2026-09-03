@@ -188,6 +188,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
   // Tipping Modal State
   const [tipModalOpen, setTipModalOpen] = useState(false);
   const [activeTipAlert, setActiveTipAlert] = useState<{ sender: string; amount: string; msg: string } | null>(null);
+  const [tipConfirmationCount, setTipConfirmationCount] = useState(0);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -298,6 +299,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
       amount: tipDetails.amount,
       msg: tipDetails.message
     });
+    setTipConfirmationCount(prev => prev + 1);
 
     setTimeout(() => {
       setActiveTipAlert(null);
@@ -625,6 +627,7 @@ export const LivePlayerView: React.FC<LivePlayerViewProps> = ({
               streamId={currentStream.id}
               onOpenTip={() => setTipModalOpen(true)}
               onOpenSubscribe={() => onOpenSubscribe(currentStream.streamer.name)}
+              tipConfirmationCount={tipConfirmationCount}
             />
           </div>
 

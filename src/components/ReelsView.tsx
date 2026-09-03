@@ -46,6 +46,7 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
     { id: 'c_3', user: 'ApexPredator_99', text: 'Visor Stream esports is unmatched! 🔥🎮', time: '1h ago' }
   ]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [followedCreators, setFollowedCreators] = useState<Set<string>>(new Set());
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const currentClip = reels[currentIndex] || reels[0];
@@ -121,6 +122,23 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
       }
       return item;
     }));
+  };
+
+  const handleToggleFollow = () => {
+    const creatorId = currentClip.creator.id;
+    setFollowedCreators(prev => {
+      const next = new Set(prev);
+      const isNowFollowing = !next.has(creatorId);
+      if (isNowFollowing) {
+        next.add(creatorId);
+        setToastMessage(`Subscribed to ${currentClip.creator.name}!`);
+      } else {
+        next.delete(creatorId);
+        setToastMessage(`Unfollowed ${currentClip.creator.name}`);
+      }
+      setTimeout(() => setToastMessage(null), 3000);
+      return next;
+    });
   };
 
   const handleShare = () => {
@@ -291,14 +309,15 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
                 </div>
                 <span className="text-xs font-mono-code text-slate-400">{currentClip.creator.handle}</span>
               </div>
-              <button 
-                onClick={() => {
-                  setToastMessage(`Subscribed to ${currentClip.creator.name}!`);
-                  setTimeout(() => setToastMessage(null), 3000);
-                }}
-                className="ml-auto px-3 py-1 rounded-lg bg-[#38bdf8] text-[#0b0e14] text-xs font-bold uppercase tracking-wider hover:bg-[#66c0f4] transition-all shadow-md"
+              <button
+                onClick={handleToggleFollow}
+                className={`ml-auto px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-md ${
+                  followedCreators.has(currentClip.creator.id)
+                    ? 'bg-[#171a21] text-slate-200 border border-[#38bdf8]/60 hover:border-[#38bdf8]'
+                    : 'bg-[#38bdf8] text-[#0b0e14] hover:bg-[#66c0f4]'
+                }`}
               >
-                {t('reels.follow_button')}
+                {followedCreators.has(currentClip.creator.id) ? t('player.following_button') : t('reels.follow_button')}
               </button>
             </div>
 

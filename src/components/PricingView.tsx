@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { SubscriptionPlan, Currency } from '../types';
 import { SUBSCRIPTION_PLANS, CURRENCY_RATES } from '../data/mockData';
 import { useLanguage } from '../lib/i18n';
@@ -28,7 +28,6 @@ export const PricingView: React.FC<PricingViewProps> = ({
   onSubscribePlan,
 }) => {
   const { t } = useLanguage();
-  const [selectedBilling, setSelectedBilling] = useState<'monthly' | 'yearly'>('monthly');
 
   const rate = CURRENCY_RATES[currentCurrency].rate;
   const symbol = CURRENCY_RATES[currentCurrency].symbol;

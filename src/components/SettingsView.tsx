@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { REGIONAL_SERVER_NODES, PLATFORM_FAQS, MOCK_CONNECTED_ACCOUNTS, MOCK_USER_BADGES, MOCK_ACHIEVEMENTS, CURRENCY_RATES } from '../data/mockData';
-import { Currency, ConnectedThirdPartyAccount, UserBadge, Achievement } from '../types';
+import { Currency, UserBadge, Achievement } from '../types';
 import { ToggleSwitch } from './ToggleSwitch';
 import { AccountDeletionPanel } from './AccountDeletionPanel';
 import { LinkedAccountsPanel } from './LinkedAccountsPanel';
@@ -90,7 +90,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   // Mobile Drilldown state: when on small screens and a category is chosen
   const [mobileDrilldownOpen, setMobileDrilldownOpen] = useState(false);
 
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   // Real Mux live stream (RTMP URL + secret stream key + status), backed by
   // GET /api/streams/me - shared with CreatorStudioView and GoLiveModal via
   // the same useMyStream() hook, replacing the Firestore-seeded mock fields
@@ -131,21 +131,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   // Streaming & Ingest Fields. streamKey/rtmpServer are no longer
   // Firestore-seeded mock fields - they're rendered straight from
-  // myStream.stream (GET /api/streams/me) below. bitrateCap/lowLatency
-  // remain client-side OBS preferences, unrelated to the real Mux key.
+  // myStream.stream (GET /api/streams/me) below. Ultra Low-Latency Mode is
+  // now also read/written straight from myStream.stream.latencyMode (a real
+  // Mux per-live-stream setting) rather than a client-only profile boolean -
+  // see handleToggleLowLatency below. The old Adaptive Bitrate Cap control
+  // was removed entirely: Mux's API has no way to cap a creator's outgoing
+  // OBS bitrate, so there was nothing real to wire it to.
   const [showStreamKey, setShowStreamKey] = useState(false);
-  const [bitrateCap, setBitrateCap] = useState(DEFAULT_USER_PROFILE.bitrateCapKbps || 6500);
-  const [lowLatency, setLowLatency] = useState(DEFAULT_USER_PROFILE.lowLatencyMode ?? true);
+  const [isSavingLatency, setIsSavingLatency] = useState(false);
   const [copiedStreamKey, setCopiedStreamKey] = useState(false);
   const [copiedRtmp, setCopiedRtmp] = useState(false);
 
   // Payment methods: cards are collected only on Pesapal's hosted checkout.
   // Never capture PAN/CVV in this SPA.
 
-  const [connectedAccounts, setConnectedAccounts] = useState<ConnectedThirdPartyAccount[]>(MOCK_CONNECTED_ACCOUNTS);
   const [userBadges] = useState<UserBadge[]>(MOCK_USER_BADGES);
   const [achievements] = useState<Achievement[]>(MOCK_ACHIEVEMENTS);
-  const [selectedServer, setSelectedServer] = useState(REGIONAL_SERVER_NODES[0].id);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -175,8 +176,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           setProfileVisibility(fetched.privacyProfileVisibility || 'public');
           setDirectMessages(fetched.privacyDirectMessages || 'everyone');
           setBlockedUsers(fetched.blockedUsers || ['toxic_troll99', 'spambot_ke']);
-          setBitrateCap(fetched.bitrateCapKbps || 6500);
-          setLowLatency(fetched.lowLatencyMode ?? true);
         } else {
           setUsername(user.displayName || user.email?.split('@')[0] || 'VisorGamer');
           setEmail(user.email || '');
@@ -317,8 +316,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     reader.readAsDataURL(file);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Optional event param: called from the Account tab's <form onSubmit>
+  // (which passes a real FormEvent) as well as from a plain onClick Save
+  // button on the Payments and Privacy tabs (called with no event at all),
+  // so every tab with persistable fields shares this one save path instead
+  // of duplicating the save logic per tab.
+  const handleSave = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setIsLoading(true);
 
     const updated: UserProfile = {
@@ -335,8 +339,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       privacyProfileVisibility: profileVisibility,
       privacyDirectMessages: directMessages,
       blockedUsers,
-      bitrateCapKbps: bitrateCap,
-      lowLatencyMode: lowLatency,
       showBalanceInHeader
     };
 
@@ -384,19 +386,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     showToast(`${type === 'key' ? 'Stream Key' : 'RTMP URL'} copied to clipboard!`);
   };
 
-  const handleToggleAccountConnection = (id: string) => {
-    setConnectedAccounts(prev => prev.map(acc => {
-      if (acc.id === id) {
-        const nextConnected = !acc.connected;
-        showToast(`${acc.name} ${nextConnected ? 'connected' : 'disconnected'}`);
-        return {
-          ...acc,
-          connected: nextConnected,
-          connectedAt: nextConnected ? 'Linked just now' : undefined
-        };
-      }
-      return acc;
-    }));
+  // Wires "Ultra Low-Latency Mode" to Mux's real per-live-stream
+  // `latency_mode` setting via PATCH /api/streams/me, instead of the old
+  // client-only profile boolean that was never actually saved (lowLatencyMode
+  // was excluded from CLIENT_WRITABLE_PROFILE_FIELDS). ON maps to Mux's
+  // `'low'` (LL-HLS) latency mode, OFF restores `'standard'`.
+  const handleToggleLowLatency = async (checked: boolean) => {
+    setIsSavingLatency(true);
+    try {
+      await myStream.updateMeta({ latencyMode: checked ? 'low' : 'standard' });
+      showToast(checked ? 'Ultra low-latency mode enabled for your stream.' : 'Standard latency mode restored.');
+    } catch (err: any) {
+      showToast(err?.message || 'Could not update latency mode. Please try again.');
+    } finally {
+      setIsSavingLatency(false);
+    }
   };
 
   const handleAddBlockedUser = (e: React.FormEvent) => {
@@ -432,8 +436,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         bio,
         balanceUSD: liveBalanceUSD || profile.balanceUSD || 0,
         currency: currentCurrency,
-        level: profile.userLevel || 24,
-        xp: profile.userXp || 4850,
+        level: gamificationLevel,
+        xp: gamificationXp,
         networkProvider,
         mobileNumber,
         profileVisibility,
@@ -456,14 +460,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     showToast('JSON Data archive downloaded!');
   };
 
+  // Real, backend-authoritative level/XP (see UserProfile.userLevel/userXp
+  // in src/services/userService.ts) rather than the hardcoded "24" /
+  // "4,850 / 5,000 XP" literals this tab used to render for every user.
+  // Mux/the backend have no per-level XP curve yet, so 5,000 XP-per-level is
+  // a display-only scaling constant (matches the original Steam-style design
+  // intent) used purely to draw the progress bar - not a fetched value.
+  const gamificationLevel = userProfile?.userLevel ?? DEFAULT_USER_PROFILE.userLevel ?? 1;
+  const gamificationXp = userProfile?.userXp ?? DEFAULT_USER_PROFILE.userXp ?? 0;
+  const gamificationXpPerLevel = 5000;
+  const gamificationXpIntoLevel = gamificationXp % gamificationXpPerLevel;
+  const gamificationProgressPct = Math.min(100, Math.round((gamificationXpIntoLevel / gamificationXpPerLevel) * 100));
+
   const tabs = [
     { id: 'account', label: 'Account & Profile', icon: User, desc: 'Profile photo, gamer tag, email & cloud sync' },
     { id: 'language', label: t('settings.lang_tab'), icon: Languages, desc: t('settings.lang_tab_desc') },
     { id: 'payments', label: 'Cards & Wallet', icon: CreditCard, desc: 'Visa/Mastercard, Mobile Money & Balance' },
-    { id: 'streaming', label: 'Streaming Ingest', icon: Video, desc: 'RTMP stream keys, OBS sync & Bitrate' },
+    { id: 'streaming', label: 'Streaming Ingest', icon: Video, desc: 'RTMP stream keys & low-latency mode' },
     { id: 'integrations', label: 'Connected Accounts', icon: Layers, desc: 'Discord, Steam, Twitch, Xbox, PlayStation' },
     { id: 'privacy', label: 'Privacy & 2FA', icon: Shield, desc: 'Visibility, blocked users, direct messages' },
-    { id: 'gamification', label: 'XP & Badges', icon: Award, desc: 'Steam Level 24, badges, achievements & flair' },
+    { id: 'gamification', label: 'XP & Badges', icon: Award, desc: `Level ${gamificationLevel}, badges, achievements & flair` },
     { id: 'technical', label: 'Edge Network', icon: Globe, desc: 'Nairobi & Kampala low-latency servers' },
     { id: 'support', label: 'Support & Legal', icon: HelpCircle, desc: 'Contact developer, Terms, Privacy Policy' },
   ];
@@ -850,13 +866,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </h3>
                   <p className="text-xs text-slate-400">Manage payment methods, display currency and balances</p>
                 </div>
-                <button
-                  onClick={onOpenSubscribe}
-                  className="px-3.5 py-2 rounded-xl bg-[#38bdf8] text-[#0b0e14] font-bold text-xs flex items-center gap-1.5 hover:bg-[#66c0f4]"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>Pay with Pesapal</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onOpenSubscribe}
+                    className="px-3.5 py-2 rounded-xl bg-[#38bdf8] text-[#0b0e14] font-bold text-xs flex items-center gap-1.5 hover:bg-[#66c0f4]"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    <span>Pay with Pesapal</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSave()}
+                    disabled={isLoading}
+                    className="px-4 py-2 rounded-xl bg-[#38bdf8] text-[#0b0e14] hover:bg-[#66c0f4] font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md active:scale-95 disabled:opacity-50 transition-all"
+                  >
+                    {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>{isLoading ? t('settings.saving') : t('settings.save')}</span>
+                  </button>
+                </div>
               </div>
 
               {/* Balance Widget & Header Toggle */}
@@ -1028,37 +1056,32 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               </div>
 
-              {/* Bitrate & Low-Latency Options */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 bg-[#0b0e14] rounded-2xl border border-[#2a475e] space-y-2">
-                  <label className="text-xs font-bold text-white uppercase font-mono-code">Adaptive Bitrate Cap</label>
-                  <select
-                    value={bitrateCap}
-                    onChange={(e) => setBitrateCap(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-[#171a21] border border-[#2a475e] rounded-xl text-xs text-white focus:outline-none focus:border-[#38bdf8]"
-                  >
-                    <option value={4000}>4,000 Kbps (720p60 Data Saver)</option>
-                    <option value={6500}>6,500 Kbps (1080p60 Recommended)</option>
-                    <option value={8000}>8,000 Kbps (1080p60 Pro High)</option>
-                    <option value={12000}>12,000 Kbps (4K UHD Uncapped)</option>
-                  </select>
+              {/* Ultra Low-Latency Mode - wired to Mux's real per-live-stream
+                  latency_mode via PATCH /api/streams/me (see
+                  handleToggleLowLatency). The old "Adaptive Bitrate Cap"
+                  control was removed: Mux's API has no way to cap a
+                  creator's outgoing OBS bitrate, so it had nothing real to
+                  connect to - that's an OBS-side setting only. */}
+              <div className="p-4 bg-[#0b0e14] rounded-2xl border border-[#2a475e] flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-white">Ultra Low-Latency Mode</h4>
+                  <p className="text-[11px] text-slate-400">Sub-second delay for live chat reactions (Mux LL-HLS)</p>
                 </div>
-
-                <div className="p-4 bg-[#0b0e14] rounded-2xl border border-[#2a475e] flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Ultra Low-Latency Mode</h4>
-                    <p className="text-[11px] text-slate-400">Sub-second delay for live chat reactions</p>
-                  </div>
-                  <ToggleSwitch
-                    checked={lowLatency}
-                    onChange={setLowLatency}
-                  />
-                </div>
+                <ToggleSwitch
+                  checked={myStream.stream?.latencyMode === 'low'}
+                  onChange={handleToggleLowLatency}
+                  disabled={!myStream.stream || myStream.isLoading || isSavingLatency}
+                />
               </div>
             </div>
           )}
 
-          {/* TAB 4: Third-Party Account Integrations */}
+          {/* TAB 4: Third-Party Account Integrations. No real OAuth flow
+              exists for any of these platforms yet (would need a registered
+              developer app + credentials per platform - PlayStation in
+              particular isn't realistically available to an indie project),
+              so every card is a non-interactive "Coming Soon" placeholder
+              rather than a Connect button that flips fake local state. */}
           {activeTab === 'integrations' && (
             <div className="space-y-6 animate-fadeIn">
               <div className="border-b border-[#2a475e] pb-4">
@@ -1066,15 +1089,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   Third-Party Gaming & Platform Connections
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Link your Discord, Steam, Twitch, Xbox, and PlayStation profiles for automatic status sync
+                  Discord, Steam, Twitch, Xbox, PlayStation and more are planned integrations - account linking isn&apos;t live yet, so nothing below is connected.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {connectedAccounts.map(account => (
+                {MOCK_CONNECTED_ACCOUNTS.map(account => (
                   <div
                     key={account.id}
-                    className="p-4 bg-[#0b0e14] border border-[#2a475e] rounded-2xl flex items-center justify-between gap-3 text-xs"
+                    className="p-4 bg-[#0b0e14] border border-[#2a475e] rounded-2xl flex items-center justify-between gap-3 text-xs opacity-75"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-[#171a21] border border-[#2a475e] flex items-center justify-center font-bold text-[#38bdf8] text-sm">
@@ -1083,23 +1106,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       <div>
                         <div className="font-bold text-white">{account.name}</div>
                         <div className="text-[11px] font-mono-code text-slate-400">{account.handle}</div>
-                        {account.connected && (
-                          <span className="text-[10px] text-emerald-400 font-mono-code font-bold">● Connected</span>
-                        )}
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleToggleAccountConnection(account.id)}
-                      className={`px-3 py-1.5 rounded-xl font-bold text-xs font-mono-code transition-all ${
-                        account.connected
-                          ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20'
-                          : 'bg-[#38bdf8] text-[#0b0e14] hover:bg-[#66c0f4]'
-                      }`}
-                    >
-                      {account.connected ? 'Disconnect' : 'Connect'}
-                    </button>
+                    <span className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[9px] font-mono-code font-bold uppercase tracking-wider">
+                      Coming Soon
+                    </span>
                   </div>
                 ))}
               </div>
@@ -1109,11 +1121,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           {/* TAB 5: Privacy & 2FA */}
           {activeTab === 'privacy' && (
             <div className="space-y-6 animate-fadeIn">
-              <div className="border-b border-[#2a475e] pb-4">
-                <h3 className="font-bold text-base sm:text-lg text-white">
-                  Privacy, Security & Two-Factor Authentication
-                </h3>
-                <p className="text-xs text-slate-400">Account visibility, direct messages, and blocked users</p>
+              <div className="flex items-center justify-between border-b border-[#2a475e] pb-4">
+                <div>
+                  <h3 className="font-bold text-base sm:text-lg text-white">
+                    Privacy, Security & Two-Factor Authentication
+                  </h3>
+                  <p className="text-xs text-slate-400">Account visibility, direct messages, and blocked users</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSave()}
+                  disabled={isLoading}
+                  className="px-4 py-2 rounded-xl bg-[#38bdf8] text-[#0b0e14] hover:bg-[#66c0f4] font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md active:scale-95 disabled:opacity-50 transition-all"
+                >
+                  {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  <span>{isLoading ? t('settings.saving') : t('settings.save')}</span>
+                </button>
               </div>
 
               <div className="space-y-4">
@@ -1328,16 +1351,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <p className="text-xs text-slate-400">Steam-style level progress, seasonal achievements and unlocked badges</p>
               </div>
 
-              {/* Steam-Style Level Card */}
+              {/* Steam-Style Level Card - level/XP now come from the real,
+                  backend-authoritative UserProfile.userLevel/userXp fields
+                  (via useAuth().userProfile) instead of hardcoded literals.
+                  RANK is still a hardcoded placeholder: there is no backend
+                  "rank" concept anywhere in this codebase to compute it
+                  from, so it's left as-is rather than fabricating a number. */}
               <div className="p-5 bg-gradient-to-r from-[#171a21] to-[#1b2838] border border-[#2a475e] rounded-2xl space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-[#38bdf8]/15 border-2 border-[#38bdf8] flex items-center justify-center font-black text-lg text-[#38bdf8] font-rajdhani">
-                      24
+                      {gamificationLevel}
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm text-white">Level 24 Master Streamer</h4>
-                      <span className="text-[11px] font-mono-code text-slate-400">4,850 / 5,000 XP (97% to Level 25)</span>
+                      <h4 className="font-bold text-sm text-white">Level {gamificationLevel} Master Streamer</h4>
+                      <span className="text-[11px] font-mono-code text-slate-400">
+                        {gamificationXpIntoLevel.toLocaleString()} / {gamificationXpPerLevel.toLocaleString()} XP ({gamificationProgressPct}% to Level {gamificationLevel + 1})
+                      </span>
                     </div>
                   </div>
                   <span className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-mono-code font-bold rounded">
@@ -1347,7 +1377,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
                 {/* Progress Bar */}
                 <div className="w-full h-2.5 bg-[#0b0e14] rounded-full overflow-hidden border border-[#2a475e]">
-                  <div className="h-full bg-[#38bdf8] rounded-full shadow-[0_0_10px_rgba(56,189,248,0.5)]" style={{ width: '97%' }} />
+                  <div className="h-full bg-[#38bdf8] rounded-full shadow-[0_0_10px_rgba(56,189,248,0.5)]" style={{ width: `${gamificationProgressPct}%` }} />
                 </div>
               </div>
 
@@ -1409,29 +1439,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           )}
 
-          {/* TAB 7: Regional Edge Nodes */}
+          {/* TAB 7: Regional Edge Nodes. Mux ingest is one fixed global
+              anycast RTMP endpoint (rtmps://global-live.mux.com/app) - there
+              is no real per-region routing to select, so these cards are now
+              read-only reference info (no onClick, no "routed to X" toast,
+              no selected/clickable affordance) rather than a fake region
+              picker. */}
           {activeTab === 'technical' && (
             <div className="space-y-6 animate-fadeIn">
               <div className="border-b border-[#2a475e] pb-4">
                 <h3 className="font-bold text-base sm:text-lg text-white">
-                  Regional Server Edge Infrastructure
+                  Global Edge Network
                 </h3>
-                <p className="text-xs text-slate-400">Direct fiber low-latency relays across global & regional edge networks</p>
+                <p className="text-xs text-slate-400">
+                  Visor Stream ingests over a single global endpoint - Mux automatically routes each viewer to their nearest edge, so there&apos;s no server to pick manually. Reference latency to nearby points of presence below.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {REGIONAL_SERVER_NODES.map(node => (
                   <div
                     key={node.id}
-                    onClick={() => {
-                      setSelectedServer(node.id);
-                      showToast(`Primary ingest routed to ${node.city}`);
-                    }}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                      selectedServer === node.id
-                        ? 'bg-[#0284c7]/10 border-[#0369a1]/40 text-sky-300 shadow-[0_0_12px_rgba(2,132,199,0.12)]'
-                        : 'bg-[#0b0e14] border-[#2a475e] text-slate-300 hover:bg-[#1b2838]'
-                    }`}
+                    className="p-4 rounded-2xl border bg-[#0b0e14] border-[#2a475e] text-slate-300"
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-sm text-white flex items-center gap-1.5">

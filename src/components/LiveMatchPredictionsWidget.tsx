@@ -32,6 +32,7 @@ export const LiveMatchPredictionsWidget: React.FC<LiveMatchPredictionsWidgetProp
   const [timeLeft, setTimeLeft] = useState(140); // seconds
   const [isResolved, setIsResolved] = useState(false);
   const [winningOption, setWinningOption] = useState<'A' | 'B' | null>(null);
+  const [isResolving, setIsResolving] = useState(false);
 
   // Prediction State
   const [prediction, setPrediction] = useState({
@@ -62,6 +63,23 @@ export const LiveMatchPredictionsWidget: React.FC<LiveMatchPredictionsWidgetProp
       });
     }, 1000);
     return () => clearInterval(timer);
+  }, [timeLeft, isResolved]);
+
+  // Once voting locks, move into a brief "Resolving..." window and then
+  // settle the prediction — this is what actually calls
+  // handleResolvePrediction, which otherwise never fires.
+  useEffect(() => {
+    if (timeLeft > 0 || isResolved) return;
+
+    setIsResolving(true);
+    const winner: 'A' | 'B' = Math.random() < 0.5 ? 'A' : 'B';
+    const resolveTimer = setTimeout(() => {
+      handleResolvePrediction(winner);
+      setIsResolving(false);
+    }, 4000);
+
+    return () => clearTimeout(resolveTimer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft, isResolved]);
 
   const handleVote = (choice: 'A' | 'B') => {
@@ -111,7 +129,13 @@ export const LiveMatchPredictionsWidget: React.FC<LiveMatchPredictionsWidgetProp
                 MATCH PREDICTION
               </span>
               <span className="px-1.5 py-0.2 rounded-md bg-purple-500/20 text-purple-300 font-mono-code font-bold text-[10px] border border-purple-500/40">
-                {timeLeft > 0 ? `Submissions Open (${formatTime(timeLeft)})` : 'Voting Locked'}
+                {timeLeft > 0
+                  ? `Submissions Open (${formatTime(timeLeft)})`
+                  : isResolved
+                  ? 'Resolved'
+                  : isResolving
+                  ? 'Resolving...'
+                  : 'Voting Locked'}
               </span>
             </div>
             <p className="text-[11px] text-slate-300 font-medium flex items-center gap-1.5">
@@ -202,7 +226,52 @@ export const LiveMatchPredictionsWidget: React.FC<LiveMatchPredictionsWidgetProp
                 </button>
               </div>
             </div>
-          ) : (
+          ) : hasVoted && isResolved ? (
+            <div
+              className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${
+                selectedOption === winningOption
+                  ? 'bg-emerald-500/15 border-emerald-500/30'
+                  : 'bg-rose-500/15 border-rose-500/30'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {selectedOption === winningOption ? (
+                  <Award className="w-4 h-4 text-emerald-400 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                )}
+                <span className="text-slate-300">
+                  <strong className="text-white">
+                    {winningOption === 'A' ? prediction.optionA : prediction.optionB}
+                  </strong>{' '}
+                  won —{' '}
+                  {selectedOption === winningOption ? (
+                    <strong className="text-emerald-400">you won!</strong>
+                  ) : (
+                    <strong className="text-rose-400">you lost this one</strong>
+                  )}
+                </span>
+              </div>
+              <span
+                className={`text-[11px] font-mono-code font-bold ${
+                  selectedOption === winningOption ? 'text-emerald-400' : 'text-rose-400'
+                }`}
+              >
+                {selectedOption === winningOption
+                  ? `+${Math.round(
+                      wagerAmount * parseFloat(winningOption === 'A' ? oddsA : oddsB)
+                    )} pts`
+                  : `-${wagerAmount} pts`}
+              </span>
+            </div>
+          ) : hasVoted && isResolving ? (
+            <div className="p-2.5 rounded-xl bg-slate-950 border border-purple-500/30 flex items-center gap-2 text-xs">
+              <Zap className="w-4 h-4 text-purple-400 shrink-0 animate-pulse" />
+              <span className="text-slate-300">
+                Voting locked — resolving the outcome, hang tight…
+              </span>
+            </div>
+          ) : hasVoted ? (
             <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -218,6 +287,11 @@ export const LiveMatchPredictionsWidget: React.FC<LiveMatchPredictionsWidgetProp
                 Potential Return:{' '}
                 {Math.round(wagerAmount * parseFloat(selectedOption === 'A' ? oddsA : oddsB))} pts
               </span>
+            </div>
+          ) : (
+            <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-2 text-xs">
+              <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="text-slate-400">Voting closed — you did not submit a prediction.</span>
             </div>
           )}
         </div>

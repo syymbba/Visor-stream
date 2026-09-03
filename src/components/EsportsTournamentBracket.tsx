@@ -12,12 +12,15 @@ import {
   Calendar,
   Sparkles,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  X,
+  Gamepad2
 } from 'lucide-react';
 
 export interface BracketMatch {
   id: string;
   round: 'Quarterfinals' | 'Semifinals' | 'Grand Finals';
+  game: 'Free Fire' | 'EA FC 24' | 'PUBG Mobile';
   team1: { name: string; tag: string; score?: number; logo?: string; winner?: boolean; seed: number };
   team2: { name: string; tag: string; score?: number; logo?: string; winner?: boolean; seed: number };
   status: 'LIVE' | 'COMPLETED' | 'UPCOMING';
@@ -37,6 +40,7 @@ export const EsportsTournamentBracket: React.FC = () => {
     {
       id: 'qf1',
       round: 'Quarterfinals',
+      game: 'Free Fire',
       team1: { name: 'Kampala Vipers Esports', tag: 'KVE', score: 2, seed: 1, winner: true },
       team2: { name: 'Nairobi Apex Hunters', tag: 'NAH', score: 1, seed: 8 },
       status: 'COMPLETED',
@@ -46,6 +50,7 @@ export const EsportsTournamentBracket: React.FC = () => {
     {
       id: 'qf2',
       round: 'Quarterfinals',
+      game: 'Free Fire',
       team1: { name: 'Dar es Salaam Titans', tag: 'DST', score: 2, seed: 4, winner: true },
       team2: { name: 'Kigali Cyber Warriors', tag: 'KCW', score: 0, seed: 5 },
       status: 'COMPLETED',
@@ -55,6 +60,7 @@ export const EsportsTournamentBracket: React.FC = () => {
     {
       id: 'qf3',
       round: 'Quarterfinals',
+      game: 'Free Fire',
       team1: { name: 'Entebbe SkyHawks', tag: 'ESH', score: 1, seed: 3 },
       team2: { name: 'Mombasa Coastal Kings', tag: 'MCK', score: 2, seed: 6, winner: true },
       status: 'COMPLETED',
@@ -64,6 +70,7 @@ export const EsportsTournamentBracket: React.FC = () => {
     {
       id: 'qf4',
       round: 'Quarterfinals',
+      game: 'Free Fire',
       team1: { name: 'Jinja Thunderbolts', tag: 'JTB', score: 2, seed: 2, winner: true },
       team2: { name: 'Addis Black Lions', tag: 'ABL', score: 1, seed: 7 },
       status: 'COMPLETED',
@@ -74,6 +81,7 @@ export const EsportsTournamentBracket: React.FC = () => {
     {
       id: 'sf1',
       round: 'Semifinals',
+      game: 'Free Fire',
       team1: { name: 'Kampala Vipers Esports', tag: 'KVE', score: 3, seed: 1, winner: true },
       team2: { name: 'Dar es Salaam Titans', tag: 'DST', score: 2, seed: 4 },
       status: 'COMPLETED',
@@ -83,6 +91,7 @@ export const EsportsTournamentBracket: React.FC = () => {
     {
       id: 'sf2',
       round: 'Semifinals',
+      game: 'Free Fire',
       team1: { name: 'Mombasa Coastal Kings', tag: 'MCK', score: 1, seed: 6 },
       team2: { name: 'Jinja Thunderbolts', tag: 'JTB', score: 3, seed: 2, winner: true },
       status: 'COMPLETED',
@@ -93,6 +102,7 @@ export const EsportsTournamentBracket: React.FC = () => {
     {
       id: 'gf1',
       round: 'Grand Finals',
+      game: 'Free Fire',
       team1: { name: 'Kampala Vipers Esports', tag: 'KVE', score: 2, seed: 1 },
       team2: { name: 'Jinja Thunderbolts', tag: 'JTB', score: 2, seed: 2 },
       status: 'LIVE',
@@ -101,9 +111,11 @@ export const EsportsTournamentBracket: React.FC = () => {
     },
   ];
 
-  const qfMatches = matches.filter((m) => m.round === 'Quarterfinals');
-  const sfMatches = matches.filter((m) => m.round === 'Semifinals');
-  const gfMatches = matches.filter((m) => m.round === 'Grand Finals');
+  const filteredMatches = matches.filter((m) => m.game === selectedGame);
+  const qfMatches = filteredMatches.filter((m) => m.round === 'Quarterfinals');
+  const sfMatches = filteredMatches.filter((m) => m.round === 'Semifinals');
+  const gfMatches = filteredMatches.filter((m) => m.round === 'Grand Finals');
+  const hasMatches = filteredMatches.length > 0;
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -116,7 +128,7 @@ export const EsportsTournamentBracket: React.FC = () => {
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-white">{t('bracket.header.title')}</h2>
           <p className="text-xs text-slate-400">
-            Click any match box to inspect live team rosters, map vetoes, and real-time kill leaderboards.
+            Click any match box to view the full matchup — teams, score, round and schedule.
           </p>
         </div>
 
@@ -139,9 +151,18 @@ export const EsportsTournamentBracket: React.FC = () => {
       </div>
 
       {/* Bracket Tree Canvas */}
+      {!hasMatches ? (
+        <div className="p-12 rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl text-center">
+          <Gamepad2 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+          <h3 className="text-base font-bold text-white">No Bracket Yet</h3>
+          <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+            This game doesn't have a live elimination bracket yet. Check back soon.
+          </p>
+        </div>
+      ) : (
       <div className="p-6 rounded-3xl bg-slate-950 border border-slate-800 overflow-x-auto shadow-2xl">
         <div className="min-w-[850px] grid grid-cols-3 gap-8 items-center">
-          
+
           {/* Column 1: Quarterfinals */}
           <div className="space-y-6">
             <div className="text-center font-mono-code text-xs font-bold text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-800">
@@ -262,6 +283,106 @@ export const EsportsTournamentBracket: React.FC = () => {
 
         </div>
       </div>
+      )}
+
+      {/* Match Detail Modal */}
+      {activeMatchModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setActiveMatchModal(null)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400">
+                  <Swords className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white">Match Details</h3>
+                  <p className="text-xs text-slate-400">
+                    {activeMatchModal.round} • Match #{activeMatchModal.id.toUpperCase()}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveMatchModal(null)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between text-xs font-mono-code">
+              <span
+                className={`px-2.5 py-1 rounded-lg font-bold ${
+                  activeMatchModal.status === 'LIVE'
+                    ? 'bg-red-600 text-white animate-pulse'
+                    : activeMatchModal.status === 'COMPLETED'
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-slate-800 text-slate-300 border border-slate-700'
+                }`}
+              >
+                {activeMatchModal.status === 'COMPLETED'
+                  ? t('bracket.status.completed')
+                  : activeMatchModal.status === 'LIVE'
+                  ? t('bracket.status.live')
+                  : activeMatchModal.status}
+              </span>
+              <span className="text-slate-400">Best of {activeMatchModal.bestOf}</span>
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <div
+                className={`flex items-center justify-between p-3 rounded-2xl border ${
+                  activeMatchModal.team1.winner
+                    ? 'bg-purple-600/20 border-purple-500/40 text-white font-bold'
+                    : 'bg-slate-950 border-slate-800 text-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono-code text-slate-500">SEED {activeMatchModal.team1.seed}</span>
+                  <span>{activeMatchModal.team1.name}</span>
+                  {activeMatchModal.team1.winner && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                </div>
+                <span className="font-mono-code font-bold text-base">{activeMatchModal.team1.score ?? '—'}</span>
+              </div>
+
+              <div className="text-center text-[11px] font-mono-code text-slate-500 font-bold">
+                {t('bracket.finals.vs')}
+              </div>
+
+              <div
+                className={`flex items-center justify-between p-3 rounded-2xl border ${
+                  activeMatchModal.team2.winner
+                    ? 'bg-purple-600/20 border-purple-500/40 text-white font-bold'
+                    : 'bg-slate-950 border-slate-800 text-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono-code text-slate-500">SEED {activeMatchModal.team2.seed}</span>
+                  <span>{activeMatchModal.team2.name}</span>
+                  {activeMatchModal.team2.winner && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                </div>
+                <span className="font-mono-code font-bold text-base">{activeMatchModal.team2.score ?? '—'}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800 text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" />
+                <span>{activeMatchModal.scheduledTime}</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Gamepad2 className="w-3.5 h-3.5" />
+                <span>{activeMatchModal.game}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

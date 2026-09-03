@@ -56,7 +56,7 @@ export async function updateStreamKey(creatorUid: string, muxStreamKey: string) 
 
 export async function updateStreamMeta(
   creatorUid: string,
-  data: { title?: string; game?: string },
+  data: { title?: string; game?: string; latencyMode?: 'low' | 'reduced' | 'standard' },
 ) {
   const rows = await db
     .update(streams)

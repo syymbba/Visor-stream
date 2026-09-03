@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../lib/i18n';
 import {
   Flame,
@@ -16,12 +16,20 @@ interface HypeTrainWidgetProps {
   streamId: string;
   onOpenTip?: () => void;
   onOpenSubscribe?: () => void;
+  /**
+   * Increment this value from the parent once a tip (opened via onOpenTip)
+   * has actually been confirmed/completed — e.g. from TipModal's onSuccess
+   * callback. The widget only advances hype-train progress when this count
+   * changes, never when the Boost button merely opens the tip modal.
+   */
+  tipConfirmationCount?: number;
 }
 
 export const HypeTrainWidget: React.FC<HypeTrainWidgetProps> = ({
   streamId,
   onOpenTip,
   onOpenSubscribe,
+  tipConfirmationCount = 0,
 }) => {
   const { t } = useLanguage();
   const [isActive, setIsActive] = useState(true);
@@ -57,7 +65,7 @@ export const HypeTrainWidget: React.FC<HypeTrainWidgetProps> = ({
     return `${mins}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const handleBoostHype = () => {
+  const applyHypeBoost = () => {
     setProgressPercent((prev) => {
       const next = prev + 18;
       if (next >= 100) {
@@ -66,11 +74,28 @@ export const HypeTrainWidget: React.FC<HypeTrainWidgetProps> = ({
       }
       return next;
     });
+  };
 
+  const handleBoostHype = () => {
+    // Opening the tip flow no longer grants progress by itself — the boost
+    // is only applied once the tip is actually confirmed (see the
+    // tipConfirmationCount effect below), so canceling out of the tip
+    // modal leaves the hype train untouched.
     if (onOpenTip) {
       onOpenTip();
     }
   };
+
+  // Only advance hype-train progress once a tip has genuinely been
+  // completed by the parent (e.g. TipModal's onSuccess incrementing this
+  // count) — never on the button click that just opens the modal.
+  const prevTipConfirmationCount = useRef(tipConfirmationCount);
+  useEffect(() => {
+    if (tipConfirmationCount > prevTipConfirmationCount.current) {
+      applyHypeBoost();
+    }
+    prevTipConfirmationCount.current = tipConfirmationCount;
+  }, [tipConfirmationCount]);
 
   if (!isActive) return null;
 

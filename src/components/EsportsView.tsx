@@ -40,6 +40,7 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
   const [registeredIds, setRegisteredIds] = useState<string[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<EsportsTournament>(tournaments[0]);
   const [ticketModalOpen, setTicketModalOpen] = useState(false);
+  const [ticketPaymentMethod, setTicketPaymentMethod] = useState<'mobile_money' | 'card'>('mobile_money');
 
   const rate = CURRENCY_RATES[currentCurrency].rate;
   const symbol = CURRENCY_RATES[currentCurrency].symbol;
@@ -359,24 +360,53 @@ export const EsportsView: React.FC<EsportsViewProps> = ({
               <div className="space-y-1">
                 <label className="font-semibold text-slate-300">Payment Option</label>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2.5 rounded-xl border border-purple-500 bg-purple-500/10 text-white font-semibold flex items-center justify-center text-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setTicketPaymentMethod('mobile_money')}
+                    className={`p-2.5 rounded-xl border font-semibold flex items-center justify-center text-center gap-1.5 transition-all ${
+                      ticketPaymentMethod === 'mobile_money'
+                        ? 'border-purple-500 bg-purple-500/10 text-white'
+                        : 'border-slate-800 bg-slate-950 text-slate-400 hover:text-white hover:border-slate-700'
+                    }`}
+                  >
                     <Smartphone className="w-3.5 h-3.5" /> Mobile Money (MTN / M-Pesa)
-                  </div>
-                  <div className="p-2.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 flex items-center justify-center text-center gap-1.5">
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTicketPaymentMethod('card')}
+                    className={`p-2.5 rounded-xl border font-semibold flex items-center justify-center text-center gap-1.5 transition-all ${
+                      ticketPaymentMethod === 'card'
+                        ? 'border-purple-500 bg-purple-500/10 text-white'
+                        : 'border-slate-800 bg-slate-950 text-slate-400 hover:text-white hover:border-slate-700'
+                    }`}
+                  >
                     <CreditCard className="w-3.5 h-3.5" /> Card / PayPal
-                  </div>
+                  </button>
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="font-semibold text-slate-300">Mobile Money Number</label>
-                <input
-                  type="tel"
-                  defaultValue="0771234567"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono-code"
-                  required
-                />
-              </div>
+              {ticketPaymentMethod === 'mobile_money' ? (
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">Mobile Money Number</label>
+                  <input
+                    type="tel"
+                    defaultValue="0771234567"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono-code"
+                    required
+                  />
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">Card Number</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="4242 4242 4242 4242"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono-code placeholder-slate-600"
+                    required
+                  />
+                </div>
+              )}
 
               <div className="pt-2">
                 <button

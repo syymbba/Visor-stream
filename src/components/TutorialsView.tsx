@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { GamingTutorial } from '../types';
 import { getMuxPlaybackUrl } from '../lib/mux';
 import { createMuxDirectUpload } from '../services/muxService';
+import { getAuthHeaders } from '../firebase';
 import { useLanguage } from '../lib/i18n';
 import {
   BookOpen,
@@ -32,6 +33,100 @@ interface TutorialsViewProps {
   onOpenSubscribe: () => void;
 }
 
+type MuxUploadPhase = 'idle' | 'uploading' | 'processing' | 'ready' | 'blocked' | 'error';
+
+const MUX_ASSET_POLL_INTERVAL_MS = 3000;
+const MUX_ASSET_POLL_TIMEOUT_MS = 90000;
+
+interface MuxAssetStatus {
+  status: string;
+  playbackId: string | null;
+}
+
+/** Reads the real, already-existing GET /api/mux/assets/:assetId endpoint. */
+async function fetchMuxAssetStatus(assetId: string): Promise<MuxAssetStatus> {
+  const res = await fetch(`/api/mux/assets/${assetId}`, {
+    headers: { ...(await getAuthHeaders()) },
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error || 'Failed to check Mux asset status');
+  }
+  const playbackId = Array.isArray(data.playbackIds) && data.playbackIds.length > 0
+    ? data.playbackIds[0].id
+    : null;
+  return { status: data.status, playbackId };
+}
+
+/**
+ * Polls the asset endpoint until Mux reports the asset is ready with a
+ * playback ID, or the timeout elapses. Returns null (never throws for a
+ * timeout) so callers can fail closed instead of publishing fake content.
+ */
+async function pollForMuxPlaybackId(
+  assetId: string,
+  onStatus?: (status: string) => void
+): Promise<string | null> {
+  const start = Date.now();
+  while (Date.now() - start < MUX_ASSET_POLL_TIMEOUT_MS) {
+    const { status, playbackId } = await fetchMuxAssetStatus(assetId);
+    onStatus?.(status);
+    if (status === 'ready' && playbackId) {
+      return playbackId;
+    }
+    if (status === 'errored') {
+      throw new Error('Mux failed to process this video.');
+    }
+    await new Promise((resolve) => setTimeout(resolve, MUX_ASSET_POLL_INTERVAL_MS));
+  }
+  return null;
+}
+
+/** Reads the real GET /api/mux/uploads/:uploadId endpoint. */
+async function fetchMuxUploadStatus(uploadId: string): Promise<{ status: string; assetId: string | null }> {
+  const res = await fetch(`/api/mux/uploads/${uploadId}`, {
+    headers: { ...(await getAuthHeaders()) },
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error || 'Failed to check Mux upload status');
+  }
+  return { status: data.status, assetId: data.assetId ?? null };
+}
+
+/**
+ * Polls the upload endpoint until Mux links it to a resulting asset (or the
+ * timeout elapses / Mux reports an error). This resolves the common case
+ * where the direct-upload response has no assetId yet because Mux hasn't
+ * finished ingesting the file. Returns null on timeout so callers fail
+ * closed instead of publishing fake content.
+ */
+async function pollForMuxAssetId(
+  uploadId: string,
+  onStatus?: (status: string) => void
+): Promise<string | null> {
+  const start = Date.now();
+  while (Date.now() - start < MUX_ASSET_POLL_TIMEOUT_MS) {
+    const { status, assetId } = await fetchMuxUploadStatus(uploadId);
+    onStatus?.(status);
+    if (status === 'asset_created' && assetId) {
+      return assetId;
+    }
+    if (status === 'errored' || status === 'cancelled' || status === 'timed_out') {
+      throw new Error('Mux failed to process this upload.');
+    }
+    await new Promise((resolve) => setTimeout(resolve, MUX_ASSET_POLL_INTERVAL_MS));
+  }
+  return null;
+}
+
+/** Converts a "MM:SS" (or "H:MM:SS") chapter timestamp into seconds. */
+function timestampToSeconds(ts: string): number {
+  const parts = ts.split(':').map((p) => parseInt(p, 10));
+  if (parts.some((n) => Number.isNaN(n))) return 0;
+  return parts.reduce((acc, val) => acc * 60 + val, 0);
+}
+
 export const TutorialsView: React.FC<TutorialsViewProps> = ({
   tutorials,
   onUploadTutorial,
@@ -55,9 +150,21 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
   const [newDesc, setNewDesc] = useState('');
   const [uploadingVideo, setUploadingVideo] = useState<File | null>(null);
   const [muxUploadStatus, setMuxUploadStatus] = useState<string | null>(null);
+  const [muxUploadPhase, setMuxUploadPhase] = useState<MuxUploadPhase>('idle');
+  const [muxPlaybackId, setMuxPlaybackId] = useState<string | null>(null);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const gamesList = ['all', 'PUBG Mobile', 'EA Sports FC 24', 'Apex Legends Mobile', 'Free Fire', 'Tekken 8', 'Valorant'];
   const difficulties = ['all', 'Beginner', 'Intermediate', 'Pro', 'Master'];
+  const platforms = ['all', 'Mobile', 'PC', 'Console', 'Cross-Platform'];
+
+  // Keep the highlighted chapter in sync when switching to a different
+  // tutorial (the <video> itself remounts via key={activeTutorial.id} and
+  // resets to 0:00 on its own).
+  useEffect(() => {
+    setActiveChapterIndex(0);
+  }, [activeTutorial.id]);
 
   const filteredTutorials = tutorials.filter((tut) => {
     if (selectedGame !== 'all' && tut.game !== selectedGame) return false;
@@ -74,9 +181,14 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
     }
   };
 
+  // Publish is gated on a *confirmed* Mux asset — never on the upload merely
+  // having been sent. See handleMuxVideoUpload for why muxUploadPhase can
+  // get stuck at 'blocked' instead of reaching 'ready'.
+  const canPublish = !!newTitle.trim() && muxUploadPhase === 'ready' && !!muxPlaybackId;
+
   const handleCreateTutorial = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    if (!canPublish || !muxPlaybackId) return;
 
     const created: GamingTutorial = {
       id: 'tut_' + Date.now(),
@@ -97,7 +209,8 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
         mobileMoneySupported: true,
       },
       thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80',
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      videoUrl: getMuxPlaybackUrl(muxPlaybackId) || '',
+      muxPlaybackId,
       difficulty: newDifficulty,
       duration: '12:30',
       views: 1,
@@ -125,12 +238,21 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
     }
     setActiveTutorial(created);
     setUploadModalOpen(false);
+
+    // Reset upload state so a stale, already-used playback ID can't get
+    // silently attached to the *next* tutorial someone publishes.
+    setUploadingVideo(null);
+    setMuxUploadStatus(null);
+    setMuxUploadPhase('idle');
+    setMuxPlaybackId(null);
   };
 
   const handleMuxVideoUpload = async (file: File) => {
     setUploadingVideo(file);
+    setMuxPlaybackId(null);
+    setMuxUploadPhase('uploading');
     setMuxUploadStatus('Requesting Mux upload URL...');
-    const { uploadUrl } = await createMuxDirectUpload({
+    const { uploadUrl, uploadId, assetId } = await createMuxDirectUpload({
       contentType: file.type,
       fileSize: file.size,
     });
@@ -145,7 +267,62 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
     if (!uploadRes.ok) {
       throw new Error('Mux upload failed');
     }
-    setMuxUploadStatus('Upload sent to Mux. Waiting for processing...');
+
+    if (assetId) {
+      // Rare path: Mux had already linked this upload to an asset by the
+      // time the PUT finished. Poll the real GET /api/mux/assets/:assetId
+      // endpoint until it reports the asset ready with a playback ID.
+      setMuxUploadPhase('processing');
+      setMuxUploadStatus('Upload complete. Mux is processing your video...');
+      const playbackId = await pollForMuxPlaybackId(assetId, (status) => {
+        setMuxUploadStatus(`Upload complete. Mux status: ${status}...`);
+      });
+      if (playbackId) {
+        setMuxPlaybackId(playbackId);
+        setMuxUploadPhase('ready');
+        setMuxUploadStatus('Video processed and ready to publish.');
+        return;
+      }
+      setMuxUploadPhase('blocked');
+      setMuxUploadStatus(
+        `Mux is still processing this video after ${Math.round(MUX_ASSET_POLL_TIMEOUT_MS / 1000)}s. Publish stays disabled until it is confirmed ready — reselect the file to try again shortly.`
+      );
+      return;
+    }
+
+    // Common path: right after creating a direct upload, Mux has not yet
+    // linked it to an asset (that only happens once Mux has ingested the
+    // uploaded file), so the create-upload response's assetId is null here.
+    // Poll GET /api/mux/uploads/:uploadId until Mux links the upload to a
+    // resulting asset, then poll that asset the same way the rare path
+    // above does, until it's ready with a playback ID.
+    setMuxUploadPhase('processing');
+    setMuxUploadStatus('Upload complete. Waiting for Mux to create the video asset...');
+    const resolvedAssetId = await pollForMuxAssetId(uploadId, (status) => {
+      setMuxUploadStatus(`Upload complete. Mux upload status: ${status}...`);
+    });
+    if (!resolvedAssetId) {
+      setMuxUploadPhase('blocked');
+      setMuxUploadStatus(
+        `Mux hasn't linked this upload to a video asset after ${Math.round(MUX_ASSET_POLL_TIMEOUT_MS / 1000)}s. Publish stays disabled until it is confirmed ready — reselect the file to try again shortly.`
+      );
+      return;
+    }
+
+    setMuxUploadStatus('Asset created. Mux is processing your video...');
+    const playbackId = await pollForMuxPlaybackId(resolvedAssetId, (status) => {
+      setMuxUploadStatus(`Processing your video. Mux status: ${status}...`);
+    });
+    if (playbackId) {
+      setMuxPlaybackId(playbackId);
+      setMuxUploadPhase('ready');
+      setMuxUploadStatus('Video processed and ready to publish.');
+      return;
+    }
+    setMuxUploadPhase('blocked');
+    setMuxUploadStatus(
+      `Mux is still processing this video after ${Math.round(MUX_ASSET_POLL_TIMEOUT_MS / 1000)}s. Publish stays disabled until it is confirmed ready — reselect the file to try again shortly.`
+    );
   };
 
   return (
@@ -194,6 +371,7 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
           <div className="relative aspect-video w-full bg-slate-950 rounded-[28px] sm:rounded-[32px] overflow-hidden border border-slate-800 shadow-2xl">
             <video
               key={activeTutorial.id}
+              ref={videoRef}
               src={getMuxPlaybackUrl(activeTutorial.muxPlaybackId) || activeTutorial.videoUrl}
               controls
               playsInline
@@ -331,7 +509,13 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
               {activeTutorial.chapters.map((ch, idx) => (
                 <div
                   key={ch.id}
-                  onClick={() => setActiveChapterIndex(idx)}
+                  onClick={() => {
+                    setActiveChapterIndex(idx);
+                    if (videoRef.current) {
+                      videoRef.current.currentTime = timestampToSeconds(ch.timestamp);
+                      videoRef.current.play().catch(() => {});
+                    }
+                  }}
                   className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
                     activeChapterIndex === idx
                       ? 'bg-sky-500/15 border-sky-400 text-white shadow-sm'
@@ -416,6 +600,24 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
           ))}
         </div>
 
+        {/* Platform secondary bar */}
+        <div className="flex items-center gap-2 text-xs flex-wrap">
+          <span className="text-slate-400 font-mono-code font-bold">Platform:</span>
+          {platforms.map((p) => (
+            <button
+              key={p}
+              onClick={() => setSelectedPlatform(p)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono-code transition-colors ${
+                selectedPlatform === p
+                  ? 'bg-[#0284c7]/20 text-sky-300 font-bold border border-[#0369a1]/40 shadow-[0_0_8px_rgba(2,132,199,0.12)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {p === 'all' ? 'All' : p}
+            </button>
+          ))}
+        </div>
+
         {/* Tutorial Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {filteredTutorials.map((tut) => (
@@ -494,21 +696,27 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
 
             <form onSubmit={handleCreateTutorial} className="space-y-3.5">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">Video File</label>
+                <label className="text-xs font-semibold text-slate-300">Video File *</label>
                 <input
                   type="file"
                   accept="video/*"
+                  disabled={muxUploadPhase === 'uploading' || muxUploadPhase === 'processing'}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
                       handleMuxVideoUpload(file).catch((err) => {
+                        setMuxUploadPhase('error');
                         setMuxUploadStatus(err instanceof Error ? err.message : 'Mux upload failed');
                       });
                     }
                   }}
-                  className="w-full text-xs text-slate-300"
+                  className="w-full text-xs text-slate-300 disabled:opacity-50"
                 />
-                {muxUploadStatus && <p className="text-[11px] text-sky-300">{muxUploadStatus}</p>}
+                {muxUploadStatus && (
+                  <p className={`text-[11px] ${muxUploadPhase === 'ready' ? 'text-emerald-400' : muxUploadPhase === 'error' ? 'text-rose-400' : 'text-sky-300'}`}>
+                    {muxUploadStatus}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -582,13 +790,25 @@ export const TutorialsView: React.FC<TutorialsViewProps> = ({
                 <p>Tutorials on Visor earn 70% share from subscription views and are eligible for monthly Visor Creator Grants.</p>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 space-y-1.5">
                 <button
                   type="submit"
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#0074e4] to-[#00B4D8] hover:opacity-95 text-white font-rajdhani font-bold text-sm tracking-wider uppercase shadow-lg shadow-[#0074e4]/30 transition-transform active:scale-98"
+                  disabled={!canPublish}
+                  className={`w-full py-2.5 rounded-xl text-white font-rajdhani font-bold text-sm tracking-wider uppercase shadow-lg transition-transform ${
+                    canPublish
+                      ? 'bg-gradient-to-r from-[#0074e4] to-[#00B4D8] hover:opacity-95 shadow-[#0074e4]/30 active:scale-98'
+                      : 'bg-slate-700 cursor-not-allowed opacity-60 shadow-none'
+                  }`}
                 >
-                  {t('tutorials.upload_modal.submit_button')}
+                  {muxUploadPhase === 'uploading' || muxUploadPhase === 'processing'
+                    ? 'Processing Video…'
+                    : t('tutorials.upload_modal.submit_button')}
                 </button>
+                {!canPublish && (
+                  <p className="text-[10px] text-slate-500 text-center">
+                    Publish unlocks once your video is fully uploaded and Mux confirms it's ready to play — no placeholder video will be substituted.
+                  </p>
+                )}
               </div>
             </form>
           </div>

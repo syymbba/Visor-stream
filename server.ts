@@ -298,6 +298,27 @@ async function startServer() {
     });
   });
 
+  app.get("/api/mux/uploads/:uploadId", requireAuth, async (req: AuthRequest, res) => {
+    if (!mux) {
+      return res.status(500).json({ error: "Mux is not configured" });
+    }
+
+    const upload = await mux.video.uploads.retrieve(req.params.uploadId);
+    // Same ownership pattern as GET /api/mux/assets/:assetId below: the
+    // passthrough set at creation time (POST /api/mux/direct-upload) is
+    // echoed back on new_asset_settings, so an upload with no matching
+    // passthrough can't be proven to belong to the requester.
+    if (upload.new_asset_settings?.passthrough !== req.user!.uid) {
+      return res.status(404).json({ error: "Upload not found" });
+    }
+    return res.json({
+      uploadId: upload.id,
+      status: upload.status,
+      assetId: upload.asset_id ?? null,
+      error: upload.error?.message ?? null,
+    });
+  });
+
   app.get("/api/mux/assets/:assetId", requireAuth, async (req: AuthRequest, res) => {
     if (!mux) {
       return res.status(500).json({ error: "Mux is not configured" });
@@ -360,6 +381,7 @@ async function startServer() {
         rtmpUrl: MUX_RTMP_URL,
         title: stream.title,
         game: stream.game,
+        latencyMode: stream.latencyMode,
       });
     } catch (err) {
       console.error("Failed to get or create creator stream:", err);
@@ -391,25 +413,44 @@ async function startServer() {
     }
   });
 
-  // Update stream metadata (title/game). Never echoes back the stream key.
+  // Update stream metadata (title/game/latencyMode). Never echoes back the
+  // stream key. `latencyMode` maps directly onto Mux's real per-live-stream
+  // `latency_mode` setting (LiveStreamUpdateParams) - unlike an OBS bitrate
+  // cap, this is a genuine, Mux-applied playback-latency setting.
   app.patch("/api/streams/me", requireAuth, async (req: AuthRequest, res) => {
     try {
       const uid = req.user!.uid;
       const title = typeof req.body?.title === "string" ? req.body.title.slice(0, 200) : undefined;
       const game = typeof req.body?.game === "string" ? req.body.game.slice(0, 100) : undefined;
+      const rawLatencyMode = req.body?.latencyMode;
+      const latencyMode: 'low' | 'reduced' | 'standard' | undefined =
+        rawLatencyMode === "low" || rawLatencyMode === "reduced" || rawLatencyMode === "standard"
+          ? rawLatencyMode
+          : undefined;
+      if (rawLatencyMode !== undefined && latencyMode === undefined) {
+        return res.status(400).json({ error: "latencyMode must be one of 'low', 'reduced', or 'standard'" });
+      }
 
       const existing = await getCreatorStreamByUid(uid);
       if (!existing) {
         return res.status(404).json({ error: "No stream found for this creator. Call GET /api/streams/me first." });
       }
 
-      const updated = await updateStreamMeta(uid, { title, game });
+      if (latencyMode) {
+        if (!mux) {
+          return res.status(500).json({ error: "Mux is not configured" });
+        }
+        await mux.video.liveStreams.update(existing.muxLiveStreamId, { latency_mode: latencyMode });
+      }
+
+      const updated = await updateStreamMeta(uid, { title, game, latencyMode });
       return res.json({
         muxLiveStreamId: updated.muxLiveStreamId,
         muxPlaybackId: updated.muxPlaybackId,
         status: updated.status,
         title: updated.title,
         game: updated.game,
+        latencyMode: updated.latencyMode,
       });
     } catch (err) {
       console.error("Failed to update stream metadata:", err);

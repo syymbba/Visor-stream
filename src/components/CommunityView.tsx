@@ -15,8 +15,23 @@ import {
   CheckCircle2,
   ExternalLink,
   ShieldAlert,
-  Gift
+  Gift,
+  X,
+  Film
 } from 'lucide-react';
+
+interface PostComment {
+  id: string;
+  author: string;
+  text: string;
+  timestamp: string;
+}
+
+interface PendingAttachment {
+  file: File;
+  url: string;
+  type: 'image' | 'video';
+}
 
 interface CommunityViewProps {
   posts: CommunityPost[];
@@ -32,6 +47,12 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
   const [newPostContent, setNewPostContent] = useState('');
   const [likedPostIds, setLikedPostIds] = useState<string[]>(['p_1', 'p_3']);
   const [activeTipStreamer, setActiveTipStreamer] = useState<{ id: string; name: string } | null>(null);
+  const [expandedCommentPostIds, setExpandedCommentPostIds] = useState<string[]>([]);
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [postComments, setPostComments] = useState<Record<string, PostComment[]>>({});
+  const [attachModalOpen, setAttachModalOpen] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const leaderboardUsers = [
     { rank: 1, name: 'RexGamingUG', xp: '18,450 XP', clan: 'REX', badge: 'Apex Legend', avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=80&auto=format&fit=crop&q=80' },
@@ -62,6 +83,8 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
       },
       timestamp: 'Just now',
       content: newPostContent,
+      mediaUrl: pendingAttachment?.url,
+      mediaType: pendingAttachment?.type,
       likesCount: 1,
       commentsCount: 0,
       sharesCount: 0,
@@ -73,6 +96,9 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
     setFeedPosts([created, ...feedPosts]);
     setLikedPostIds([...likedPostIds, created.id]);
     setNewPostContent('');
+    // Don't revoke: the object URL is now the live media source for the
+    // post that was just added to the feed.
+    setPendingAttachment(null);
   };
 
   const toggleLike = (postId: string) => {
@@ -85,8 +111,69 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
     }
   };
 
+  const toggleComments = (postId: string) => {
+    setExpandedCommentPostIds((prev) =>
+      prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]
+    );
+  };
+
+  const handleAddComment = (postId: string) => (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = (commentDrafts[postId] || '').trim();
+    if (!text) return;
+    setPostComments((prev) => ({
+      ...prev,
+      [postId]: [
+        ...(prev[postId] || []),
+        { id: `c_${Date.now()}`, author: 'You (Gamer)', text, timestamp: 'Just now' },
+      ],
+    }));
+    setFeedPosts((prev) =>
+      prev.map((p) => (p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p))
+    );
+    setCommentDrafts((prev) => ({ ...prev, [postId]: '' }));
+  };
+
+  const handleSharePost = (post: CommunityPost) => {
+    const shareUrl = `https://visorstream.live/community/${post.id}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareUrl).catch(() => {});
+    }
+    setFeedPosts((prev) =>
+      prev.map((p) => (p.id === post.id ? { ...p, sharesCount: p.sharesCount + 1 } : p))
+    );
+    setToastMessage(t('common.copied'));
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleAttachFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (pendingAttachment) {
+      URL.revokeObjectURL(pendingAttachment.url);
+    }
+    const url = URL.createObjectURL(file);
+    const type: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image';
+    setPendingAttachment({ file, url, type });
+  };
+
+  const removeAttachment = () => {
+    if (pendingAttachment) {
+      URL.revokeObjectURL(pendingAttachment.url);
+    }
+    setPendingAttachment(null);
+  };
+
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900 border border-sky-400 text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl animate-fadeIn flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-sky-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Community Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-[28px] sm:rounded-[32px] border border-slate-800 shadow-xl">
         <div className="space-y-1">
@@ -143,9 +230,32 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
               />
             </div>
 
+            {pendingAttachment && (
+              <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
+                {pendingAttachment.type === 'video' ? (
+                  <video src={pendingAttachment.url} className="w-10 h-10 rounded-lg object-cover shrink-0" muted />
+                ) : (
+                  <img src={pendingAttachment.url} alt="Attachment preview" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                )}
+                <span className="truncate flex-1 font-mono-code">{pendingAttachment.file.name}</span>
+                <button
+                  type="button"
+                  onClick={removeAttachment}
+                  className="text-slate-400 hover:text-white p-1 shrink-0"
+                  title="Remove attachment"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
             <div className="flex items-center justify-between pt-2 border-t border-slate-800">
               <div className="flex items-center gap-2 text-xs text-slate-400 font-mono-code">
-                <button className="flex items-center gap-1.5 hover:text-white px-3 py-1.5 rounded-xl hover:bg-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setAttachModalOpen(true)}
+                  className="flex items-center gap-1.5 hover:text-white px-3 py-1.5 rounded-xl hover:bg-slate-800"
+                >
                   <ImageIcon className="w-4 h-4 text-sky-400" />
                   <span>{t('community.attach_clip_button')}</span>
                 </button>
@@ -160,6 +270,66 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Attach Clip Modal */}
+          {attachModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-sky-500/20 text-sky-400">
+                      <Film className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-rajdhani font-bold text-base text-white">Attach a Clip</h3>
+                  </div>
+                  <button
+                    onClick={() => setAttachModalOpen(false)}
+                    className="text-slate-400 hover:text-white p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <p className="text-xs text-slate-400">
+                  Choose an image or video from your device to attach to this post.
+                </p>
+
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={handleAttachFileChange}
+                  className="w-full text-xs text-slate-300"
+                />
+
+                {pendingAttachment && (
+                  <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
+                    {pendingAttachment.type === 'video' ? (
+                      <video src={pendingAttachment.url} className="w-10 h-10 rounded-lg object-cover shrink-0" muted />
+                    ) : (
+                      <img src={pendingAttachment.url} alt="Attachment preview" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                    )}
+                    <span className="truncate flex-1 font-mono-code">{pendingAttachment.file.name}</span>
+                    <button
+                      type="button"
+                      onClick={removeAttachment}
+                      className="text-slate-400 hover:text-white p-1 shrink-0"
+                      title="Remove attachment"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setAttachModalOpen(false)}
+                  className="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Feed Posts */}
           <div className="space-y-4">
@@ -209,11 +379,20 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
 
                   {post.mediaUrl && (
                     <div className="relative rounded-2xl overflow-hidden aspect-video border border-slate-800">
-                      <img
-                        src={post.mediaUrl}
-                        alt="Post media"
-                        className="w-full h-full object-cover"
-                      />
+                      {post.mediaType === 'video' ? (
+                        <video
+                          src={post.mediaUrl}
+                          controls
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <img
+                          src={post.mediaUrl}
+                          alt="Post media"
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                     </div>
                   )}
 
@@ -230,12 +409,20 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
                         <span>{post.likesCount} {t('community.likes_suffix')}</span>
                       </button>
 
-                      <button className="flex items-center gap-1.5 hover:text-white transition-colors">
+                      <button
+                        onClick={() => toggleComments(post.id)}
+                        className={`flex items-center gap-1.5 hover:text-white transition-colors ${
+                          expandedCommentPostIds.includes(post.id) ? 'text-sky-400 font-bold' : ''
+                        }`}
+                      >
                         <MessageSquare className="w-4 h-4" />
                         <span>{post.commentsCount}</span>
                       </button>
 
-                      <button className="flex items-center gap-1.5 hover:text-white transition-colors">
+                      <button
+                        onClick={() => handleSharePost(post)}
+                        className="flex items-center gap-1.5 hover:text-white transition-colors"
+                      >
                         <Share2 className="w-4 h-4" />
                         <span>{post.sharesCount}</span>
                       </button>
@@ -250,6 +437,44 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
                       <span>{t('community.tip_creator_button')}</span>
                     </button>
                   </div>
+
+                  {/* Expandable Comment Thread */}
+                  {expandedCommentPostIds.includes(post.id) && (
+                    <div className="pt-3 border-t border-slate-800 space-y-2.5">
+                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        {(postComments[post.id] || []).length === 0 ? (
+                          <p className="text-[11px] text-slate-500 font-mono-code">No comments yet — be the first to reply.</p>
+                        ) : (
+                          (postComments[post.id] || []).map((c) => (
+                            <div key={c.id} className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-bold text-sky-400">{c.author}</span>
+                                <span className="text-[10px] font-mono-code text-slate-500">{c.timestamp}</span>
+                              </div>
+                              <p className="text-slate-300">{c.text}</p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      <form onSubmit={handleAddComment(post.id)} className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder={t('reels.comment_input_placeholder')}
+                          value={commentDrafts[post.id] || ''}
+                          onChange={(e) =>
+                            setCommentDrafts((prev) => ({ ...prev, [post.id]: e.target.value }))
+                          }
+                          className="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 focus:border-sky-400 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none font-mono-code"
+                        />
+                        <button
+                          type="submit"
+                          className="p-2.5 rounded-xl bg-sky-500 text-slate-950 font-bold hover:bg-sky-400 transition-colors"
+                        >
+                          <Send className="w-4 h-4" />
+                        </button>
+                      </form>
+                    </div>
+                  )}
                 </div>
               );
             })}

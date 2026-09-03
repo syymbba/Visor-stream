@@ -51,8 +51,14 @@ export const AccountDeletionPanel: React.FC<AccountDeletionPanelProps> = ({ onNa
 
   if (!currentUser) return null;
 
-  const providerId = currentUser.providerData[0]?.providerId;
-  const isPasswordAccount = providerId === 'password';
+  // Render-time snapshot, used only to pick which reauth UI to show (password
+  // form vs. OAuth button) and its label. `.some()`/`.find()` rather than
+  // `providerData[0]` since Firebase makes no guarantee about provider order.
+  // This can still be stale relative to what's actually linked — see the
+  // fresh re-read at the top of each reauth handler below for why that's
+  // handled separately rather than relied on here.
+  const isPasswordAccount = currentUser.providerData.some((p) => p.providerId === 'password');
+  const oauthProviderId = currentUser.providerData.find((p) => p.providerId !== 'password')?.providerId;
   const canProceed = confirmInput.trim() === CONFIRM_WORD;
 
   const finishDeletion = async () => {
@@ -87,18 +93,34 @@ export const AccountDeletionPanel: React.FC<AccountDeletionPanelProps> = ({ onNa
     }
   };
 
-  const handlePasswordReauthAndDelete = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Builds the OAuth provider to reauthenticate against from a fresh
+  // providerData read, mirroring LinkedAccountsPanel's own provider-checking
+  // pattern rather than assuming a fixed index. Prefers Google when present;
+  // otherwise falls back to whichever non-password provider is actually
+  // linked (defaulting the OAuthProvider id to 'apple.com' only if, somehow,
+  // none is found).
+  const buildOAuthProviderFrom = (freshProviderData: { providerId: string }[]) => {
+    if (freshProviderData.some((p) => p.providerId === 'google.com')) {
+      return new GoogleAuthProvider();
+    }
+    const linkedOAuthId = freshProviderData.find((p) => p.providerId !== 'password')?.providerId;
+    return new OAuthProvider(linkedOAuthId || 'apple.com');
+  };
+
+  const handleOAuthReauthAndDelete = async () => {
     setError(null);
     setPendingPayoutMessage(null);
-    if (!currentUser.email) {
-      setError('This account has no email on file to re-authenticate with.');
-      return;
-    }
     setIsDeleting(true);
     try {
-      const credential = EmailAuthProvider.credential(currentUser.email, password);
-      await reauthenticateWithCredential(currentUser, credential);
+      // Read auth.currentUser.providerData fresh right at the point of
+      // deciding how to reauthenticate — not the value this component last
+      // rendered with. LinkedAccountsPanel's linkWithPopup()/unlink() mutate
+      // auth.currentUser in place without reliably firing onAuthStateChanged,
+      // so a provider unlinked/linked via that panel moments ago may not be
+      // reflected in this component's currentUser from useAuth() yet.
+      const freshProviderData = auth.currentUser?.providerData ?? [];
+      const provider = buildOAuthProviderFrom(freshProviderData);
+      await reauthenticateWithPopup(currentUser, provider);
     } catch (err: any) {
       setIsDeleting(false);
       setError(describeReauthError(err));
@@ -107,16 +129,31 @@ export const AccountDeletionPanel: React.FC<AccountDeletionPanelProps> = ({ onNa
     await finishDeletion();
   };
 
-  const handleOAuthReauthAndDelete = async () => {
+  const handlePasswordReauthAndDelete = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
     setPendingPayoutMessage(null);
+
+    // Same fresh re-read as above: the password form may still be showing
+    // even though the user just unlinked their password via
+    // LinkedAccountsPanel (in the same render tree, on the same Settings
+    // screen) — reauthenticating with a password that's no longer linked
+    // would just fail, so detect that here and fall back to whichever
+    // sign-in method is actually still linked instead.
+    const freshProviderData = auth.currentUser?.providerData ?? [];
+    if (!freshProviderData.some((p) => p.providerId === 'password')) {
+      await handleOAuthReauthAndDelete();
+      return;
+    }
+
+    if (!currentUser.email) {
+      setError('This account has no email on file to re-authenticate with.');
+      return;
+    }
     setIsDeleting(true);
     try {
-      const provider =
-        providerId === 'google.com'
-          ? new GoogleAuthProvider()
-          : new OAuthProvider(providerId || 'apple.com');
-      await reauthenticateWithPopup(currentUser, provider);
+      const credential = EmailAuthProvider.credential(currentUser.email, password);
+      await reauthenticateWithCredential(currentUser, credential);
     } catch (err: any) {
       setIsDeleting(false);
       setError(describeReauthError(err));
@@ -201,7 +238,7 @@ export const AccountDeletionPanel: React.FC<AccountDeletionPanelProps> = ({ onNa
       {canProceed && !isPasswordAccount && (
         <div className="pt-3 border-t border-[#2a475e]/60 space-y-3 animate-fadeIn">
           <p className="text-[11px] text-slate-300">
-            Re-authenticate with {providerId === 'google.com' ? 'Google' : providerId === 'apple.com' ? 'Apple' : 'your sign-in provider'} to
+            Re-authenticate with {oauthProviderId === 'google.com' ? 'Google' : oauthProviderId === 'apple.com' ? 'Apple' : 'your sign-in provider'} to
             permanently delete your account.
           </p>
           <div className="flex justify-end">

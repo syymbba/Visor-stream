@@ -10,6 +10,8 @@ export interface MyStreamData {
   rtmpUrl: string;
   title: string | null;
   game: string | null;
+  /** Real Mux per-live-stream latency setting (LiveStreamUpdateParams `latency_mode`). */
+  latencyMode: 'low' | 'reduced' | 'standard' | null;
 }
 
 export interface UseMyStreamOptions {
@@ -56,7 +58,7 @@ export function useMyStream(options?: UseMyStreamOptions) {
     return json.muxStreamKey as string;
   };
 
-  const updateMeta = async (meta: { title?: string; game?: string }): Promise<void> => {
+  const updateMeta = async (meta: { title?: string; game?: string; latencyMode?: 'low' | 'reduced' | 'standard' }): Promise<void> => {
     const res = await fetch('/api/streams/me', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },

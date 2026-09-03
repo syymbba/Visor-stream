@@ -7,7 +7,13 @@ import { useMyStream } from '../hooks/useMyStream';
 interface GoLiveModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onStartBroadcast: (streamData: { title: string; game: string; resolution: string }) => void;
+  onStartBroadcast: (streamData: {
+    title: string;
+    game: string;
+    resolution: string;
+    muxPlaybackId: string | null;
+    muxLiveStreamId: string;
+  }) => void;
 }
 
 const GAME_OPTIONS = [
@@ -94,6 +100,13 @@ export const GoLiveModal: React.FC<GoLiveModalProps> = ({
             // resolution parameter) - this is just an informational default
             // for the callback's existing shape.
             resolution: '1080p60',
+            // Real Mux identifiers so App.tsx can build the actual HLS
+            // playback URL for the optimistic stream card instead of a
+            // hardcoded fake sample video. muxPlaybackId can still be null
+            // here if Mux hasn't finished provisioning playback for this
+            // live stream yet - App.tsx handles that fallback.
+            muxPlaybackId: stream?.muxPlaybackId ?? null,
+            muxLiveStreamId: stream?.muxLiveStreamId ?? '',
           });
           onClose();
         }
