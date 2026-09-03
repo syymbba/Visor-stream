@@ -132,7 +132,7 @@ function logIPN(entry: Omit<IPNLogEntry, 'id' | 'timestamp'>) {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
   if (process.env.NODE_ENV === "production" &&
       (!process.env.PESAPAL_CONSUMER_KEY || !process.env.PESAPAL_CONSUMER_SECRET)) {
